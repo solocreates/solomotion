@@ -16,9 +16,21 @@ The first public release is being prepared. Star or watch this repository to hea
 - **Built for agents too.** An API that AI coding tools can drive.
 - **Runs in your browser.** Nothing to install, and your projects stay on your machine.
 
-## Support the project
+## Two ways to support it
 
-Donations open with the first release. Until then, the best help is a star and telling one person who makes videos.
+**Fund it.** SoloMotion has no investors and no price. Money pays for the hours that build it, monthly or once. Donations open with the first release.
+
+**Spread it.** No budget means you are how people find out. Post about it, make a video or a tutorial, write about it, send us what you made, or star the repo. It takes ten seconds and it matters more than you think.
+
+## Supporters
+
+Everyone who funds SoloMotion, or makes something about it, is listed here.
+
+- **First believers.** The first people to fund, post or make something about SoloMotion. This row is permanent.
+- **Sponsors.** Monthly supporters.
+- **Creators.** People who made a video, a tutorial, an article or a post.
+
+_Be the first. Open an issue with a link to what you made, and you'll be added._
 
 ## License
 
