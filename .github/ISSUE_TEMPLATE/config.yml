@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/novincode/solomotion/discussions
+    about: Ask how to do something, or talk through an idea before it becomes a request.
+  - name: Security vulnerability
+    url: https://github.com/novincode/solomotion/security/advisories/new
+    about: Report it privately. Please do not open a public issue.
