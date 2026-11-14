@@ -128,6 +128,10 @@ export interface BrandAssets {
 export interface Product extends ProductIdentity {
   /** The small mark: rails, menus, favicons. */
   Mark: React.ComponentType<{ className?: string; size?: number }>;
+  /** The name as it is drawn (the top bar): set in the product's own letterforms. */
+  Wordmark: React.ComponentType<{ className?: string }>;
+  /** Where Support sends money and what the share text says (an open product); null: none. */
+  support: { githubSponsors: string; buyMeACoffee: string | null; shareText: string } | null;
   /** Waiting: loading, rendering, exporting. */
   Loader: React.ComponentType<{ className?: string; size?: number }>;
   /** The full-screen boot splash. */

@@ -649,12 +649,24 @@ function loadDrawing(): PersistedDrawing {
         size: { ...DRAWING_DEFAULTS.pressure.size, ...p.pressure?.size },
         opacity: { ...DRAWING_DEFAULTS.pressure.opacity, ...p.pressure?.opacity },
       },
-      onion: { ...DRAWING_DEFAULTS.onion, ...p.onion },
+      onion: onionFromStore(p.onion),
       capture: { ...DRAWING_DEFAULTS.capture, ...p.capture },
     };
   } catch {
     return DRAWING_DEFAULTS;
   }
+}
+
+/**
+ * Stored onion settings, with the OLD fixed red/green defaults read as "the
+ * theme's" (null): those were never a person's pick, just what every install
+ * stored, and keeping them would pin a re-themed studio to someone else's hues.
+ */
+function onionFromStore(stored: Partial<OnionSettings> | undefined): OnionSettings {
+  const o = { ...DRAWING_DEFAULTS.onion, ...stored };
+  if (o.prevColor?.toUpperCase() === "#E5484D") o.prevColor = null;
+  if (o.nextColor?.toUpperCase() === "#30A46C") o.nextColor = null;
+  return o;
 }
 
 export const useDrawing = create<DrawingState>((set, get) => {

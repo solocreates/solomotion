@@ -6,6 +6,8 @@ import {
   addFlipbookCellAt,
   addFlipbookRow,
   cellDrawing,
+  onionGhosts,
+  type OnionSettings,
   cellFrameCount,
   cellPaintTargetId,
   applyFlipbookDragPlan,
@@ -97,6 +99,9 @@ import { copyFlipbookCells, cutFlipbookCells, pasteFlipbookClipboard, useFlipboo
 import { rowFocusBox, useSurfaceTick, type FocusBox } from "./cell-focus";
 import { focusFlipbookCell } from "./flipbook-focus";
 import { OnionPod } from "./OnionPod";
+import { useDrawing } from "./drawing-store";
+import { useTheme } from "../theme/use-theme";
+import { sceneInk } from "../stage/scene-chrome";
 import { cloneSurfacePixels } from "./raster-store";
 import { CompThumb } from "../preview/CompThumb";
 import { capturePointer } from "../input/capture-pointer";
@@ -289,6 +294,14 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
   const activeCellId = inFlipbook
     ? (activeFlipbookCell(doc, flipbook.id, playheadMs, selectedClipIds)?.id ?? null)
     : (drilledCell?.id ?? null);
+  const onion = useDrawing((s) => s.onion);
+  const themeKey = useTheme((s) => s.theme);
+  const onionMarks = React.useMemo(
+    () => onionMarksFor(doc, rows.flatMap((r) => r.cells).find((c) => c.id === activeCellId) ?? null, onion),
+    // `themeKey`: the tints are the theme's (sceneInk), so a theme change re-derives them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc, rows, activeCellId, onion, themeKey],
+  );
 
   // ── Free multi-select (marquee + ⇧ range + ⌘/Ctrl toggle) ─────────────────
   // Cells ARE clips, so multi-selection rides the SAME `selectedClipIds` every
@@ -649,7 +662,7 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
           {/* Frame ruler — scrub by click/drag (opts out of the marquee below). */}
           <div
             data-no-marquee
-            className="sticky top-0 z-10 ml-40 flex h-6 cursor-ew-resize select-none border-b bg-panel"
+            className="sticky top-0 z-10 ml-40 flex h-6 cursor-ew-resize select-none border-b border-line bg-panel"
             style={{ width: totalFrames * FRAME_W + FRAME_W * 2 }}
             // THE shared scrub lifecycle. The hand-rolled one this replaces
             // listened for `pointerup` and nothing else, so — exactly like the
@@ -669,7 +682,7 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
             {Array.from({ length: totalFrames + 1 }, (_, i) => (
               <div
                 key={i}
-                className="shrink-0 border-l border-border/40 pl-1 text-[9px] leading-6 text-muted-foreground"
+                className="shrink-0 border-l border-line pl-1 font-mono text-[9px] leading-6 tabular-nums text-muted-foreground"
                 style={{ width: FRAME_W }}
               >
                 {i + 1}
@@ -690,7 +703,7 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
               endMs={endMs}
               activeCellId={activeCellId}
               selectedCellIds={selectedCellIds}
-              drilledFrameId={inFlipbook ? null : activeFrameId}
+              onionMarks={onionMarks}
               dragPreview={dragPreview}
               onDragPreview={setDragPreview}
               onSelect={focusCell}
@@ -717,7 +730,6 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
             scrollRef={sheetGridRef}
             offsetPx={ROW_HEADER_W}
             frameId={flipbook.id}
-            colorClassName="bg-[#F5B843]"
           />
         </div>
         {marqueeNode}
@@ -746,6 +758,31 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
 }
 
 
+/** Ghosted cells by DRAWING id: the tint the stage ghosts it in, and its
+ *  strength (1 = the nearest ghost). Empty while the onion skin is off. */
+type OnionMarks = ReadonlyMap<string, { color: string; strength: number }>;
+const NO_MARKS: OnionMarks = new Map();
+
+/**
+ * The SAME plan the stage draws (`onionGhosts`), read for the sheet, so the
+ * cells that light up are exactly the drawings ghosted on the canvas.
+ */
+function onionMarksFor(doc: MotionDocument, current: Clip | null, onion: OnionSettings): OnionMarks {
+  if (!onion.enabled || !current || onion.opacity <= 0) return NO_MARKS;
+  const drawing = cellDrawing(doc, current);
+  if (!drawing) return NO_MARKS;
+  const ink = sceneInk();
+  const marks = new Map<string, { color: string; strength: number }>();
+  for (const g of onionGhosts(doc, drawing.id, onion)) {
+    if (g.source !== "drawing" || g.drawingFrameId === drawing.id) continue;
+    const prev = marks.get(g.drawingFrameId);
+    const strength = g.alpha / onion.opacity;
+    if (prev && prev.strength >= strength) continue;
+    marks.set(g.drawingFrameId, { color: g.color ?? (g.offset < 0 ? ink.onionBehind : ink.onionAhead), strength });
+  }
+  return marks;
+}
+
 function SheetRow({
   flipbook,
   row,
@@ -754,7 +791,7 @@ function SheetRow({
   endMs,
   activeCellId,
   selectedCellIds,
-  drilledFrameId,
+  onionMarks,
   dragPreview,
   onDragPreview,
   onSelect,
@@ -774,8 +811,8 @@ function SheetRow({
   activeCellId: string | null;
   /** The sheet's free multi-selection (marquee/⇧/⌘), resolved to CELL ids. */
   selectedCellIds: ReadonlySet<string>;
-  /** Non-null while drilled into a cell drawing — that cell reads as active. */
-  drilledFrameId: string | null;
+  /** Cells the onion skin ghosts, by drawing id (see `onionMarksFor`). */
+  onionMarks: OnionMarks;
   /** The sheet-wide live drag (see FlipbookPanel) — shared across rows so a
    *  cross-row multi-select still rides one plan. */
   dragPreview: SheetDrag | null;
@@ -847,7 +884,7 @@ function SheetRow({
   }
 
   return (
-    <div className="flex border-b border-border/40" style={{ height: ROW_H }}>
+    <div className="flex border-b border-line" style={{ height: ROW_H }}>
       {/* Row header (sticky left). */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
@@ -967,7 +1004,8 @@ function SheetRow({
             step={step}
             selected={cell.id === activeCellId || selectedCellIds.has(cell.id)}
             selectedCellIds={selectedCellIds}
-            drilled={cell.kind === "nested" && cell.sourceFrameId === drilledFrameId}
+            current={cell.id === activeCellId}
+            onionMarks={onionMarks}
             locked={isClipLocked(row.track, cell)}
             dragPreviewPx={
               dragPreview?.kind === "move" && dragPreview.ids.has(cell.id) ? dragPreview.deltaPx : null
@@ -1057,8 +1095,8 @@ function VoidSlot({
           data-marquee-click-through
           onClick={onClick}
           className={cn(
-            "group absolute top-1.5 flex items-center justify-center rounded-lg border border-dashed transition-colors hover:border-foreground/40 hover:bg-accent/40",
-            selected ? "border-primary ring-2 ring-primary/40" : "border-border/25",
+            "group absolute top-1.5 flex items-center justify-center rounded-(--r-sm) border border-dashed transition-colors hover:border-foreground/40 hover:bg-hover",
+            selected ? "border-primary bg-selection" : "border-line",
           )}
           style={{ left: (ms / step) * FRAME_W + 1, width: FRAME_W - 2, height: ROW_H - 12 }}
         >
@@ -1116,7 +1154,7 @@ function GhostCell({
   if (!source) return null;
   return (
     <div
-      className="pointer-events-none absolute top-1.5 overflow-hidden rounded-lg border border-border/30 opacity-30"
+      className="pointer-events-none absolute top-1.5 overflow-hidden rounded-(--r-sm) border border-line opacity-30"
       style={{ left: (leftMs / step) * FRAME_W + 1, width: (cell.durationMs / step) * FRAME_W - 2, height: ROW_H - 12 }}
     >
       <CompThumb frameId={source.id} className="h-full w-full object-contain" focus={focus} />
@@ -1131,7 +1169,8 @@ function SheetCell({
   step,
   selected,
   selectedCellIds,
-  drilled,
+  current,
+  onionMarks,
   locked,
   dragPreviewPx,
   copyPreview,
@@ -1155,7 +1194,9 @@ function SheetCell({
   /** The sheet's free multi-selection (resolved to cell ids) — drives the
    *  context menu's "act on the whole selection" and its count label. */
   selectedCellIds: ReadonlySet<string>;
-  drilled: boolean;
+  /** THE cell a stroke lands on (drilled into, or under the playhead). */
+  current: boolean;
+  onionMarks: OnionMarks;
   locked: boolean;
   /** Non-null while THIS cell is one of the ones in your hand — its
    *  un-quantised translateX in px (no document write yet). */
@@ -1187,6 +1228,7 @@ function SheetCell({
   const store = useDocStore();
   const { FRAME_W, ROW_H } = useSheetGrid(step);
   const source = cellDrawing(doc, cell);
+  const onionMark = source ? onionMarks.get(source.id) : undefined;
   const hold = cellFrameCount(doc, flipbook, cell);
   const cutPending = useFlipbookClipboard((s) => s.mode === "cut" && s.cellIds.includes(cell.id));
   const clipboardMode = useFlipbookClipboard((s) => s.mode);
@@ -1471,7 +1513,7 @@ function SheetCell({
     <>
       {copyPreview && dragPreviewPx != null && (
         <div
-          className="pointer-events-none absolute top-1.5 z-20 overflow-hidden rounded-lg border border-primary/70 bg-background/70 opacity-85 shadow-lg ring-2 ring-primary/40"
+          className="pointer-events-none absolute top-1.5 z-20 overflow-hidden rounded-(--r-sm) border border-primary/70 bg-background/70 opacity-85 shadow-lg ring-2 ring-primary/40"
           style={{
             // The ghost hangs off the cell's OWN slot, never its planned one —
             // during a ⌥-drag the original stays put and it is the copy that
@@ -1508,14 +1550,18 @@ function SheetCell({
             // across the sheet scrolls it, a brief hold then drags the cell.
             // That is `beginHeldDrag` below, and it only works if the browser
             // still has a scroll to be handed back — so no `touch-action` here.
-            "group absolute top-1.5 overflow-hidden rounded-lg border bg-background/60 transition-shadow",
+            //
+            // Three states, one grammar with the clips: the CURRENT cell (the
+            // one the pen hits) wears the accent ring, the selection is an
+            // accent EDGE on the selection wash, the rest sit on `--line`.
+            "group absolute top-1.5 overflow-hidden rounded-(--r-sm) border transition-[box-shadow,border-color]",
             HELD_DRAG_SURFACE,
             locked ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-            drilled
-              ? "border-[#FFB86C] ring-2 ring-[#FFB86C]/50"
+            current
+              ? "border-primary bg-background/60 ring-2 ring-primary ring-offset-1 ring-offset-panel"
               : selected
-                ? "border-primary ring-2 ring-primary/40"
-                : "border-border/70 hover:border-foreground/30",
+                ? "border-primary bg-selection"
+                : "border-line bg-background/60 hover:border-foreground/30",
             locked && "opacity-60",
             cutPending && "opacity-40",
             // Only the MOVE drag lifts/dims the cell; a duplicate-drag leaves the
@@ -1531,6 +1577,19 @@ function SheetCell({
           }}
         >
           {source && <CompThumb frameId={source.id} className="h-full w-full object-contain" focus={focus} />}
+          {onionMark && (
+            // The onion skin, shown where you plan it: a ghosted neighbour
+            // carries its ghost's tint as a foot bar and a faint wash, fading
+            // with distance exactly as the ghost does on the stage.
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: `linear-gradient(to top, ${onionMark.color} 0 3px, color-mix(in oklab, ${onionMark.color} 16%, transparent) 3px)`,
+                opacity: 0.3 + 0.7 * onionMark.strength,
+              }}
+            />
+          )}
           <span className="absolute bottom-0.5 left-1 rounded bg-background/70 px-1 text-[9px] text-muted-foreground">
             {hold > 1 ? `×${hold}` : ""}
           </span>

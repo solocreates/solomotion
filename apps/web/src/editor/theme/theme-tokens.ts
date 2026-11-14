@@ -39,14 +39,55 @@ export const DENSITY_OPTIONS = [
   { id: 32, label: "Roomy" },
 ] as const;
 
-let currentAccent = "";
 /**
- * The live accent as a real colour string, for CANVAS code that can't read a
- * CSS var. Tracks the active theme and is O(1), so it is safe inside
- * per-frame render loops.
+ * What CANVAS code needs from the live theme, as values a 2D context can take
+ * (it cannot read a CSS variable). Written once per theme change by
+ * `applyThemeToDom`, read O(1), so it is safe inside per-frame render loops.
+ * The stage's chrome derives its whole palette from this (`scene-chrome.ts`).
  */
+export interface CanvasTones {
+  accent: string;
+  /** Ink that reads ON the accent (a readout pill's text). */
+  onAccent: string;
+  /** The mode's ground: a handle's fill, so it is a hole in the art in dark
+   *  mode and a white chip in light mode (Figma's). */
+  paper: string;
+  ink: string;
+  muted: string;
+  light: boolean;
+  /** `--r-xs` as px, for square grips. */
+  corner: number;
+  /** The code face as a real family stack (canvas `font` cannot take var()). */
+  codeFont: string;
+}
+
+let tones: CanvasTones | null = null;
+
+function tonesOf(theme: Theme, mode: Mode, codeFont: string): CanvasTones {
+  const n = theme.neutral[mode];
+  return {
+    accent: theme.accent[mode],
+    onAccent: theme.accentFg[mode],
+    paper: n.bg,
+    ink: n.fg,
+    muted: n.muted,
+    light: mode === "light",
+    corner: Math.min(3, Math.max(2, theme.radius / 3)),
+    codeFont,
+  };
+}
+
+const CODE_FALLBACK = 'ui-monospace, "SF Mono", Menlo, monospace';
+
+export function canvasTones(): CanvasTones {
+  if (tones) return tones;
+  const t = defaultTheme();
+  return (tones = tonesOf(t, t.mode, CODE_FALLBACK));
+}
+
+/** The live accent as a real colour string (see `canvasTones`). */
 export function accentColor(): string {
-  return currentAccent || (currentAccent = defaultTheme().accent.dark);
+  return canvasTones().accent;
 }
 
 identity.registerThemes();
@@ -99,7 +140,10 @@ export function applyThemeToDom(theme: Theme, prefs: ThemePrefs): void {
   const root = document.documentElement;
   const c = compile(theme, resolveMode(prefs.mode));
   applyCompiled(root, c);
-  currentAccent = c.accent;
+  // Custom properties compute with their var()s substituted, so this is the
+  // real family list the next/font classes on <html> define.
+  const code = getComputedStyle(root).getPropertyValue("--font-code").trim();
+  tones = tonesOf(theme, resolveMode(prefs.mode), code || CODE_FALLBACK);
   root.dataset.glass = prefs.glass ? "on" : "off";
   root.style.setProperty("--ui-scale", String(prefs.scale));
   root.style.fontSize = prefs.scale === 1 ? "" : `${BASE_FONT_PX * prefs.scale}px`;

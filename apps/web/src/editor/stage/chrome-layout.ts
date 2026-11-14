@@ -92,3 +92,30 @@ const DEFAULT_ALIGN: Record<ChromeEdge, ChromeAlign> = {
 export function placementOf(edge: ChromeEdge, align?: ChromeAlign): ChromePlacement {
   return { edge, align: align ?? DEFAULT_ALIGN[edge] };
 }
+
+/*
+ * THE ZONED BAND: a horizontal edge with a `center` occupant.
+ *
+ *     wide stage        [ start ]   [ ···· centre, ≤ 45rem, scrolls ···· ]   [ end ]
+ *
+ *     narrow stage      [ ············ centre, full row, scrolls ············ ]
+ *     (< 40rem)         [ start ]                                     [ end ]
+ *
+ * On the top edge that is nav (where you are) on the left, stage settings
+ * (zoom, quality, view) ALWAYS on the right, and the armed tool's options in
+ * the middle. They are three zones of ONE grid (`chrome-zones` in
+ * globals.css), so nothing is positioned by measuring its neighbour:
+ *
+ * - the sides are `minmax(max-content, 1fr)`, capped at a third of the stage,
+ *   so they never give way to the centre and the centre never overlaps them;
+ * - the centre is `fit-content(45rem)`: its content, never past its own max,
+ *   and never past what the sides leave. Its capsule scrolls inside itself
+ *   with edge fades (`BarCapsule`), so a long bar costs nothing but a swipe;
+ * - the break is a CONTAINER query on the stage (`@container stage-chrome`),
+ *   not the viewport: a docked panel narrows the stage exactly like a small
+ *   window does. Under it the centre takes a full row of its own at the edge
+ *   and the sides share the row on the canvas side of it.
+ *
+ * The bottom edge mirrors it (the centre hugs the bottom). Vertical edges
+ * keep their three flex groups: a column has nothing to collide with.
+ */

@@ -51,7 +51,9 @@ function workspacePackages() {
   return ordered;
 }
 
-const publishable = (p) => !p.manifest.private && p.manifest.name.startsWith("@solomotion/");
+/** The bare `solomotion` CLI and the @solomotion scope; everything else stays in the repo. */
+const publishable = (p) =>
+  !p.manifest.private && (p.manifest.name === "solomotion" || p.manifest.name.startsWith("@solomotion/"));
 
 function plan() {
   const tag = process.env.GITHUB_REF_NAME;

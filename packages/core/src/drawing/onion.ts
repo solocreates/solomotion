@@ -14,9 +14,14 @@ export interface OnionSettings {
   /** How many cells to ghost behind / ahead. */
   prevCount: number;
   nextCount: number;
-  /** Ghost tints (classic: red-ish past, green-ish future). */
-  prevColor: string;
-  nextColor: string;
+  /**
+   * Ghost tints. `null` (the default) is the HOST's choice: the editor derives
+   * them from its theme (the accent ahead, its complement behind), so a
+   * re-themed studio never ghosts in someone else's red and green. A colour
+   * here is a person's explicit pick and wins.
+   */
+  prevColor: string | null;
+  nextColor: string | null;
   /** Alpha of the NEAREST ghost; each step further fades by `falloff`. */
   opacity: number;
   falloff: number;
@@ -30,8 +35,8 @@ export const DEFAULT_ONION_SETTINGS: OnionSettings = {
   enabled: false,
   prevCount: 2,
   nextCount: 1,
-  prevColor: "#E5484D",
-  nextColor: "#30A46C",
+  prevColor: null,
+  nextColor: null,
   opacity: 0.35,
   falloff: 0.55,
   tintStrength: 0.65,
@@ -55,7 +60,8 @@ export const DEFAULT_ONION_SETTINGS: OnionSettings = {
 interface OnionGhostBase {
   /** Negative = frames behind, positive = ahead (1 = adjacent). */
   offset: number;
-  color: string;
+  /** `null`: the host tints it (see `OnionSettings.prevColor`). */
+  color: string | null;
   alpha: number;
 }
 export type OnionGhost =
@@ -87,7 +93,7 @@ function ghostsFromAnchors(
   settings: OnionSettings,
 ): OnionGhost[] {
   const ghosts: OnionGhost[] = [];
-  const push = (rawIndex: number, offset: number, color: string) => {
+  const push = (rawIndex: number, offset: number, color: string | null) => {
     let i = rawIndex;
     if (i < 0 || i >= cells.length) {
       if (!wrap) return;
@@ -144,7 +150,7 @@ export function captureOnionGhosts(
   // it was written.
   const halfFrame = frameStepMs(fps) / 2;
   const ghosts: OnionGhost[] = [];
-  const push = (index: number, offset: number, color: string) => {
+  const push = (index: number, offset: number, color: string | null) => {
     const at = keys[index];
     if (at === undefined) return;
     const alpha = ghostAlpha(Math.abs(offset), settings);

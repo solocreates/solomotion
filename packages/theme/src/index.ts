@@ -7,3 +7,4 @@ export * from "./registry";
 export * from "./range-math";
 export * from "./dial";
 export { varName } from "./label";
+export * from "./fund";

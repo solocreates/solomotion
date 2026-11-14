@@ -45,6 +45,8 @@
      the rounded stage card sit on (see AppFrame). One token so the whole
      layout tightens or loosens together. */
   --shell-gap: 0.375rem;
+  /* The top bar's row: identity, the open projects, Export. */
+  --topbar-h: 2.75rem;
   /* Every interactive control is one of two heights. Fields, sliders, toggles
      and toolbar buttons all resolve to `--control-h`, which is why a slider now
      lines up with the input beside it instead of floating in its row.
@@ -183,12 +185,30 @@
    * tinted clip, and a hand-picked lane colour drags its clips with it. The
    * saturated edge stays constant, because a 100%-chroma hairline reads on both.
    */
+  /* THE KIND HUES are a wheel turned by the ACCENT (see the @supports block
+     below the root): each kind keeps its lightness and chroma and sits a
+     fixed angle from the accent, so the accent itself is never a kind's hue —
+     it stays the one colour that means "selected / now". The hexes here are
+     those angles evaluated at the rose accent (oklch hue 16), for browsers
+     without relative colour, so a rose theme looks identical either way. */
   --clip-text-border: #9d8bff;
   --clip-caption-border: #4cc3e0;
   --clip-audio-border: #46d39a;
+  --clip-mesh-border: #f29a4a;
+  --clip-camera-border: #9cc27a;
+  --clip-light-border: #e6c35c;
+  --clip-raster-border: #7bd88f;
+  --clip-adjust-border: #a78bfa;
+  --clip-empty-border: #9aa3b2;
   --clip-text: color-mix(in srgb, var(--clip-text-border) 22%, var(--track-lane));
   --clip-caption: color-mix(in srgb, var(--clip-caption-border) 22%, var(--track-lane));
   --clip-audio: color-mix(in srgb, var(--clip-audio-border) 22%, var(--track-lane));
+  --clip-mesh: color-mix(in srgb, var(--clip-mesh-border) 20%, var(--track-lane));
+  --clip-camera: color-mix(in srgb, var(--clip-camera-border) 22%, var(--track-lane));
+  --clip-light: color-mix(in srgb, var(--clip-light-border) 20%, var(--track-lane));
+  --clip-raster: color-mix(in srgb, var(--clip-raster-border) 20%, var(--track-lane));
+  --clip-adjust: color-mix(in srgb, var(--clip-adjust-border) 18%, var(--track-lane));
+  --clip-empty: color-mix(in srgb, var(--clip-empty-border) 18%, var(--track-lane));
   /* A GROUP is a container, not content: it takes the lane's own value with a
      hairline, so a row of members reads as the coloured thing and the group
      reads as the box around them. */
@@ -293,6 +313,23 @@
   --button-px-lg: 1rem;
   --button-text: 0.75rem;
   --button-text-lg: 0.75rem;
+}
+
+/* The kind wheel, turned by the live accent. Angles are measured from
+   the rose accent (oklch hue 16) to the hues the timeline always wore, so a
+   rose theme is unchanged and every other accent gets the same relationships.
+   A clip is never the accent's own hue: selection owns that colour. */
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --clip-text-border: oklch(from var(--primary) 0.703 0.166 calc(h + 272.5));
+    --clip-caption-border: oklch(from var(--primary) 0.762 0.112 calc(h + 201));
+    --clip-audio-border: oklch(from var(--primary) 0.777 0.146 calc(h + 146.3));
+    --clip-mesh-border: oklch(from var(--primary) 0.761 0.141 calc(h + 44.2));
+    --clip-camera-border: oklch(from var(--primary) 0.769 0.106 calc(h + 115.1));
+    --clip-light-border: oklch(from var(--primary) 0.828 0.128 calc(h + 74.6));
+    --clip-raster-border: oklch(from var(--primary) 0.806 0.136 calc(h + 133.5));
+    --clip-adjust-border: oklch(from var(--primary) 0.709 0.159 calc(h + 277.5));
+  }
 }
 
 @theme inline {
@@ -538,8 +575,11 @@
     inset 0 0 0 1px var(--glass-rim),
     0 1px 1px rgb(0 0 0 / 0.22);
 }
+/* ARMED: a neutral raised pane, the accent on the icon only (pair it with
+   `text-primary`). The accent means one thing at a time (the primary action,
+   the selection, or live), so an armed toggle never takes an accent fill. */
 @utility material-glass-raised {
-  background-color: color-mix(in srgb, var(--primary) 16%, var(--glass-raised));
+  background-color: var(--glass-raised);
   box-shadow:
     inset 0 1px 0 0 var(--glass-specular-strong),
     inset 0 0 0 1px var(--glass-rim),
@@ -1266,4 +1306,80 @@
 }
 :root[data-picking="blocked"] *:not([data-pick-ui], [data-pick-ui] *) {
   cursor: var(--cursor-not-allowed, not-allowed) !important;
+}
+
+/* THE ZONED BAND: a horizontal stage edge with a centre occupant. Three
+   zones of one grid, the rule and its reasons in `stage/chrome-layout.ts`.
+   Sides at their content (capped at a third of the stage), the centre at its
+   content up to 45rem, and under 40rem of STAGE the centre takes its own row
+   at the edge. Never a measurement. */
+@utility chrome-zones {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) fit-content(45rem) minmax(max-content, 1fr);
+  grid-template-areas: "start center end";
+  align-items: start;
+  &[data-chrome-band="bottom"] {
+    align-items: end;
+  }
+  &:not(:has(> * > *)) {
+    display: none;
+  }
+  & > [data-zone] {
+    min-width: 0;
+    max-width: 33cqw;
+  }
+  & > [data-zone="start"] {
+    grid-area: start;
+    justify-self: start;
+  }
+  & > [data-zone="center"] {
+    grid-area: center;
+    justify-self: center;
+    max-width: 100%;
+  }
+  & > [data-zone="end"] {
+    grid-area: end;
+    justify-self: end;
+  }
+  @container stage-chrome (width < 40rem) {
+    grid-template-columns: minmax(0, max-content) minmax(max-content, 1fr);
+    grid-template-areas: "center center" "start end";
+    & > [data-zone] {
+      max-width: 100%;
+    }
+    /* The centre SPANS both columns, so its content would size them: a long
+       bar pushed the stage settings off the stage. Contained, it contributes
+       nothing; it stretches across its row and centres its capsule, which
+       scrolls inside it. */
+    & > [data-zone="center"] {
+      contain: inline-size;
+      justify-self: stretch;
+      justify-content: center;
+    }
+    & > [data-zone="center"]:has(*) {
+      margin-block-end: 4px;
+    }
+    &[data-chrome-band="bottom"] {
+      grid-template-areas: "start end" "center center";
+      & > [data-zone="center"]:has(*) {
+        margin-block: 4px 0;
+      }
+    }
+  }
+}
+
+/* A scroller whose overflowing edge fades instead of cutting (useEdgeFade). */
+@utility edge-fade {
+  --fade-s: 0px;
+  --fade-e: 0px;
+  mask-image: linear-gradient(var(--fade-dir, to right), transparent 0, #000 var(--fade-s), #000 calc(100% - var(--fade-e)), transparent 100%);
+  &[data-fade-start] {
+    --fade-s: 1.5rem;
+  }
+  &[data-fade-end] {
+    --fade-e: 1.5rem;
+  }
+  &[data-fade-axis="y"] {
+    --fade-dir: to bottom;
+  }
 }

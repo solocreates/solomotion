@@ -6,6 +6,9 @@ import { ColorInput } from "@/components/ui/color-picker";
 import { Switch } from "@/components/ui/switch";
 import { MoreRow, PodMenu } from "../stage/tool-bar-kit";
 import { OnionSkinIcon } from "../stage/tool-icons";
+import { RotateCcw } from "lucide-react";
+import { sceneInk } from "../stage/scene-chrome";
+import { useTheme } from "../theme/use-theme";
 import { useDrawing } from "./drawing-store";
 
 /**
@@ -26,6 +29,10 @@ import { useDrawing } from "./drawing-store";
 export function OnionPod() {
   const onion = useDrawing((s) => s.onion);
   const setOnion = useDrawing((s) => s.setOnion);
+  // The theme's tints are derived, so a theme change must re-read them.
+  useTheme((s) => s.theme);
+  useTheme((s) => s.activeMode);
+  const ink = sceneInk();
 
   return (
     <PodMenu
@@ -55,11 +62,11 @@ export function OnionPod() {
           onChange={(v) => setOnion({ nextCount: Math.round(v) })}
         />
       </MoreRow>
-      <MoreRow label="Past tint">
-        <ColorInput value={onion.prevColor} onChange={(prevColor) => setOnion({ prevColor })} variant="badge" />
+      <MoreRow label="Behind">
+        <TintField value={onion.prevColor} theme={ink.onionBehind} onChange={(prevColor) => setOnion({ prevColor })} />
       </MoreRow>
-      <MoreRow label="Future tint">
-        <ColorInput value={onion.nextColor} onChange={(nextColor) => setOnion({ nextColor })} variant="badge" />
+      <MoreRow label="Ahead">
+        <TintField value={onion.nextColor} theme={ink.onionAhead} onChange={(nextColor) => setOnion({ nextColor })} />
       </MoreRow>
       <MoreRow label="Tint strength">
         <NumberInput
@@ -87,5 +94,28 @@ export function OnionPod() {
         <Switch checked={onion.loopWrap} onCheckedChange={(loopWrap) => setOnion({ loopWrap })} />
       </MoreRow>
     </PodMenu>
+  );
+}
+
+/**
+ * A ghost tint: the theme's (shown, not stored) until a person picks one, and
+ * a way back to it once they have.
+ */
+function TintField({ value, theme, onChange }: { value: string | null; theme: string; onChange: (c: string | null) => void }) {
+  return (
+    <span className="flex items-center gap-1">
+      {value !== null && (
+        <button
+          type="button"
+          aria-label="Use the theme's tint"
+          title="Use the theme's tint"
+          onClick={() => onChange(null)}
+          className="grid size-(--control-h-sm) place-items-center rounded-(--r-xs) text-muted-foreground hover:bg-hover hover:text-foreground [&_svg]:size-3"
+        >
+          <RotateCcw />
+        </button>
+      )}
+      <ColorInput value={value ?? theme} onChange={onChange} variant="badge" />
+    </span>
   );
 }

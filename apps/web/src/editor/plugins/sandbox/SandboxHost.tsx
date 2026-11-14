@@ -14,6 +14,8 @@ import { toast } from "@/lib/toast";
 import { useDocStore } from "../../state/document-context";
 import { useSession } from "../../state/session";
 import { buildSandboxHtml } from "../plugin-bundle";
+import { useTheme } from "../../theme/use-theme";
+import { hostThemeCss } from "./host-theme";
 import type { InstalledPlugin } from "../plugin-model";
 import { handlePluginCall, selectionInfoFrom, type SessionSnapshot } from "./bridge";
 
@@ -47,6 +49,11 @@ export function SandboxHost({
     [installed.updatedAt, installed.manifest.id],
   );
 
+  // A theme change reloads the plugin with the new look: the sandbox is a
+  // null origin, so the host cannot restyle a running document, and theme
+  // changes are rare, deliberate acts (a plugin already survives a reload).
+  const theme = useTheme((s) => s.theme);
+  const mode = useTheme((s) => s.activeMode);
   const html = React.useMemo(() => {
     const context: HostContext = {
       appVersion,
@@ -55,11 +62,16 @@ export function SandboxHost({
       capabilities: granted,
     };
     try {
-      return buildSandboxHtml(installed.manifest, installed.files, { nonce, context, ns: NAMES.wire.pluginGlobal });
+      return buildSandboxHtml(
+        installed.manifest,
+        installed.files,
+        { nonce, context, ns: NAMES.wire.pluginGlobal },
+        hostThemeCss(theme, mode),
+      );
     } catch (err) {
       return errorDocument((err as Error).message);
     }
-  }, [installed, granted, appVersion, nonce]);
+  }, [installed, granted, appVersion, nonce, theme, mode]);
 
   const snapshot = React.useCallback((): SessionSnapshot => {
     const s = useSession.getState();
@@ -126,7 +138,10 @@ export function SandboxHost({
       // can never reach into the host page.
       sandbox="allow-scripts allow-pointer-lock"
       srcDoc={html}
-      className="h-full w-full border-0 bg-white"
+      // Transparent until the document paints its own ground (`--host-bg`),
+      // and the same colour scheme, or the browser lays a white canvas under it.
+      style={{ colorScheme: mode }}
+      className="h-full w-full border-0 bg-transparent"
     />
   );
 }

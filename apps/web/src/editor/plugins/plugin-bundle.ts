@@ -153,12 +153,14 @@ export function buildSandboxHtml(
   manifest: PluginManifest,
   files: PluginBundleFiles,
   config: PluginBootstrapConfig,
+  /** Extra head markup that must precede the plugin's own (the host theme). */
+  headPrefix = "",
 ): string {
   const entry = files[manifest.main];
   if (!entry) throw new Error(`Entry "${manifest.main}" not found in the plugin bundle.`);
   const html = inlineLocalRefs(strFromU8(entry), manifest.main, files);
   const bootstrap = `<script>(${pluginClientBootstrap.toString()})(${JSON.stringify(config)});</script>`;
-  return injectHead(html, bootstrap);
+  return injectHead(html, headPrefix + bootstrap);
 }
 
 function baseDirOf(path: string): string {

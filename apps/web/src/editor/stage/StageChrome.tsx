@@ -62,14 +62,15 @@ export type { ChromeEdge, ChromeAlign, ChromePlacement, ChromeSlotKey } from "./
  * (`flex-1` from a zero basis); wrapping needs groups sized by their content.
  * Those are the same property with two values, so:
  *
- *   a `center` occupant  →  sides take equal halves, nothing wraps
- *   no `center` occupant →  groups size to content and wrap when short
+ *   a `center` occupant  →  the ZONED band: three zones of one grid (the
+ *                           rule is in `chrome-layout.ts`), the centre capped
+ *                           and scrolling, its own row on a narrow stage
+ *   no `center` occupant →  items size to content and wrap when short
  *
- * Which is what the top band wanted all along: the view cluster rides beside
- * the tool options bar while there is room for it, and drops to its own line
- * when there is not — instead of the bar being squeezed to a third of the
- * stage and living scrolled. And the bottom band, where the rail docks, gets a
- * centre that the breadcrumb beside it can never shift.
+ * The top band is zoned: nav left, stage settings right ALWAYS, the armed
+ * tool's options between them. A control you reach for by position must not
+ * move when you change tools, and the old flex groups let the nav and the
+ * zoom wrap into each other the moment the bar was long.
  *
  * ── DIRECTION IS DERIVED, NEVER PASSED TWICE. ──
  *
@@ -417,6 +418,35 @@ function SplitBand({
 }
 
 /**
+ * A horizontal edge with a centre occupant: three zones of one grid, the
+ * `chrome-zones` utility. The rule (sides at their content, centre capped and
+ * scrolling, its own row on a narrow STAGE) is written once, in
+ * `chrome-layout.ts`; this only says which occupant sits in which zone.
+ */
+function ZoneBand({ edge, items, gap, className }: { edge: ChromeEdge; items: readonly ChromeItem[]; gap: number; className?: string }) {
+  return (
+    <div data-chrome-band={edge} className={cn("chrome-zones pointer-events-none min-w-0 shrink-0", className)} style={{ columnGap: gap }}>
+      {CHROME_ALIGNS.map((align) => (
+        <PlacementContext.Provider key={align} value={{ edge, align }}>
+          <div
+            data-zone={align}
+            data-chrome-slot={slotKey({ edge, align })}
+            className="pointer-events-none flex flex-row [&>*]:pointer-events-auto [&>*]:min-w-0"
+            style={{ gap }}
+          >
+            {items
+              .filter((i) => i.align === align)
+              .map((i) => (
+                <React.Fragment key={i.id}>{i.node}</React.Fragment>
+              ))}
+          </div>
+        </PlacementContext.Provider>
+      ))}
+    </div>
+  );
+}
+
+/**
  * One edge. Renders nothing at all when no occupant produced an element —
  * `:has` rather than a flag the caller passes, because `ToolOptionsBar` renders
  * null for a tool with no options and only the browser can see that. A
@@ -427,9 +457,9 @@ function SplitBand({
  * flex property with two values and pretending to offer both is how one of them
  * silently stops working:
  *
- *   a `center` occupant  →  three groups, sides equal from a zero basis, so the
- *                           centre is centred on the STAGE and nothing beside it
- *                           can shift it. Cannot wrap.
+ *   a `center` occupant  →  horizontal: the zoned grid (`ZoneBand`). Vertical:
+ *                           three groups, sides equal from a zero basis, so the
+ *                           centre is centred and nothing beside it shifts it.
  *   no `center` occupant →  the items themselves, wrapping, each sized to its
  *                           content, `end` reached by an auto margin.
  */
@@ -468,6 +498,7 @@ function Band({
       </div>
     );
   }
+  if (horizontal && centred) return <ZoneBand edge={edge} items={mine} gap={gap} className={className} />;
   return (
     <div
       data-chrome-band={edge}
@@ -566,7 +597,9 @@ export function StageChrome({
   const columnHeight = useMeasuredHeight(middle);
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-40 flex flex-col"
+      // The STAGE is the container the zoned bands query, never the viewport:
+      // a docked panel narrows the stage exactly as a small window does.
+      className="@container/stage-chrome pointer-events-none absolute inset-0 z-40 flex flex-col"
       style={{
         paddingTop: pad + (insets?.top ?? 0),
         paddingRight: pad + (insets?.right ?? 0),

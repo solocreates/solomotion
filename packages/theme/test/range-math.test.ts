@@ -84,3 +84,23 @@ describe("dialect as behaviour", () => {
     expect(rangeStep("blocks", 10, 1, 0, 100)).toBe(20);
   });
 });
+
+import { fundLine, settleFund, stepFund } from "../src/fund";
+describe("fund amounts", () => {
+  it("rest on the stops when near, free with Shift", () => {
+    expect(settleFund(24)).toBe(25);
+    expect(settleFund(24, true)).toBe(24);
+    expect(settleFund(37)).toBe(37);
+    expect(settleFund(900)).toBe(500);
+  });
+  it("arrows jump stop to stop", () => {
+    expect(stepFund(25, 1)).toBe(50);
+    expect(stepFund(25, -1)).toBe(10);
+    expect(stepFund(100, 1)).toBe(150);
+    expect(stepFund(3, -1)).toBe(1);
+  });
+  it("answers each amount", () => {
+    expect(fundLine(100)).toMatch(/believer/);
+    expect(fundLine(1)).toMatch(/counts/);
+  });
+});

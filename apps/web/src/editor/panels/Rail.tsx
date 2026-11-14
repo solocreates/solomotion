@@ -7,6 +7,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { PartLabel } from "@/components/ui/part-label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useIsCompact } from "../state/use-shell-density";
@@ -39,11 +40,13 @@ import { editorIcon } from "./panel-registry";
  * The rail still lives OUTSIDE its panel: a control that hides a panel cannot
  * be inside the panel it hides, or collapsing it takes away the only way back.
  *
- * Horizontal rails put the label beside the icon. Vertical rails STACK it
- * underneath — icon, then word, both reading left to right. Rotated text was
- * the previous answer and it is not one: you cannot scan a column of sideways
- * words, and every glance costs a head tilt. Widening the rail enough to hold a
- * short word is the cheaper trade.
+ * ONE WIDTH, ONE GRAMMAR. A vertical rail is a 44px column on either edge:
+ * icon, then the surface's name ROTATED beneath it in the theme's label part
+ * (Blender's sidebar tabs). Stacking the word upright needed a 64px left rail,
+ * which still could not hold "Keyframes" in a CAPS or `--var` label, and made
+ * the two edges different objects. 44px is also the top bar's mark column:
+ * the product mark sits centred over the left rail, so the rail is capped by
+ * the brand without drawing it twice.
  *
  * A rail SCROLLS its items and pins its header and footer. It used to be one
  * flex column with a `flex-1` spacer, which is sized by subtraction — so in a
@@ -83,7 +86,6 @@ export interface RailItem {
 
 export function Rail({
   side,
-  variant = "labeled",
   items,
   header,
   footer,
@@ -96,18 +98,6 @@ export function Rail({
    * are their own band; the bottom bar wraps its rail in a wider band.
    */
   dock?: boolean;
-  /**
-   * `labeled` stacks the word under the icon and needs a wider rail — right for
-   * the left rail, whose surfaces (Library, Media, Layers) are nouns you pick
-   * between.
-   *
-   * `compact` ROTATES the label alongside the icon, Blender-style. The right
-   * rail sits against the property panel, so every pixel of width it takes is
-   * one the panel loses — rotating buys a readable label for ~10px instead of
-   * the ~56px a horizontal word costs. Icons alone were tried and are worse:
-   * they make you learn a pictogram per surface.
-   */
-  variant?: "labeled" | "compact";
   /** Pinned to the rail's start — the mark on the left, Export on the right. */
   header?: React.ReactNode;
   /** Pinned to the rail's end — settings. Separated from `items` by the flex
@@ -119,12 +109,6 @@ export function Rail({
 }) {
   const horizontal = side === "bottom";
   const compactShell = useIsCompact();
-  // A narrow window forces the rotated label on BOTH side rails: 64 + 44px of
-  // rail out of a 375px window is a third of the app spent on chrome. The
-  // decision belongs here rather than at each call site, so neither rail can
-  // forget it — and so `variant` keeps meaning "how much room does this rail
-  // deserve", not "what size is the window".
-  const rotated = !horizontal && (variant === "compact" || compactShell);
 
   const listId = dock ? `rail:${side}` : undefined;
   const preview = useListPreview(listId);
@@ -168,14 +152,10 @@ export function Rail({
           // without it a rail wider than the window pushes the bar's own
           // layout out instead of scrolling inside itself.
           ? "h-9 min-w-0 max-w-full flex-row px-1.5"
-          : rotated
-            // 44px, compact shell or not. A narrow window is the LAST place to
-            // spend width on chrome: two rails already cost 88 of 375, and the
-            // rotated button is ~56px TALL, which is the dimension a thumb
-            // actually needs here. Growing the rail for "touch targets" made
-            // the app smaller everywhere it mattered to buy nothing.
-            ? "w-11 shrink-0 flex-col py-1"
-            : "w-16 shrink-0 flex-col py-1.5",
+          // 44px, compact shell or not. A narrow window is the LAST place to
+          // spend width on chrome, and a finger gets a 40px square inside it,
+          // which is what a thumb actually needs here.
+          : "w-11 shrink-0 flex-col py-1.5",
         className,
       )}
     >
@@ -183,7 +163,7 @@ export function Rail({
       {header && (
         <span
           aria-hidden
-          className={cn("shrink-0 bg-border", horizontal ? "mx-0.5 h-4 w-px" : "my-1.5 h-px w-5")}
+          className={cn("shrink-0 bg-line", horizontal ? "mx-0.5 h-4 w-px" : "my-1.5 h-px w-5")}
         />
       )}
 
@@ -217,7 +197,6 @@ export function Rail({
               key="badge"
               badge
               horizontal={horizontal}
-              compact={rotated}
               touch={compactShell}
               icon={editorIcon(preview!.editor)}
               name={editorMeta(preview!.editor)?.name ?? ""}
@@ -230,7 +209,7 @@ export function Rail({
             <span
               key={`sep-${i}`}
               aria-hidden
-              className={cn("shrink-0 bg-border", horizontal ? "mx-1 h-4 w-px" : "my-1 h-px w-5")}
+              className={cn("shrink-0 bg-line", horizontal ? "mx-1 h-4 w-px" : "my-1 h-px w-4")}
             />
           ) : (
             <RailButton
@@ -238,7 +217,6 @@ export function Rail({
               region={item.region}
               lifted={!!dragging && dragging === item.editor}
               horizontal={horizontal}
-              compact={rotated}
               touch={compactShell}
               icon={item.icon}
               name={item.name}
@@ -263,7 +241,6 @@ const RAIL_SCROLL = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 function RailButton({
   horizontal,
-  compact,
   touch,
   icon: Icon,
   name,
@@ -283,7 +260,6 @@ function RailButton({
   lifted?: boolean;
   /** The drop badge: drawn like an armed item, inert, no tooltip or menu. */
   badge?: boolean;
-  compact?: boolean;
   /**
    * Narrow shell → a little more finger room, WITHIN the rail's width. The
    * vertical buttons are already ~56px tall, so the target has the area a
@@ -334,12 +310,16 @@ function RailButton({
           className={cn(
             badge && "pointer-events-none",
             lifted && "opacity-40",
-            "flex shrink-0 items-center justify-center rounded-md transition-colors [&_svg]:size-3.5",
+            "flex shrink-0 items-center justify-center rounded-md transition-colors",
             horizontal
-              ? cn("gap-1.5 px-2.5 text-xs", touch ? "h-9" : "h-7")
-              : compact
-                ? cn("flex-col gap-1.5 px-1 py-2 text-xs", touch ? "w-8" : "w-7")
-                : "w-14 flex-col gap-1 px-1 py-1.5 text-3xs leading-none",
+              ? cn("gap-1.5 px-2.5 text-xs [&_svg]:size-3.5", touch ? "h-9" : "h-7")
+              // A side rail is ICONS, every item, named by its tooltip. The
+              // rule was measured, not guessed: the longest word on the rails
+              // today ("Animate", in the theme's CAPS label) is 43px at 9px,
+              // the rail is 44px, and a plugin's tab or a `--var` label is
+              // longer still. A word that fits only some items is two rules,
+              // and a rotated word (relay 3) read as damage.
+              : cn("[&_svg]:size-4", touch ? "size-10" : "size-8"),
             // `touch-manipulation` kills the 300ms double-tap-zoom delay iOS
             // still applies to buttons — without it every rail tap on a phone
             // feels a third of a second behind the finger.
@@ -349,7 +329,7 @@ function RailButton({
             // label. Follows the theme's glass switch for free.
             active
               ? "material-glass-raised text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              : "text-fg-muted hover:bg-hover hover:text-fg",
           )}
         >
           <Icon />
@@ -362,18 +342,10 @@ function RailButton({
               only ever appears for the surface you are on, so nothing shifts
               except the two buttons either side of the one you just tapped.
 
-              Compact vertical = rotated, reading downward so the word starts
-              directly under its icon. Labeled = a normal word under it. */}
-          {(!horizontal || !touch || active) && (
-            <span
-              className={cn(
-                !horizontal && compact && "[writing-mode:vertical-rl]",
-                !horizontal && !compact && "max-w-full truncate",
-              )}
-            >
-              {name}
-            </span>
-          )}
+              A side rail names nothing: its tooltip does (see the button's
+              class). The word is the theme's LABEL part, so it is cased the
+              way every label in the app is (CAPS, as written, `--var`). */}
+          {horizontal && (!touch || active) && <PartLabel text={name} className="leading-none" />}
         </button>
   );
   /*

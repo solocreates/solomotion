@@ -103,7 +103,7 @@ import "../tracking/track-draw";
 import { useToolDefaults } from "../state/tool-defaults";
 import { commandsToPath2D } from "./render/draw-frame";
 import { frameSnapCandidates, frameVectorNodesWorld } from "./stage-snap";
-import { snapLineColor } from "./snap-colors";
+import { drawSnapLines } from "./scene-chrome";
 import { usePenBar, usePublishPenBar, type PenAction, type PenToolbarCtx } from "./pen-bar";
 import { PenJunctionPrompt } from "./PenJunctionPrompt";
 import { TOOL_ACCENT } from "./Toolbar";
@@ -3572,44 +3572,8 @@ export function VectorOverlay() {
       }
 
       // Smart-guide lines flashed while a pen point / node snaps — the SAME
-      // magenta/teal chrome the stage layer drag shows, over everything.
-      const sg = snapGuidesRef.current;
-      if (sg.v.length || sg.h.length) {
-        const v = useStageView.getState();
-        const color = snapLineColor;
-        const tick = 3;
-        ctx.save();
-        ctx.lineWidth = 1;
-        for (const l of sg.v) {
-          const x = Math.round(v.tx + l.pos * v.scale) + 0.5;
-          const y0 = v.ty + l.lo * v.scale;
-          const y1 = v.ty + l.hi * v.scale;
-          ctx.strokeStyle = color(l.kind);
-          ctx.beginPath();
-          ctx.moveTo(x, y0);
-          ctx.lineTo(x, y1);
-          ctx.moveTo(x - tick, y0);
-          ctx.lineTo(x + tick, y0);
-          ctx.moveTo(x - tick, y1);
-          ctx.lineTo(x + tick, y1);
-          ctx.stroke();
-        }
-        for (const l of sg.h) {
-          const y = Math.round(v.ty + l.pos * v.scale) + 0.5;
-          const x0 = v.tx + l.lo * v.scale;
-          const x1 = v.tx + l.hi * v.scale;
-          ctx.strokeStyle = color(l.kind);
-          ctx.beginPath();
-          ctx.moveTo(x0, y);
-          ctx.lineTo(x1, y);
-          ctx.moveTo(x0, y - tick);
-          ctx.lineTo(x0, y + tick);
-          ctx.moveTo(x1, y - tick);
-          ctx.lineTo(x1, y + tick);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+      // chrome the stage layer drag shows, over everything.
+      drawSnapLines(ctx, snapGuidesRef.current, useStageView.getState());
 
       // Cursor feedback, from the same resolution as everything else, so the
       // pointer names the outcome in the one place the eye is already looking,

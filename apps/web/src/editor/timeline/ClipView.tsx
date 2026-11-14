@@ -117,6 +117,7 @@ import { CoverageStrip } from "../tracking/CoverageStrip";
 import { clipStripPeaks, drawWaveform, getAudioBufferForAsset, nestedClipPeaks, onAudioBufferReady } from "../audio/waveform";
 import { ensureClipBake, hasClipBake, useBakeVersion } from "../audio/audio-bake";
 import { ClipPosterStrip } from "../preview/ClipPosterStrip";
+import { keyGlyph, KEY_GLYPH_SHAPE, segmentMoves } from "./keyframe-glyph";
 import { useStripWindow } from "../preview/use-poster";
 import { useAiWorkOn } from "../state/ai-activity";
 import { useSession } from "../state/session";
@@ -224,106 +225,70 @@ function CompositeBadge({ doc, clip }: { doc: MotionDocument; clip: Clip }) {
   return <Scissors className="size-3 shrink-0 text-foreground/60" aria-label="Stencil" />;
 }
 
-type ClipStyle = { bg: string; border: string; icon: React.ReactNode };
+/**
+ * A clip's TONE: the one name its fill, edge and every tinted mark on it read
+ * (`--clip-<tone>` / `--clip-<tone>-border` in globals.css, where the hues are
+ * a wheel turned by the theme's accent). A clip says which tone it wears; it
+ * never names a colour.
+ */
+type ClipTone =
+  | "text"
+  | "caption"
+  | "audio"
+  | "group"
+  | "mesh"
+  | "camera"
+  | "light"
+  | "empty"
+  | "raster"
+  | "adjust";
+
+type ClipStyle = { tone: ClipTone; icon: React.ReactNode };
+
+const ICON = "size-3 shrink-0 opacity-80";
 
 /** A caption reads as a caption even though it IS a text clip (see `clipIcon`). */
-const CAPTION_STYLE: ClipStyle = {
-  bg: "bg-[color:var(--clip-caption)]",
-  border: "border-[color:var(--clip-caption-border)]/50",
-  icon: <Captions className="size-3 shrink-0 opacity-80" />,
-};
+const CAPTION_STYLE: ClipStyle = { tone: "caption", icon: <Captions className={ICON} /> };
 
 const KIND_STYLES: Record<Clip["kind"], ClipStyle> = {
-  text: {
-    bg: "bg-[color:var(--clip-text)]",
-    border: "border-[color:var(--clip-text-border)]/50",
-    icon: <Type className="size-3 shrink-0 opacity-80" />,
-  },
-  audio: {
-    bg: "bg-[color:var(--clip-audio)]",
-    border: "border-[color:var(--clip-audio-border)]/50",
-    icon: <AudioLines className="size-3 shrink-0 opacity-80" />,
-  },
-  nested: {
-    bg: "bg-[color:var(--clip-text)]",
-    border: "border-[color:var(--clip-text-border)]/50",
-    icon: <Film className="size-3 shrink-0 opacity-80" />,
-  },
+  text: { tone: "text", icon: <Type className={ICON} /> },
+  audio: { tone: "audio", icon: <AudioLines className={ICON} /> },
+  nested: { tone: "text", icon: <Film className={ICON} /> },
   // A group is the CONTAINER of the rows beneath it, so it reads as structure —
   // the lane's own value with a hairline — rather than competing with the
   // coloured clips it holds.
-  group: {
-    bg: "bg-[color:var(--clip-group)]",
-    border: "border-[color:var(--clip-group-border)]/40",
-    icon: <GroupIcon className="size-3 shrink-0 opacity-80" />,
-  },
-  image: {
-    bg: "bg-[color:var(--clip-caption)]",
-    border: "border-[color:var(--clip-caption-border)]/50",
-    icon: <ImageIcon className="size-3 shrink-0 opacity-80" />,
-  },
-  video: {
-    bg: "bg-[color:var(--clip-audio)]",
-    border: "border-[color:var(--clip-audio-border)]/50",
-    icon: <Clapperboard className="size-3 shrink-0 opacity-80" />,
-  },
-  shape: {
-    bg: "bg-[color:var(--clip-caption)]",
-    border: "border-[color:var(--clip-caption-border)]/50",
-    icon: <Shapes className="size-3 shrink-0 opacity-80" />,
-  },
-  path: {
-    bg: "bg-[color:var(--clip-caption)]",
-    border: "border-[color:var(--clip-caption-border)]/50",
-    icon: <PenTool className="size-3 shrink-0 opacity-80" />,
-  },
-  waveform: {
-    bg: "bg-[color:var(--clip-audio)]",
-    border: "border-[color:var(--clip-audio-border)]/50",
-    icon: <AudioLines className="size-3 shrink-0 opacity-80" />,
-  },
-  trace: {
-    bg: "bg-[color:var(--clip-caption)]",
-    border: "border-[color:var(--clip-caption-border)]/50",
-    icon: <Spline className="size-3 shrink-0 opacity-80" />,
-  },
-  raster: {
-    bg: "bg-[color:var(--clip-shape,#2C3A2E)]",
-    border: "border-[color:var(--clip-shape-border,#7BD88F)]/50",
-    icon: <Brush className="size-3 shrink-0 opacity-80" />,
-  },
-  // A processor layer — its own violet accent (used by no other kind) plus a
-  // diagonal-stripe sheen (see `adjustment` overlay below) so it reads at a
-  // glance as "this grades the layers beneath it," not as ordinary content.
-  // The 3D kinds (v89). Blender's outliner colours: objects orange, cameras
-  // and lights the warm yellow-green of its data icons — readable at a glance
-  // in a camera track cut between angles.
-  mesh: {
-    bg: "bg-[color-mix(in_srgb,#F29A4A_20%,var(--track-lane))]",
-    border: "border-[#F29A4A]/50",
-    icon: <Box className="size-3 shrink-0 opacity-80" />,
-  },
-  camera: {
-    bg: "bg-[color-mix(in_srgb,#9CC27A_22%,var(--track-lane))]",
-    border: "border-[#9CC27A]/55",
-    icon: <Camera className="size-3 shrink-0 opacity-80" />,
-  },
-  light: {
-    bg: "bg-[color-mix(in_srgb,#E6C35C_20%,var(--track-lane))]",
-    border: "border-[#E6C35C]/50",
-    icon: <Lightbulb className="size-3 shrink-0 opacity-80" />,
-  },
-  empty: {
-    bg: "bg-[color-mix(in_srgb,#9AA3B2_18%,var(--track-lane))]",
-    border: "border-[#9AA3B2]/50",
-    icon: <Move3d className="size-3 shrink-0 opacity-80" />,
-  },
-  adjustment: {
-    bg: "bg-[#2E2640]",
-    border: "border-[#A78BFA]/50",
-    icon: <Contrast className="size-3 shrink-0 opacity-90 text-[#C4B5FD]" />,
-  },
+  group: { tone: "group", icon: <GroupIcon className={ICON} /> },
+  image: { tone: "caption", icon: <ImageIcon className={ICON} /> },
+  video: { tone: "audio", icon: <Clapperboard className={ICON} /> },
+  shape: { tone: "caption", icon: <Shapes className={ICON} /> },
+  path: { tone: "caption", icon: <PenTool className={ICON} /> },
+  waveform: { tone: "audio", icon: <AudioLines className={ICON} /> },
+  trace: { tone: "caption", icon: <Spline className={ICON} /> },
+  raster: { tone: "raster", icon: <Brush className={ICON} /> },
+  // The 3D kinds (v89): Blender's outliner relationships — objects warm,
+  // cameras and lights the yellow-green of its data icons.
+  mesh: { tone: "mesh", icon: <Box className={ICON} /> },
+  camera: { tone: "camera", icon: <Camera className={ICON} /> },
+  light: { tone: "light", icon: <Lightbulb className={ICON} /> },
+  empty: { tone: "empty", icon: <Move3d className={ICON} /> },
+  // A processor layer: its own tone plus a diagonal-stripe sheen (below), so
+  // it reads at a glance as "this grades the layers beneath it".
+  adjustment: { tone: "adjust", icon: <Contrast className="size-3 shrink-0 text-(--clip-adjust-border)" /> },
 };
+
+/** A selected clip's fill lifts a step toward the ink, and the scrim with it. */
+const SELECTED_LIFT = {
+  "--clip-fill": "color-mix(in oklab, var(--clip-base), var(--foreground) 8%)",
+} as React.CSSProperties;
+
+/** The custom properties a tone sets on a clip's box, read by its fill, edge, scrim and badges. */
+function toneVars(tone: ClipTone): React.CSSProperties {
+  return {
+    "--clip-base": `var(--clip-${tone})`,
+    "--clip-fill": "var(--clip-base)",
+    "--clip-edge": `var(--clip-${tone}-border)`,
+  } as React.CSSProperties;
+}
 
 /**
  * The processor sheen: faint diagonal hazard-stripes across an adjustment clip's
@@ -331,12 +296,26 @@ const KIND_STYLES: Record<Clip["kind"], ClipStyle> = {
  * distinguishes a "grades what's below" layer from a content layer.
  */
 const ADJUSTMENT_SHEEN =
-  "repeating-linear-gradient(45deg, rgba(196,181,253,0.14) 0px, rgba(196,181,253,0.14) 1px, transparent 1px, transparent 9px)";
+  "repeating-linear-gradient(45deg, color-mix(in srgb, var(--clip-adjust-border) 14%, transparent) 0px, color-mix(in srgb, var(--clip-adjust-border) 14%, transparent) 1px, transparent 1px, transparent 9px)";
 
 /** A clip's lane fill, as a class — the minimap paints clips in the colours the lanes do. */
 export function clipFillClass(clip: Clip): string {
-  return (isCaptionClip(clip) ? CAPTION_STYLE : KIND_STYLES[clip.kind]).bg;
+  return CLIP_FILL[(isCaptionClip(clip) ? CAPTION_STYLE : KIND_STYLES[clip.kind]).tone];
 }
+
+/** Literal class names, so Tailwind's scanner sees every one. */
+const CLIP_FILL: Record<ClipTone, string> = {
+  text: "bg-(--clip-text)",
+  caption: "bg-(--clip-caption)",
+  audio: "bg-(--clip-audio)",
+  group: "bg-(--clip-group)",
+  mesh: "bg-(--clip-mesh)",
+  camera: "bg-(--clip-camera)",
+  light: "bg-(--clip-light)",
+  empty: "bg-(--clip-empty)",
+  raster: "bg-(--clip-raster)",
+  adjust: "bg-(--clip-adjust)",
+};
 
 export const ClipView = React.memo(function ClipView({
   clip,
@@ -1021,7 +1000,7 @@ export const ClipView = React.memo(function ClipView({
   // A nested clip that instances a component reads as a component (purple ◈),
   // distinct from a plain nested comp (Film) — Figma's instance recognizability.
   const isInstance = clip.kind === "nested" && !audioNested && componentFrameOfClip(doc, clip) != null;
-  const icon = isInstance ? <Component className="size-3 shrink-0 text-[#B79BFF]" /> : styles.icon;
+  const icon = isInstance ? <Component className="size-3 shrink-0 text-(--clip-text-border)" /> : styles.icon;
   // How much this row can legibly hold — the ONE reading of "is this lane
   // small", shared with every overlay through `ClipChromeProvider`.
   const detail = clipDetail(laneHeightPx);
@@ -1057,15 +1036,13 @@ export const ClipView = React.memo(function ClipView({
         // moves the clip. `DRAG_SURFACE` used to be here and contradicted
         // that outright — it told the browser never to scroll from a clip, so
         // the swipe this gesture politely declined had nowhere to go.
-        "group absolute top-1 bottom-1 rounded-md border text-left",
+        "group absolute top-1 bottom-1 rounded-md border bg-(--clip-fill) text-left",
         HELD_DRAG_SURFACE,
-        styles.bg,
-        styles.border,
-        selected && "ring-2 ring-primary border-transparent",
+        selected ? "border-(--clip-edge)/80" : "border-(--clip-edge)/45",
         locked ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing",
         clip.hidden && "opacity-40",
       )}
-      style={{ left, width }}
+      style={{ left, width, ...toneVars(styles.tone), ...(selected ? SELECTED_LIFT : null) }}
       onPointerDown={(e) => startGesture(e, "move")}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -1120,6 +1097,11 @@ export const ClipView = React.memo(function ClipView({
             <ClipCost clip={clip} />
           </>
         )}
+        {/* SELECTION is an edge, not a box: the accent along the clip's foot,
+            with the two trim grips (accent while selected) rising from its
+            ends. A ring round the whole clip covered the pictures, the render
+            bar and the cue ribbon it was meant to frame. */}
+        {selected && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}
 
         <div
           className={cn(
@@ -1135,7 +1117,11 @@ export const ClipView = React.memo(function ClipView({
               browser does the work (no per-scroll JS, no React), and a sticky
               box cannot leave its container: as the clip's END arrives, the
               head is pushed out with it rather than drawn past it. */}
-          <div className="sticky left-1.5 flex w-max max-w-full flex-col gap-0.5">
+          {/* THE SCRIM is the clip's own fill, nearly opaque: over a plain
+              clip it is invisible (same colour), over pictures it is a quiet
+              plate in the clip's tone that the name reads on. No branch on
+              "has pictures" — the paint decides. */}
+          <div className="sticky left-1.5 -mx-1 flex w-max max-w-[calc(100%+0.5rem)] flex-col gap-0.5 rounded-(--r-xs) bg-[color-mix(in_oklab,var(--clip-fill)_86%,transparent)] px-1 py-px">
           <div className="flex items-center gap-1.5">
             {clip.kind === "group" && <GroupBarChevron groupId={clip.id} />}
             {icon}
@@ -1179,7 +1165,7 @@ export const ClipView = React.memo(function ClipView({
             </span>
           )}
           {detail === "full" && clip.kind === "adjustment" && (
-            <span className="truncate font-mono text-[9px] uppercase tracking-wide text-[#C4B5FD]/70">
+            <span className="truncate font-mono text-[9px] uppercase tracking-wide text-(--clip-adjust-border)/70">
               {clip.scope.reach === "all" ? "all layers" : "below"}
               {clip.scope.filter.mode !== "all" ? ` · ${clip.scope.filter.mode}` : ""}
               {clip.effects.length ? ` · ${clip.effects.length} fx` : " · empty"}
@@ -1267,8 +1253,10 @@ export const ClipView = React.memo(function ClipView({
           >
             <div
               className={cn(
-                "absolute inset-y-1 left-0.5 w-1 rounded-full transition-colors group-hover/edge:bg-primary",
-                selected ? "bg-primary" : "bg-foreground/40",
+                // The MARK is 2px; the zone around it is `--hit-grip`. The eye
+                // and the finger need different numbers (see above).
+                "absolute inset-y-1.5 left-[3px] w-0.5 rounded-full transition-colors group-hover/edge:bg-primary",
+                selected ? "bg-primary" : "bg-foreground/50",
               )}
             />
           </div>
@@ -1284,8 +1272,10 @@ export const ClipView = React.memo(function ClipView({
           >
             <div
               className={cn(
-                "absolute inset-y-1 right-0.5 w-1 rounded-full transition-colors group-hover/edge:bg-primary",
-                selected ? "bg-primary" : "bg-foreground/40",
+                // The MARK is 2px; the zone around it is `--hit-grip`. The eye
+                // and the finger need different numbers (see above).
+                "absolute inset-y-1.5 right-[3px] w-0.5 rounded-full transition-colors group-hover/edge:bg-primary",
+                selected ? "bg-primary" : "bg-foreground/50",
               )}
             />
           </div>
@@ -1302,7 +1292,7 @@ export const ClipView = React.memo(function ClipView({
               )}
             >
               <div className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 flex-col justify-center gap-0.5">
-                <span className="mx-auto h-full w-px bg-amber-300/70 transition-colors group-hover/roll:bg-amber-300" />
+                <span className="mx-auto h-full w-0.5 rounded-full bg-foreground/60 transition-colors group-hover/roll:bg-primary" />
               </div>
             </div>
           )}
@@ -1597,8 +1587,32 @@ function KeyframeLane({
         )}
       </div>
 
+      {/* EASED SEGMENTS: a bar between two keys wherever the value moves, so
+          the lane shows where the animation IS, not just its ends. A hold
+          leaves a gap — nothing moves there. Inert: the marquee strip below
+          and the diamonds above own the pointer. */}
+      {stacks.slice(0, -1).map((stack, i) => {
+        if (!segmentMoves(stack.keys.map((k) => k.key.easing))) return null;
+        const next = stacks[i + 1]!;
+        const x0 = timeToPx(stack.timeMs, pxPerSec);
+        const x1 = timeToPx(next.timeMs, pxPerSec);
+        const lit = stackSelected(stack) && stackSelected(next);
+        return (
+          <span
+            key={`seg-${Math.round(stack.timeMs)}`}
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute z-[5] h-[3px] rounded-full",
+              lit ? "bg-primary/55" : "bg-foreground/22",
+            )}
+            style={{ left: x0, width: Math.max(0, x1 - x0), bottom: lift + 5 }}
+          />
+        );
+      })}
+
       {stacks.map((stack) => {
         const multi = stack.keys.length > 1;
+        const glyph = keyGlyph(stack.keys.map((k) => k.key.easing));
         // A capture snapshot reads as an upright rounded "frame", not a rotated
         // keyframe diamond — but it drags/selects/deletes through the exact same
         // machinery (it IS a keyframe on the `capture` track).
@@ -1614,16 +1628,18 @@ function KeyframeLane({
               <div
                 title={title}
                 className={cn(
-                  "absolute z-10 -translate-x-1/2 cursor-ew-resize border shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition-transform hover:scale-125",
-                  isCapture ? "rounded-[2px]" : "rotate-45 rounded-[3px]",
-                  multi ? "size-3" : "size-2.5",
+                  // The lane-coloured border cuts the key out of the segment bar
+                  // and the pictures under it, on any theme, with no shadow.
+                  "absolute z-10 -translate-x-1/2 cursor-ew-resize border border-(--track-lane) transition-transform hover:scale-125",
+                  isCapture ? "rounded-[2px]" : KEY_GLYPH_SHAPE[glyph],
+                  multi ? "size-[11px]" : "size-[9px]",
                   isSel
-                    ? "border-white/90 bg-white ring-2 ring-primary"
+                    ? "bg-primary"
                     : editing === Math.round(stack.timeMs)
-                      ? "border-background/70 bg-foreground"
-                      : "border-background/70 bg-primary",
+                      ? "bg-foreground ring-1 ring-primary"
+                      : "bg-foreground/85",
                 )}
-                style={{ left: timeToPx(stack.timeMs, pxPerSec), bottom: lift + 2 }}
+                style={{ left: timeToPx(stack.timeMs, pxPerSec), bottom: lift + (multi ? 1 : 2) }}
                 onPointerDown={(e) => dragStack(e, stack)}
                 onContextMenu={() => {
                   if (!isSel) setSel(new Set(stack.keys.map((k) => k.key.id)));
@@ -1891,7 +1907,7 @@ function EffectBadge({ clip }: { clip: Clip }) {
   return (
     <span
       title={`${summary.count} effect${summary.count > 1 ? "s" : ""}: ${summary.labels.join(", ")}`}
-      className="ml-auto shrink-0 rounded-[3px] bg-[#A78BFA]/20 px-1 font-mono text-[8px] font-semibold uppercase leading-[13px] tracking-wide text-[#C4B5FD]"
+      className="ml-auto shrink-0 rounded-[3px] bg-(--clip-adjust-border)/20 px-1 font-mono text-[8px] font-semibold uppercase leading-[13px] tracking-wide text-(--clip-adjust-border)"
     >
       fx{summary.count > 1 ? ` ${summary.count}` : ""}
     </span>

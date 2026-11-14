@@ -1,5 +1,5 @@
 /**
- * @solomotion/plugin-sdk — the public contract shared by the the app editor (host)
+ * @solomotion/plugin-sdk — the public contract shared by the editor (the host)
  * and every plugin. Plugin authors depend on this for the manifest schema and
  * the typed `window.<ns>` surface; the editor depends on it for validation
  * and the sandbox bridge. Keeping both sides in ONE package is what stops the

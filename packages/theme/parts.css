@@ -36,12 +36,27 @@
   /* ══ LABELS ══════════════════════════════════════════════════════════════
      One element, four casings. `title` is AS WRITTEN (sentence case).
      The --var form is drawn from `data-var`, so the words stay the accessible
-     name and no component rewrites its own text. */
+     name and no component rewrites its own text.
+     Two LEVELS: a row's label (the default) is small, tracked and quiet; a
+     HEAD (`data-level="head"`, a section's title) is set in the display face
+     at full size, so a panel reads as headings over rows, not one grey list. */
+  [data-part="label"] {
+    font-size: var(--text-body);
+  }
   :root[data-labels="upper"] [data-part="label"] {
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    font-size: 0.9em;
+    letter-spacing: 0.06em;
+    font-size: calc(var(--text-body) - 0.09375rem);
     font-weight: var(--label-weight, 600);
+  }
+  /* `:root` matches the casing rules' weight; later in the file, so it wins. */
+  :root [data-part="label"][data-level="head"] {
+    font-family: var(--font-display);
+    font-size: var(--text-label);
+    font-weight: 600;
+  }
+  :root[data-labels="upper"] [data-part="label"][data-level="head"] {
+    letter-spacing: 0.035em;
   }
   :root[data-labels="lower"] [data-part="label"] {
     text-transform: lowercase;

@@ -1,5 +1,6 @@
 "use client";
 
+import { keepSession, restoreSession, suspend } from "./suspended-sessions";
 import { landingFrameId, type MotionDocument, type DocumentStore } from "@solomotion/core";
 import { create } from "zustand";
 import { useAppShell } from "./app-shell";
@@ -138,10 +139,16 @@ export function makeResident(store: DocumentStore, id: string, doc: MotionDocume
   // now, while the store still holds that document and the shell still names
   // it, so nothing below can file them under the new project or drop them.
   void flushAutosave(store);
+  // Put the outgoing project's session away (its undo, its view) before its
+  // document leaves; hand the incoming one's back once it has arrived.
+  const outgoing = useProjectIndex.getState().residentId;
+  // A tab that was just closed keeps nothing.
+  if (outgoing && outgoing !== id && useAppShell.getState().tabs.includes(outgoing)) keepSession(outgoing, suspend(store));
   useProjectIndex.setState({ residentId: id, residentName: doc.name });
   store.replace(doc);
   useSession.getState().resetForDocument(landingFrameId(doc));
   useAppShell.getState().enterEditor(id);
+  if (outgoing !== id) restoreSession(store, id, () => useProjectIndex.getState().residentId === id);
 }
 
 /** Nothing is open any more (every tab closed). */

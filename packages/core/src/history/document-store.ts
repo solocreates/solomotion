@@ -179,11 +179,29 @@ export interface DocumentStore {
   reaches(id: string): boolean;
   /** Replace the document wholesale (import / new). Clears history. */
   replace(doc: MotionDocument): void;
+  /**
+   * The undo and redo stacks as plain data, for a tab that is put away
+   * (`importHistory` hands them back). Entries are immer patches over plain
+   * JSON, so they serialise as they are.
+   */
+  exportHistory(): SuspendedHistory;
+  /**
+   * Hand back stacks exported from THIS document. The caller proves the match
+   * (a fingerprint of the document both were taken against); a history
+   * replayed over a different document would corrupt it, so a mismatch must
+   * never reach here.
+   */
+  importHistory(history: SuspendedHistory): void;
   subscribe(listener: () => void): () => void;
 }
 
 const MERGE_WINDOW_MS = 900;
 const MAX_HISTORY = 250;
+
+export interface SuspendedHistory {
+  undo: HistoryEntry[];
+  redo: HistoryEntry[];
+}
 
 export interface DocumentStoreOptions {
   /**
@@ -392,6 +410,17 @@ export function createDocumentStore(initial: MotionDocument, storeOptions: Docum
     redoDepthOf: (key) => {
       const i = redoStack.findIndex((e) => e.mergeKey === key);
       return i < 0 ? null : redoStack.length - i;
+    },
+
+    exportHistory: () => ({ undo: [...undoStack], redo: [...redoStack] }),
+
+    importHistory(history) {
+      if (!keepsHistory) return;
+      undoStack = [...history.undo];
+      redoStack = [...history.redo];
+      heldBytes = [...undoStack, ...redoStack].reduce((n, e) => n + e.bytes, 0);
+      trim();
+      emit();
     },
 
     replace(nextDoc) {

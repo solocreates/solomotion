@@ -336,7 +336,7 @@ import { onGradePreviewChange } from "./render/grade-stage";
 import { GradientStopEditor } from "./GradientStopEditor";
 import { EyedropperOverlay } from "./EyedropperOverlay";
 import { drawPixelGrid } from "./render/pixel-grid";
-import { StageToolbar, TOOL_ACCENT } from "./Toolbar";
+import { StageToolbar } from "./Toolbar";
 import { StageChrome } from "./StageChrome";
 import { placementOf } from "./chrome-layout";
 import { StageBrushHandle } from "../drawing/StageBrushHandle";
@@ -347,7 +347,7 @@ import { materializeArmedCell } from "../drawing/cell-materialize";
 import { frameSpace, layerPlacement, layerSpace, standingFrameId } from "./edit-space";
 import { beginHeldDrag, type HeldDrag } from "../input/hold-to-drag";
 import { frameVectorNodesWorld } from "./stage-snap";
-import { snapLineColor } from "./snap-colors";
+import { SCENE, drawDot, drawGrip, drawMarquee, drawPivot, drawReadout, drawSnapLines, sceneInk, strokeOutline } from "./scene-chrome";
 import { RulerOverlay, RULER_SIZE } from "./RulerOverlay";
 import { RulerSettings } from "./RulerSettings";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
@@ -2890,8 +2890,9 @@ export function Stage() {
         ctx.moveTo(q[0]!.x, q[0]!.y);
         for (let i = 1; i < q.length; i++) ctx.lineTo(q[i]!.x, q[i]!.y);
         ctx.closePath();
-        ctx.strokeStyle = "rgba(255,46,136,0.55)";
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = sceneInk().accent;
+        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = SCENE.stroke;
         ctx.stroke();
         ctx.restore();
       }
@@ -2994,31 +2995,29 @@ export function Stage() {
         // Being renamed: the field IS the label (`FrameRenameOverlay`), and the
         // size readout would sit under the name as it grows.
         if (renamingFrameRef.current !== f.id && text) {
-          ctx.fillStyle = selected ? TOOL_ACCENT.frame : "rgba(143,141,134,0.95)";
+          ctx.fillStyle = selected ? sceneInk().accent : sceneInk().muted;
           ctx.fillText(text, label.x, label.baseline);
           if (showDims) {
-            ctx.fillStyle = "rgba(143,141,134,0.55)";
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = sceneInk().muted;
             ctx.fillText(dims, label.x + tw + FRAME_LABEL_DIMS_GAP, label.baseline);
+            ctx.globalAlpha = 1;
           }
         }
         labels.push({ frameId: f.id, x: label.x - 2, y: label.baseline - 14, w: tw + 8, h: 20 });
 
         if (selected) {
-          ctx.strokeStyle = TOOL_ACCENT.frame;
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(sx - 1, sy - 1, f.width * view.scale + 2, f.height * view.scale + 2);
+          const x0 = Math.round(sx) - 0.5;
+          const y0 = Math.round(sy) - 0.5;
+          const x1 = Math.round(sx + f.width * view.scale) + 0.5;
+          const y1 = Math.round(sy + f.height * view.scale) + 0.5;
+          strokeOutline(ctx, [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }]);
         }
         if (soloFrame) {
           // Resize handles (⇧ keeps aspect, ⌘ scales contents).
           for (const handle of FRAME_HANDLES) {
             const c = frameHandleCenter(f, handle, view);
-            ctx.fillStyle = "#131316";
-            ctx.strokeStyle = TOOL_ACCENT.frame;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+            drawGrip(ctx, c.x, c.y);
           }
         }
       }
@@ -3140,59 +3139,19 @@ export function Stage() {
               // keys move" is answered by looking at the shape.
               const picked = cornerSelection(id);
               shapeCornerScreens(geo, pose, view).forEach((c, i) => {
-                const on = picked.has(i);
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(c.x - 4, c.y - 4, 8, 8);
-                ctx.fillStyle = on ? TOOL_ACCENT.rect : "#fff";
-                ctx.strokeStyle = on ? "#fff" : TOOL_ACCENT.rect;
-                ctx.lineWidth = 1.5;
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
+                drawGrip(ctx, c.x, c.y, picked.has(i) ? "on" : "rest");
               });
             } else {
-              for (const h of shapeRadiusHandles(geo, pose, view)) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(h.x, h.y, 3.5, 0, Math.PI * 2);
-                ctx.fillStyle = "#fff";
-                ctx.strokeStyle = TOOL_ACCENT.rect;
-                ctx.lineWidth = 1.5;
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-              }
-              for (const h of shapeControlHandles(geo, pose, view)) {
-                // Ratio dots read as a hollow ring; arc/spike dots as filled.
-                const hollow = h.kind === "arc-ratio";
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(h.x, h.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = hollow ? "#131316" : TOOL_ACCENT.rect;
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 1.5;
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-              }
+              for (const h of shapeRadiusHandles(geo, pose, view)) drawDot(ctx, h.x, h.y);
+              // Ratio dots read as a hollow ring; arc/spike dots as filled.
+              for (const h of shapeControlHandles(geo, pose, view)) drawDot(ctx, h.x, h.y, h.kind === "arc-ratio" ? "rest" : "on");
             }
           }
           // Box layers (image/video/nested/drawing) get the SAME rect corner-radius
           // dots — reusing rectRadiusHandles. Hidden in crop mode (crop owns the box).
           const boxT = loc && !sc && id !== session.cropClipId ? boxRadiusFor(loc.clip) : null;
           if (boxT) {
-            for (const h of rectRadiusHandles(boxT.width, boxT.height, boxT.cornerRadius, boxT.pose, view)) {
-              ctx.save();
-              ctx.beginPath();
-              ctx.arc(h.x, h.y, 3.5, 0, Math.PI * 2);
-              ctx.fillStyle = "#fff";
-              ctx.strokeStyle = TOOL_ACCENT.rect;
-              ctx.lineWidth = 1.5;
-              ctx.fill();
-              ctx.stroke();
-              ctx.restore();
-            }
+            for (const h of rectRadiusHandles(boxT.width, boxT.height, boxT.cornerRadius, boxT.pose, view)) drawDot(ctx, h.x, h.y);
           }
         }
       }
@@ -3236,8 +3195,8 @@ export function Stage() {
           ctx.restore();
           // Crop rect outline + rule-of-thirds guides (Figma crop feel).
           ctx.save();
-          ctx.strokeStyle = TOOL_ACCENT.rect;
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = sceneInk().accent;
+          ctx.lineWidth = SCENE.stroke;
           ctx.beginPath();
           ctx.moveTo(cNW.x, cNW.y);
           ctx.lineTo(cNE.x, cNE.y);
@@ -3246,7 +3205,6 @@ export function Stage() {
           ctx.closePath();
           ctx.stroke();
           ctx.globalAlpha = 0.35;
-          ctx.lineWidth = 1;
           for (let k = 1; k <= 2; k++) {
             const t = k / 3;
             const aTop = { x: cNW.x + (cNE.x - cNW.x) * t, y: cNW.y + (cNE.y - cNW.y) * t };
@@ -3261,33 +3219,12 @@ export function Stage() {
             ctx.stroke();
           }
           ctx.restore();
-          // Handles: chunky corner brackets + thin edge bars.
-          ctx.save();
-          ctx.strokeStyle = "#fff";
-          ctx.fillStyle = TOOL_ACCENT.rect;
-          for (const h of geo.handles) {
-            const isCorner = h.side.length === 2;
-            ctx.beginPath();
-            if (isCorner) ctx.rect(h.pt.x - 4.5, h.pt.y - 4.5, 9, 9);
-            else ctx.rect(h.pt.x - 3.5, h.pt.y - 3.5, 7, 7);
-            ctx.fill();
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-          }
+          // The window's grips: the same squares as every resize handle.
+          for (const h of geo.handles) drawGrip(ctx, h.pt.x, h.pt.y);
           // The picture's own corner grips — hollow, so they never read as the
           // window's solid handles. They are what you pull to resize the
           // FOOTAGE while the framing holds still.
-          ctx.save();
-          ctx.strokeStyle = "rgba(255,255,255,0.85)";
-          ctx.fillStyle = "rgba(14,14,18,0.7)";
-          ctx.lineWidth = 1.5;
-          for (const pt of [fNW, fNE, fSE, fSW]) {
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          }
-          ctx.restore();
+          for (const pt of [fNW, fNE, fSE, fSW]) drawDot(ctx, pt.x, pt.y, "ghost");
 
           // TURN THE PICTURE — a quarter-arc just outside each of those grips,
           // in the band the drag actually reads. A rotate band is invisible
@@ -3295,8 +3232,8 @@ export function Stage() {
           // convention people arrive with; the picture quad is not one, so the
           // affordance has to be drawn or nobody will ever find it.
           ctx.save();
-          ctx.strokeStyle = "rgba(255,255,255,0.5)";
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(255,255,255,0.6)";
+          ctx.lineWidth = SCENE.stroke;
           ctx.lineCap = "round";
           const pcx = geo.picCentre.x;
           const pcy = geo.picCentre.y;
@@ -3325,8 +3262,8 @@ export function Stage() {
        * single selection so you can SEE what rotation and ⌥-resize turn about.
        *
        * TWO STATES, and the second one is the whole discoverability of the hold.
-       * At rest it is a thin white mark: present, not asking for anything. It
-       * turns ACCENT, grows, fills its centre and drops a tether to the box the
+       * At rest it is a quiet white mark: present, not asking for anything. It
+       * turns ACCENT, grows, fills and drops a tether to the box the
        * moment it owns the pointer — which is true in pivot mode, true while a
        * pivot drag is running, and true the instant a hold lands on it. Without
        * that last one the hold is a wait with no feedback, and a gesture nobody
@@ -3339,50 +3276,10 @@ export function Stage() {
             session.pivotClipId === ph.clipId ||
             (g.pivotClipId === ph.clipId &&
               (g.mode === "move-pivot" || !!g.pivotHold?.ready()));
-          ctx.save();
-          if (active) {
-            // In-mode: a dashed tether back to the box centre, so a pivot dragged
-            // far outside the layer still reads as belonging to it.
-            const hit = activeHit(ph.clipId);
-            if (hit) {
-              ctx.strokeStyle = "rgba(255,46,136,0.55)";
-              ctx.lineWidth = 1;
-              ctx.setLineDash([3, 3]);
-              ctx.beginPath();
-              ctx.moveTo(ph.x, ph.y);
-              ctx.lineTo(view.tx + hit.cx * view.scale, view.ty + hit.cy * view.scale);
-              ctx.stroke();
-              ctx.setLineDash([]);
-            }
-          }
-          const r = active ? 7 : 5.5;
-          ctx.lineWidth = active ? 2 : 1.5;
-          // Dark halo first so the mark survives on light and dark artwork alike.
-          ctx.strokeStyle = "rgba(0,0,0,0.45)";
-          ctx.beginPath();
-          ctx.arc(ph.x, ph.y, r, 0, Math.PI * 2);
-          ctx.moveTo(ph.x - r - 3, ph.y);
-          ctx.lineTo(ph.x + r + 3, ph.y);
-          ctx.moveTo(ph.x, ph.y - r - 3);
-          ctx.lineTo(ph.x, ph.y + r + 3);
-          ctx.lineWidth = (active ? 2 : 1.5) + 2;
-          ctx.stroke();
-          ctx.strokeStyle = active ? "#ff2e88" : "#fff";
-          ctx.lineWidth = active ? 2 : 1.5;
-          ctx.beginPath();
-          ctx.arc(ph.x, ph.y, r, 0, Math.PI * 2);
-          ctx.moveTo(ph.x - r - 3, ph.y);
-          ctx.lineTo(ph.x + r + 3, ph.y);
-          ctx.moveTo(ph.x, ph.y - r - 3);
-          ctx.lineTo(ph.x, ph.y + r + 3);
-          ctx.stroke();
-          if (active) {
-            ctx.fillStyle = "#ff2e88";
-            ctx.beginPath();
-            ctx.arc(ph.x, ph.y, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.restore();
+          // In-mode, a dashed tether runs back to the box centre, so a pivot
+          // dragged far outside the layer still reads as belonging to it.
+          const hit = active ? activeHit(ph.clipId) : null;
+          drawPivot(ctx, ph.x, ph.y, active, hit ? { x: view.tx + hit.cx * view.scale, y: view.ty + hit.cy * view.scale } : null);
         }
       }
 
@@ -3473,35 +3370,20 @@ export function Stage() {
 
       // Gesture overlays (marquee / frame draft).
       if (g.mode === "marquee") {
-        const r = normRect(g.marqueeStart, g.marqueeEnd);
-        ctx.save();
-        ctx.fillStyle = "rgba(245,184,67,0.08)";
-        ctx.strokeStyle = "rgba(245,184,67,0.8)";
-        ctx.lineWidth = 1;
-        ctx.fillRect(r.x, r.y, r.w, r.h);
-        ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
-        ctx.restore();
+        drawMarquee(ctx, normRect(g.marqueeStart, g.marqueeEnd));
       }
       if (g.mode === "draw-frame") {
         const a = worldToScreen(g.frameStart, view);
         const b = worldToScreen(g.frameEnd, view);
         const r = normRect(a, b);
-        ctx.save();
-        ctx.strokeStyle = TOOL_ACCENT.frame;
-        ctx.setLineDash([4, 4]);
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(r.x, r.y, r.w, r.h);
-        ctx.setLineDash([]);
+        strokeOutline(
+          ctx,
+          [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }],
+          [4, 4],
+        );
         const w = Math.round(Math.abs(g.frameEnd.x - g.frameStart.x));
         const h = Math.round(Math.abs(g.frameEnd.y - g.frameStart.y));
-        const label = `${w} × ${h}`;
-        ctx.font = "600 11px var(--font-jetbrains-mono), monospace";
-        const tw = ctx.measureText(label).width;
-        ctx.fillStyle = TOOL_ACCENT.frame;
-        roundedFill(ctx, r.x + r.w / 2 - tw / 2 - 6, r.y + r.h + 8, tw + 12, 18, 5);
-        ctx.fillStyle = "#131316";
-        ctx.fillText(label, r.x + r.w / 2 - tw / 2, r.y + r.h + 21);
-        ctx.restore();
+        drawReadout(ctx, `${w} × ${h}`, r.x + r.w / 2, r.y + r.h + 8);
       }
       if (g.mode === "draw-shape") {
         const rect = shapeDrawRect(g.frameStart, g.frameEnd, g.shapeSquare, g.shapeFromCenter);
@@ -3509,10 +3391,9 @@ export function Stage() {
         const sw = Math.max(1, rect.w * view.scale);
         const sh = Math.max(1, rect.h * view.scale);
         ctx.save();
-        const accent = TOOL_ACCENT[g.shapeKind];
-        ctx.strokeStyle = accent;
-        ctx.fillStyle = `${accent}1f`;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = sceneInk().accent;
+        ctx.fillStyle = sceneInk().accent;
+        ctx.lineWidth = SCENE.stroke;
         const geo = SHAPE_TOOL_GEOMETRY[g.shapeKind];
         const preview = commandsToPath2D(
           shapeCommands({
@@ -3526,7 +3407,9 @@ export function Stage() {
           }),
         );
         ctx.translate(c.x, c.y);
+        ctx.globalAlpha = 0.12;
         ctx.fill(preview);
+        ctx.globalAlpha = 1;
         ctx.stroke(preview);
         ctx.restore();
       }
@@ -3536,8 +3419,8 @@ export function Stage() {
         const b = worldToScreen(g.frameEnd, view);
         const r = normRect(a, b);
         ctx.save();
-        ctx.strokeStyle = accentColor();
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = sceneInk().accent;
+        ctx.lineWidth = SCENE.stroke;
         ctx.setLineDash([5, 3]);
         ctx.strokeRect(r.x, r.y, r.w, r.h);
         ctx.restore();
@@ -3551,57 +3434,13 @@ export function Stage() {
         if (hv && g.mode === "none" && !session.selectedClipIds.includes(hv)) {
           const hr = stageHitRects.current.find((h) => h.clipId === hv);
           if (hr) {
-            const pts = hitCorners(hr).map((c) => worldToScreen(c, view));
-            ctx.save();
-            ctx.strokeStyle = accentColor();
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            pts.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y)));
-            ctx.closePath();
-            ctx.stroke();
-            ctx.restore();
+            strokeOutline(ctx, hitCorners(hr).map((c) => worldToScreen(c, view)));
           }
         }
       }
 
-      // Smart guides — the last chrome, over everything. A crisp magenta line
-      // per active snap, spanning from the moving box to the target it caught,
-      // with little end ticks (Figma). Center hits read slightly brighter.
-      const guides = activeGuidesRef.current;
-      if (guides.v.length || guides.h.length) {
-        ctx.save();
-        ctx.lineWidth = 1;
-        const tick = 3;
-        for (const l of guides.v) {
-          const x = Math.round(view.tx + l.pos * view.scale) + 0.5;
-          const y0 = view.ty + l.lo * view.scale;
-          const y1 = view.ty + l.hi * view.scale;
-          ctx.strokeStyle = snapLineColor(l.kind);
-          ctx.beginPath();
-          ctx.moveTo(x, y0);
-          ctx.lineTo(x, y1);
-          ctx.moveTo(x - tick, y0);
-          ctx.lineTo(x + tick, y0);
-          ctx.moveTo(x - tick, y1);
-          ctx.lineTo(x + tick, y1);
-          ctx.stroke();
-        }
-        for (const l of guides.h) {
-          const y = Math.round(view.ty + l.pos * view.scale) + 0.5;
-          const x0 = view.tx + l.lo * view.scale;
-          const x1 = view.tx + l.hi * view.scale;
-          ctx.strokeStyle = snapLineColor(l.kind);
-          ctx.beginPath();
-          ctx.moveTo(x0, y);
-          ctx.lineTo(x1, y);
-          ctx.moveTo(x0, y - tick);
-          ctx.lineTo(x0, y + tick);
-          ctx.moveTo(x1, y - tick);
-          ctx.lineTo(x1, y + tick);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+      // Smart guides — the last chrome, over everything (`scene-chrome`).
+      drawSnapLines(ctx, activeGuidesRef.current, view);
 
       // ⇧-constrain axis: a dashed accent line through the moving selection at
       // the locked angle, so the axis you're constrained to is visible (Figma).
@@ -3612,8 +3451,8 @@ export function Stage() {
         const a = (axis.angleDeg * Math.PI) / 180;
         const L = 4000;
         ctx.save();
-        ctx.strokeStyle = "#FF5CA8";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = sceneInk().snap;
+        ctx.lineWidth = SCENE.stroke;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(Math.round(sx - Math.cos(a) * L) + 0.5, Math.round(sy - Math.sin(a) * L) + 0.5);
@@ -9147,29 +8986,20 @@ export function Stage() {
       <StageChrome
         insets={rulersOn ? { top: RULER_SIZE, left: RULER_SIZE } : undefined}
         items={[
-          // THE TOP EDGE, in two rows:
+          // THE TOP EDGE, three zones (`chrome-layout.ts`): where you are on
+          // the left, how you see it on the right, always, and the armed
+          // tool's own options between them, capped and scrolling.
           //
-          //     [ the armed tool's bar ] ················· [ zoom · view ]
-          //     [ tabs ]
+          //     [ path ] ······· [ tool options ] ······· [ zoom · view ]
           //
-          // and when the bar is too wide to share, the cluster comes down to
-          // the tabs' row rather than taking a third line of its own:
-          //
-          //     [ the armed tool's bar ······························· ]
-          //     [ tabs ] ································· [ zoom · view ]
-          //
-          // No project tab strip here (D2 revised: projects switch from the
-          // logo menu). Everything else falls out of the band — see
-          // `SplitBand`. Each capsule is sized to its CONTENT.
-          { id: "tool-options", edge: "top", align: "start", node: <ToolOptionsBar /> },
+          // THE BOTTOM EDGE: the tools, centred and floating (Figma's shape),
+          // a capsule the stage reserves before anything else is laid out, so
+          // no panel, timeline or narrow window can clip it; past its width it
+          // scrolls with edge fades. A person may still dock it on a side.
+          { id: "breadcrumb", edge: "top", align: "start", node: <StageContextBar /> },
           { id: "view", edge: "top", align: "end", node: <StageControls onZoom={zoomStageToScale} onFit={() => fit()} /> },
-          // The rail, wherever it is docked. `placementOf` supplies the
-          // alignment the edge implies: a side rail hangs from the top, a
-          // bottom bar centres on the stage the way Figma's does.
+          { id: "tool-options", edge: "top", align: "center", node: <ToolOptionsBar /> },
           { id: "rail", ...placementOf(toolbarPlacement), node: <StageToolbar /> },
-          // Navigation — where you are and how to get out. Bottom left, on the
-          // stage's own edge, and it scrolls when the path outgrows it.
-          { id: "breadcrumb", edge: "bottom", align: "start", node: <StageContextBar /> },
           // A thing you HOLD, so it hangs where a hand already rests. It
           // renders itself away unless a paint tool is armed.
           { id: "brush", edge: "right", align: "center", node: <StageBrushHandle /> },
@@ -9622,7 +9452,7 @@ function drawCropVerbBadge(
           ? "⌥ Reframe crop"
           : "⌥ Move image";
   ctx.save();
-  ctx.font = "600 10px var(--font-jetbrains-mono), monospace";
+  ctx.font = `500 10px ${sceneInk().codeFont}`;
   const wArmed = ctx.measureText(armed).width;
   const wOther = other ? ctx.measureText(other).width : 0;
   const padX = 8;
@@ -9634,7 +9464,7 @@ function drawCropVerbBadge(
   ctx.fillStyle = "rgba(14,14,18,0.86)";
   roundedFill(ctx, x, y, w, 20, 6);
   ctx.textBaseline = "middle";
-  ctx.fillStyle = TOOL_ACCENT.rect;
+  ctx.fillStyle = sceneInk().accent;
   ctx.fillText(armed, x + padX, y + 10.5);
   if (other) {
     ctx.fillStyle = "rgba(255,255,255,0.42)";
@@ -9683,43 +9513,14 @@ function drawSelection(
   // Shear the box into a parallelogram (T·R·K·S) so the outline hugs a skewed
   // layer exactly. Grab-dots draw AFTER restoring the shear so they stay round.
   const corner = (sx: number, sy: number) => shearPoint((sx * w) / 2, (sy * h) / 2, hit.skewX, hit.skewY);
-  ctx.strokeStyle = accentColor();
-  ctx.lineWidth = 1.5;
+  const quad = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
   // Dashed = native geometry-resize affordance (shapes/text); solid = object
-  // scale. Only the box dashes — the corner grab-dots stay solid. The box hugs
-  // the layer's true bounds exactly (no padding), so it lines up with the smart
-  // guides and the layer edge.
-  if (dashed) ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  {
-    const tl = corner(-1, -1);
-    const tr = corner(1, -1);
-    const br = corner(1, 1);
-    const bl = corner(-1, 1);
-    ctx.moveTo(tl.x, tl.y);
-    ctx.lineTo(tr.x, tr.y);
-    ctx.lineTo(br.x, br.y);
-    ctx.lineTo(bl.x, bl.y);
-    ctx.closePath();
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  if (withHandles) {
-    ctx.fillStyle = "#131316";
-    for (const [sx, sy] of [
-      [-1, -1],
-      [1, -1],
-      [-1, 1],
-      [1, 1],
-    ] as const) {
-      const c = corner(sx, sy);
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
+  // scale. Only the box dashes — the grips stay solid. The box hugs the
+  // layer's true bounds exactly (no padding), so it lines up with the smart
+  // guides and the layer edge. The context is turned with the box, so the
+  // square grips turn with it (Figma).
+  strokeOutline(ctx, quad, dashed ? [5, 4] : undefined);
+  if (withHandles) for (const c of quad) drawGrip(ctx, c.x, c.y);
 
   // Readout pill under the selection — only while dragging (position) or
   // resizing (size), so nothing clutters the canvas at rest.
@@ -9728,12 +9529,7 @@ function drawSelection(
       readout.kind === "size"
         ? `${Math.round(hit.width)} × ${Math.round(hit.height)}`
         : `${Math.round(readout.x)}, ${Math.round(readout.y)}`;
-    ctx.font = "600 10px var(--font-jetbrains-mono), monospace";
-    const tw = ctx.measureText(label).width;
-    ctx.fillStyle = accentColor();
-    roundedFill(ctx, -tw / 2 - 6, h / 2 + 12, tw + 12, 17, 5);
-    ctx.fillStyle = "#131316";
-    ctx.fillText(label, -tw / 2, h / 2 + 24);
+    drawReadout(ctx, label, 0, h / 2 + 12);
   }
   ctx.restore();
 }

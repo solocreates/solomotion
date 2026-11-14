@@ -92,14 +92,15 @@ The studio opens at http://localhost:3000.
 | [`@solomotion/agent`](packages/agent) | The agent runtime: provider dialects, the tool loop, knowledge packs, media generation and feedback folding. Provider- and UI-agnostic. |
 | [`@solomotion/core`](packages/core) | The engine: the document, animation, timeline, effects, physics, rigging, the command API and its agent verbs. Pure data — no DOM, no React; runs in a test, a worker and the exporter alike. |
 | [`@solomotion/lipsync`](packages/lipsync) | Headless speech foundation: lazy speech engines (analyze/align/synthesize), ARPAbet G2P, viseme alphabets, an offline Test Voice, cue post-processing and an evaluation harness. Zero dependencies, zero DOM. |
-| [`@solomotion/mcp`](packages/mcp) | Drive a running SoloMotion editor from Claude Code, Claude Desktop, Cursor or any MCP client — every editor verb as a tool, renders as images, the skill as resources. |
+| [`@solomotion/mcp`](packages/mcp) | The SoloMotion MCP server: lets Claude Code, Cursor or any MCP client drive a running SoloMotion editor. |
 | [`@solomotion/platform`](packages/platform) | The bridge between the app and its host (browser or desktop shell): files, clipboard, fonts, folders, updates, the log bus. |
-| [`@solomotion/plugin-sdk`](packages/plugin-sdk) | The plugin contract: manifest, capabilities, the sandboxed client and the wire protocol. |
+| [`@solomotion/plugin-sdk`](packages/plugin-sdk) | Types and validation for SoloMotion plugins: the manifest schema, capabilities and the window.solomotion API. |
 | [`@solomotion/skill`](packages/skill) | The agent skill and default design system — how an AI works inside the studio. |
 | [`@solomotion/templates`](packages/templates) | The templates that ship in the studio — each a build script and the art it reads. |
 | [`@solomotion/theme`](packages/theme) | The theme file: one schema that picks colours, type, shape and a dialect for every part, compiled to CSS. |
 | [`@solomotion/ui`](packages/ui) | Shared UI primitives and cursors. |
 | [`@solomotion/product`](products/solomotion) | SoloMotion, the open studio: its identity, Support, hosts and entitlements (everything unlocked). |
+| [`solomotion`](products/solomotion/cli) | Open SoloMotion, the open-source motion studio, or run its MCP server for your agent. |
 
 ## Contributing
 

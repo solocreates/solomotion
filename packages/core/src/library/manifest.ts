@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LIBRARY_KINDS } from "./item";
+import { PRODUCT_NS_PATTERN } from "./scope";
 
 /**
  * THE WIRE FORMAT of the online catalogue — a two-tier, generated, static
@@ -27,6 +28,16 @@ import { LIBRARY_KINDS } from "./item";
 export const LIBRARY_MANIFEST_VERSION = 1;
 
 export const libraryKindSchema = z.enum(LIBRARY_KINDS);
+
+/**
+ * Which products see an item (scope.ts): product namespaces, or null for
+ * every product. Absent in older catalogues, which were for everyone.
+ */
+export const productScopeSchema = z
+  .array(z.string().regex(PRODUCT_NS_PATTERN, "a product namespace: lowercase letters and digits"))
+  .min(1)
+  .nullable()
+  .default(null);
 
 export const publisherRefSchema = z.object({
   id: z.string(),
@@ -121,6 +132,8 @@ export const manifestEntrySchema = z.object({
   createdAt: z.number().int().nullable().default(null),
   /** Shelf position from `pack.json` (low first); null = after, newest first. */
   order: z.number().int().nullable().default(null),
+  /** Which products see it (scope.ts). */
+  products: productScopeSchema,
 });
 export type ManifestEntry = z.infer<typeof manifestEntrySchema>;
 
@@ -172,6 +185,8 @@ export const indexPackSchema = z.object({
    * possibly match, so most queries download nothing.
    */
   terms: z.array(z.string()).default([]),
+  /** The union of its entries' scopes: which products see the pack at all (scope.ts). */
+  products: productScopeSchema,
   updatedAt: z.number().int(),
 });
 export type IndexPack = z.infer<typeof indexPackSchema>;
@@ -202,6 +217,8 @@ export const packSourceSchema = z.object({
   publisher: publisherRefSchema.nullable().default(null),
   /** Applied to every entry, on top of the entry's own tags. */
   tags: z.array(z.string()).default([]),
+  /** Which products see this pack's entries, unless a file says otherwise (scope.ts). */
+  products: productScopeSchema,
   files: z.array(
     z.object({
       /** Path relative to the pack directory. */
@@ -233,6 +250,8 @@ export const packSourceSchema = z.object({
       height: z.number().int().positive().optional(),
       /** Shelf position, low first. The one way to put something first — never a date trick. */
       order: z.number().int().optional(),
+      /** Which products see this file; wins over the pack's (scope.ts). */
+      products: productScopeSchema.optional(),
     }),
   ),
 });

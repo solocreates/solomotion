@@ -124,11 +124,9 @@ export function ToolOptionsBar() {
   const Section = TOOL_SECTIONS[tool];
   if (!Section) return null;
   return (
-    // The capsule never scrolls — the strip inside it does (see `BarCapsule`).
-    // The band measures this row to decide whether the bar fits beside the zoom
-    // cluster — a scroller reports the width it was given, never the width its
-    // content wants. See `useRoomBeside`.
-    <BarCapsule measure>
+    // The capsule never scrolls; the strip inside it does (see `BarCapsule`).
+    // Its width is the zoned band's call (`chrome-layout.ts`), never its own.
+    <BarCapsule>
       {/* IDENTITY, for every tool, from the registry — never from a section.
           Rendering it here means a tool that joins a family gains the switch
           without either file knowing. */}

@@ -137,7 +137,7 @@ import { redoActive, undoActive } from "../state/history";
  * search — the mark is the fastest way to any project. ⌘⇧O opens on Projects.
  * Every entry calls the same unified actions as its shortcut.
  */
-export function AppMenu({ trigger }: { trigger?: React.ReactElement }) {
+export function AppMenu({ trigger, side }: { trigger?: React.ReactElement; side?: "right" | "bottom" }) {
   const store = useDocStore();
   const view = useAppShell((s) => s.view);
   const inEditor = view === "editor";
@@ -211,7 +211,7 @@ export function AppMenu({ trigger }: { trigger?: React.ReactElement }) {
         align="start"
         // The editor's menu hangs off the left rail, so it opens sideways;
         // Home's hangs under a top nav, so it opens down. One menu, two anchors.
-        side={inEditor ? "right" : "bottom"}
+        side={side ?? (inEditor ? "right" : "bottom")}
         sideOffset={6}
         className="w-[21rem]"
         onKeyDown={inEditor ? onKeyDown : undefined}

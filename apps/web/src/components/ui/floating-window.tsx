@@ -5,6 +5,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { Minus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PartLabel } from "@/components/ui/part-label";
 import { useAfterPaint } from "@/components/ui/use-after-paint";
 import { withFloatingLayerEvents } from "@/lib/portal-events";
 import { ScrollArea } from "./scroll-area";
@@ -23,6 +24,10 @@ export type { WindowSize, WindowSizeHint, WindowSizes } from "./window-sizes";
  * `bounds` and gets patch callbacks — so the plugin dock, the variables window
  * and anything else float with identical behavior and none reimplement it.
  */
+
+/** Minimise and close: the small control height, the theme's smallest corner. */
+const TITLE_BUTTON =
+  "grid size-(--control-h-sm) shrink-0 place-items-center rounded-(--r-xs) text-muted-foreground transition-colors hover:bg-hover hover:text-foreground [&_svg]:size-3.5";
 
 export interface WindowBounds {
   x: number;
@@ -144,6 +149,10 @@ export function FloatingWindow({
     return () => useWindowManager.getState().unregister(windowId);
   }, [windowId]);
   const resolvedZ = windowId ? windowZIndex(order, windowId) : zIndex;
+  // The frontmost window is the SELECTED one, and selection here is an edge
+  // (as on a clip): its title rule and glyph take the accent. Derived from the
+  // one stacking order, so two windows can never both claim it.
+  const front = !windowId || order[order.length - 1] === windowId;
 
   /*
    * EVERY window is portalled to the body, and that is what makes this
@@ -279,10 +288,15 @@ export function FloatingWindow({
         // The tint, the saturation lift, the edge light and the cast shadow all
         // still do their work; what is gone is being able to READ the app
         // through the pane.
-        "material-glass-strong fixed flex flex-col overflow-hidden text-popover-foreground",
+        //
+        // `--title-h` is the bar's height in ONE place: the bar and the east
+        // resize handle (which starts below it) both read it, and it follows
+        // the theme's density with every other control.
+        "material-glass-strong fixed flex flex-col overflow-hidden text-popover-foreground [--title-h:calc(var(--control-h)+0.5rem)]",
         className,
       )}
       data-floating-window={title}
+      data-front={front || undefined}
       // The window's identity in the DOM. Since the frame is portalled to the
       // body, a local `ref.current.contains(target)` no longer answers "was this
       // click inside my window?" — this is what a dismiss-on-outside-click
@@ -309,13 +323,27 @@ export function FloatingWindow({
         // which cancels the touch outright.
         className={cn(
           DRAG_SURFACE,
-          "flex h-9 shrink-0 cursor-grab items-center gap-2 border-b border-border/70 bg-muted/40 px-2.5 active:cursor-grabbing",
+          // No grey band: the bar is the window's own material with a rule
+          // under it, the rule is `--line` (accent on the front window), and
+          // the title is the label part's HEAD, so a theme's label casing and
+          // display face reach every window, plugin windows included.
+          "flex h-(--title-h) shrink-0 cursor-grab items-center gap-1.5 pr-1 pl-2.5 active:cursor-grabbing",
+          !bounds.minimized && "border-b",
+          front ? "border-[color-mix(in_oklab,var(--primary)_55%,var(--line))]" : "border-line",
         )}
         onPointerDown={startMove}
         onDoubleClick={onToggleMinimize}
       >
-        {icon && <span className="shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>}
-        <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{title}</span>
+        {icon && (
+          <span className={cn("shrink-0 transition-colors [&_svg]:size-3.5", front ? "text-primary" : "text-muted-foreground")}>
+            {icon}
+          </span>
+        )}
+        <PartLabel
+          text={title}
+          level="head"
+          className={cn("min-w-0 flex-1 truncate transition-colors", front ? "text-foreground" : "text-muted-foreground")}
+        />
         {/* Title-bar controls opt OUT of the move gesture: without this the bar's
             pointerdown starts a drag and eats the click, so a picker mounted here
             would simply never open. */}
@@ -326,21 +354,23 @@ export function FloatingWindow({
         )}
         <button
           type="button"
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          className={TITLE_BUTTON}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onToggleMinimize}
+          aria-label={bounds.minimized ? "Expand" : "Minimize"}
           title={bounds.minimized ? "Expand" : "Minimize"}
         >
-          <Minus className="size-3" />
+          <Minus />
         </button>
         <button
           type="button"
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          className={TITLE_BUTTON}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onClose}
+          aria-label="Close"
           title="Close"
         >
-          <X className="size-3" />
+          <X />
         </button>
       </div>
 
@@ -390,7 +420,7 @@ export function FloatingWindow({
       {!bounds.minimized && (
         <>
           <div
-            className={cn(DRAG_SURFACE, "absolute top-9 right-0 bottom-2 w-(--hit-grip) cursor-ew-resize")}
+            className={cn(DRAG_SURFACE, "absolute top-(--title-h) right-0 bottom-2 w-(--hit-grip) cursor-ew-resize")}
             onPointerDown={startResize("e")}
           />
           <div

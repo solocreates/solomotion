@@ -196,6 +196,7 @@ export * from "./audio/ducking";
 export * from "./audio/mix-plan";
 export * from "./audio/buses";
 export * from "./history/document-store";
+export * from "./history/suspended-history";
 export * from "./captions";
 export * from "./captions/transcript";
 export * from "./factories";

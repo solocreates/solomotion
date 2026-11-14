@@ -102,9 +102,17 @@ function DialO({ o, turn, onPoint }: { o: OMetrics; turn: number; onPoint?: () =
 }
 
 /**
+ * Below this size the dials stop reading as o's: the disc sinks into the
+ * ground and only the bright quarter survives, so 16px read "s•l•m•ti•n".
+ */
+export const DIAL_WORDMARK_MIN_PX = 28;
+
+/**
  * The wordmark: "solomotion" set in the display face, each o replaced by a
  * dial placed over the font's REAL o — measured from the face that rendered,
- * so it is right in any theme's display font, at any size.
+ * so it is right in any theme's display font. It is a DISPLAY lockup: set
+ * below `DIAL_WORDMARK_MIN_PX` it renders the name plainly in the same face,
+ * and the dial mark beside it carries the brand.
  */
 export function DialWordmark({
   className,
@@ -120,12 +128,15 @@ export function DialWordmark({
 }) {
   const ref = React.useRef<HTMLSpanElement>(null);
   const [o, setO] = React.useState<OMetrics>(DEFAULT_O);
+  const [plain, setPlain] = React.useState(false);
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     let live = true;
     const run = () => {
-      const m = live && measureO(el);
+      if (!live) return;
+      setPlain(parseFloat(getComputedStyle(el).fontSize) < DIAL_WORDMARK_MIN_PX);
+      const m = measureO(el);
       if (m) setO(m);
     };
     run();
@@ -141,10 +152,10 @@ export function DialWordmark({
       aria-label="solomotion"
       data-part="wordmark"
       className={className}
-      style={{ whiteSpace: "nowrap", lineHeight: 1, display: "inline-block", ...style }}
+      style={{ fontFamily: "var(--font-display)", whiteSpace: "nowrap", lineHeight: 1, display: "inline-block", ...style }}
       {...rest}
     >
-      {WORDMARK_PARTS.map((p, i) =>
+      {plain ? <span aria-hidden>solomotion</span> : WORDMARK_PARTS.map((p, i) =>
         "text" in p ? (
           <span key={i} aria-hidden>
             {p.text}

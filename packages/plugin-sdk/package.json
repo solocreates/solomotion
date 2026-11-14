@@ -1,17 +1,30 @@
 {
   "name": "@solomotion/plugin-sdk",
   "version": "1.0.0-beta.1",
-  "description": "The plugin contract: manifest, capabilities, the sandboxed client and the wire protocol.",
-  "private": true,
+  "description": "Types and validation for SoloMotion plugins: the manifest schema, capabilities and the window.solomotion API.",
+  "keywords": [
+    "solomotion",
+    "plugin",
+    "plugin-sdk",
+    "manifest",
+    "motion-graphics",
+    "animation"
+  ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "zod": "^3.24.1"
@@ -19,5 +32,23 @@
   "devDependencies": {
     "typescript": "^5.7.2"
   },
-  "license": "GPL-3.0-only"
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novincode/solomotion.git",
+    "directory": "packages/plugin-sdk"
+  },
+  "homepage": "https://github.com/novincode/solomotion/tree/main/packages/plugin-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/novincode/solomotion/issues"
+  }
 }

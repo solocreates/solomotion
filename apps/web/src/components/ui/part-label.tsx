@@ -10,10 +10,15 @@ import { varName } from "@solomotion/theme";
  */
 export const PartLabel = React.forwardRef<
   HTMLSpanElement,
-  { text: string; className?: string } & Omit<React.HTMLAttributes<HTMLSpanElement>, "children">
->(function PartLabel({ text, className, ...rest }, ref) {
+  {
+    text: string;
+    className?: string;
+    /** `head` titles a section (display face, full size); the default leads a row. */
+    level?: "head";
+  } & Omit<React.HTMLAttributes<HTMLSpanElement>, "children">
+>(function PartLabel({ text, className, level, ...rest }, ref) {
   return (
-    <span ref={ref} data-part="label" data-var={varName(text)} className={className} {...rest}>
+    <span ref={ref} data-part="label" data-level={level} data-var={varName(text)} className={className} {...rest}>
       {text}
     </span>
   );

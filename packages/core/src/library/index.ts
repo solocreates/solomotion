@@ -10,6 +10,7 @@
 export * from "./snapshot";
 export * from "./item";
 export * from "./manifest";
+export * from "./scope";
 export * from "./query";
 export * from "./catalog";
 export * from "./client";

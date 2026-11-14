@@ -599,7 +599,7 @@ export function LayersPanel() {
 
     if (drag.kind === "frame") {
       const below = rows[bestIdx];
-      return { type: "gap", index: bestIdx, y: bestY, indent: (below?.depth ?? 0) * 12 + 8 };
+      return { type: "gap", index: bestIdx, y: bestY, indent: (below?.depth ?? 0) * INDENT_PX + 8 };
     }
 
     const contentLeft = contentRef.current?.getBoundingClientRect().left ?? 0;
@@ -615,7 +615,7 @@ export function LayersPanel() {
       stencilFor,
     );
     if (!plan) return null;
-    return { type: "gap", index: bestIdx, y: bestY, indent: plan.depth * 12 + 8, plan };
+    return { type: "gap", index: bestIdx, y: bestY, indent: plan.depth * INDENT_PX + 8, plan };
   };
 
   /** Commit a resolved drop through the one structure-preserving core op. */
@@ -1112,7 +1112,7 @@ export function LayersPanel() {
                 line on its own does not say "inside the Union". */}
             {ghost.dest ? (
               <>
-                <CornerDownRight className="size-3 shrink-0 text-muted-foreground" />
+                <CornerDownRight className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="max-w-40 truncate text-muted-foreground">{ghost.dest}</span>
               </>
             ) : (
@@ -1251,18 +1251,20 @@ function LayerNodeRow({
          an already-open row has nothing to spring. */
       {...(collapsed && springKey ? { "data-spring-load": springKey } : {})}
       className={cn(
-        "group/row flex h-6.5 cursor-pointer select-none items-center gap-1 rounded-md pr-1.5 text-xs transition-colors",
-        row.type === "clip" ? "hover:bg-accent" : "hover:bg-accent/60",
-        selected && "bg-accent",
-        stageHovered && !selected && "bg-accent",
-        row.type === "clip" && selected && "ring-1 ring-primary/50",
-        dropInto && "ring-1 ring-primary bg-primary/10",
+        // Height is the theme's density, so Compact/Cozy/Roomy reach the
+        // layer list the way they reach every control.
+        "group/row flex h-(--control-h) cursor-pointer select-none items-center gap-1 rounded-md pr-1.5 text-body text-fg transition-colors",
+        // Selected is the ONE selection wash (it hovers a step deeper);
+        // a stage hover is a plain hover, so the two never read alike.
+        selected ? "bg-selection hover:bg-selection-hover" : "hover:bg-hover",
+        stageHovered && !selected && "bg-hover",
+        dropInto && "bg-selection ring-1 ring-primary ring-inset",
         row.type === "frame" && index > 0 && "mt-1",
         rowLocked && "cursor-not-allowed",
         rowHidden && "opacity-50",
         inert && !rowHidden && "opacity-75",
       )}
-      style={{ paddingLeft: row.depth * 12 + 4 }}
+      style={{ paddingLeft: row.depth * INDENT_PX + 4, ...nestRails(row.depth) }}
       onPointerEnter={hoverId ? () => useHoverLink.getState().set(hoverId, "layers") : undefined}
       onPointerLeave={hoverId ? () => useHoverLink.getState().clear("layers", hoverId) : undefined}
       onPointerDown={onStartDrag}
@@ -1275,7 +1277,7 @@ function LayerNodeRow({
         <button
           type="button"
           aria-label={collapsed ? "Expand" : "Collapse"}
-          className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+          className="rounded p-0.5 text-fg-faint hover:text-fg"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onToggleCollapse}
         >
@@ -1291,14 +1293,14 @@ function LayerNodeRow({
         <RenameInput
           initial={name}
           onCommit={onRename}
-          className="h-5 min-w-0 flex-1 rounded border border-primary/60 bg-input/45 px-1 text-xs"
+          className="h-5 min-w-0 flex-1 rounded border border-primary/60 bg-input/45 px-1 text-body"
         />
       ) : (
         <span
           className={cn(
             "min-w-0 flex-1 truncate",
-            row.type === "frame" && "font-semibold",
-            row.type === "audio-header" && "font-semibold text-muted-foreground",
+            row.type === "frame" && "font-heading font-semibold",
+            row.type === "audio-header" && "font-semibold text-fg-muted",
           )}
         >
           {name}
@@ -1360,12 +1362,12 @@ function LayerNodeRow({
       )}
 
       {row.type === "frame" && !renaming && (
-        <span className="font-mono text-[9px] text-muted-foreground">
+        <span className="font-numeric text-meta text-fg-faint tabular-nums">
           {row.frame.width}×{row.frame.height}
         </span>
       )}
       {row.type === "clip" && !renaming && (
-        <span className="font-mono text-[9px] text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100">
+        <span className="font-numeric text-meta text-fg-faint tabular-nums opacity-0 transition-opacity group-hover/row:opacity-100">
           {(row.clip.startMs / 1000).toFixed(1)}s
         </span>
       )}
@@ -1441,17 +1443,38 @@ function SwitchDot({ row }: { row: Row }) {
   );
 }
 
+/** One nesting level's indent, px. The drop line and the rails read it too. */
+const INDENT_PX = 12;
+
+/**
+ * INDENT GUIDES: one `--nest-rail` hairline per enclosing level, under that
+ * level's chevron, drawn as the row's own backgrounds. Rows sit edge to edge,
+ * so the hairlines join into a rail down each open group with no extra
+ * element per level (a thousand rows stay a thousand nodes).
+ */
+function nestRails(depth: number): React.CSSProperties | undefined {
+  if (depth <= 0) return undefined;
+  const line = "linear-gradient(var(--nest-rail), var(--nest-rail))";
+  const xs = Array.from({ length: depth }, (_, k) => `${k * INDENT_PX + 11.5}px 0`);
+  return {
+    backgroundImage: Array(depth).fill(line).join(", "),
+    backgroundPosition: xs.join(", "),
+    backgroundSize: "1px 100%",
+    backgroundRepeat: "no-repeat",
+  };
+}
+
 function RowIcon({ row }: { row: Row }) {
   const doc = useDoc();
   // Component definitions and instances read as a purple ◈ (Figma
   // recognizability) — distinct from a plain frame / nested comp.
   if (row.type === "frame") {
-    if (row.frame.mode === "flipbook") return <Layers2 className="size-3 shrink-0 text-[#FFB86C]" />;
-    if (row.frame.mode === "static") return <ImageIcon className="size-3 shrink-0 text-[#FFB86C]" />;
+    if (row.frame.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-[#FFB86C]" />;
+    if (row.frame.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-[#FFB86C]" />;
     return isComponentFrame(row.frame) ? (
-      <Component className="size-3 shrink-0 text-[#B79BFF]" />
+      <Component className="size-3.5 shrink-0 text-[#B79BFF]" />
     ) : (
-      <FrameIcon className="size-3 shrink-0 text-(--tool-frame,#B18CFF)" />
+      <FrameIcon className="size-3.5 shrink-0 text-(--tool-frame,#B18CFF)" />
     );
   }
   if (row.type === "group") {
@@ -1459,27 +1482,27 @@ function RowIcon({ row }: { row: Row }) {
     const g = locateClip(doc, row.groupId)?.clip;
     if (g?.kind === "group" && (g.rig || g.switch)) {
       const Own = clipIcon(g);
-      return <Own className="size-3 shrink-0 text-[#ff8732]" />;
+      return <Own className="size-3.5 shrink-0 text-[#ff8732]" />;
     }
     const Icon = COMPOSITE_ICONS[row.mode];
     return (
       <Icon
-        className={cn("size-3 shrink-0", row.mode === "pass" ? "text-muted-foreground" : "text-[#8AB4FF]")}
+        className={cn("size-3.5 shrink-0", row.mode === "pass" ? "text-muted-foreground" : "text-[#8AB4FF]")}
       />
     );
   }
-  if (row.type === "audio-header") return <AudioLines className="size-3 shrink-0 text-muted-foreground" />;
+  if (row.type === "audio-header") return <AudioLines className="size-3.5 shrink-0 text-muted-foreground" />;
   if (row.clip.kind === "nested") {
     // A nested clip WEARS its source's mode: flipbooks and stills read as
     // themselves everywhere, not as anonymous "nested" films.
     const source = doc.frames.find((f) => f.id === (row.clip as { sourceFrameId: string }).sourceFrameId);
-    if (source?.mode === "flipbook") return <Layers2 className="size-3 shrink-0 text-[#FFB86C]" />;
-    if (source?.mode === "static") return <ImageIcon className="size-3 shrink-0 text-[#FFB86C]" />;
+    if (source?.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-[#FFB86C]" />;
+    if (source?.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-[#FFB86C]" />;
     if (componentFrameOfClip(doc, row.clip)) {
-      return <Component className="size-3 shrink-0 text-[#B79BFF]" />;
+      return <Component className="size-3.5 shrink-0 text-[#B79BFF]" />;
     }
   }
   const Icon = clipIcon(row.clip);
-  return <Icon className="size-3 shrink-0 text-muted-foreground" />;
+  return <Icon className="size-3.5 shrink-0 text-muted-foreground" />;
 }
 

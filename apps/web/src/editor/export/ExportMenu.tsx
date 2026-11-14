@@ -30,13 +30,13 @@ import { useSession } from "../state/session";
  * The first item is the common case (the whole composition); the rest are the
  * shortcuts that skip the dialog because their scope is unambiguous.
  */
-export function ExportMenu({ children }: { children: React.ReactNode }) {
+export function ExportMenu({ children, side = "left", align = "start" }: { children: React.ReactNode; side?: "left" | "bottom"; align?: "start" | "end" }) {
   const store = useDocStore();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="left" sideOffset={6} className="w-56">
+      <DropdownMenuContent align={align} side={side} sideOffset={6} className="w-56">
         <DropdownMenuItem onClick={() => useSession.getState().setExportDialogOpen(true)}>
           <Film /> Composition…
         </DropdownMenuItem>

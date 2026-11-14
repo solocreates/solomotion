@@ -2,6 +2,7 @@ packages:
   - packages/*
   - apps/*
   - products/*
+  - products/*/cli
 
 # Build scripts approved to run on install (pnpm blocks them by default).
 onlyBuiltDependencies:

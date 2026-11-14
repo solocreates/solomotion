@@ -510,9 +510,11 @@ export type ToolbarPlacement = ChromeEdge;
 function loadToolbarPlacement(): ToolbarPlacement {
   try {
     const raw = typeof window === "undefined" ? null : window.localStorage.getItem(TOOLBAR_DOCK_KEY);
-    return CHROME_EDGES.includes(raw as ChromeEdge) ? (raw as ChromeEdge) : "left";
+    // The tools float at the bottom of the stage by default (Figma's shape);
+    // a dock someone chose is kept.
+    return CHROME_EDGES.includes(raw as ChromeEdge) ? (raw as ChromeEdge) : "bottom";
   } catch {
-    return "left";
+    return "bottom";
   }
 }
 

@@ -18,6 +18,13 @@ export const product: Product = {
   ...identity,
   Mark: ({ className, size = 24 }) => <DialMark className={className} size={size} title="SoloMotion" />,
   Loader: ({ className, size = 24 }) => <DialLoader className={className} size={size} />,
+  Wordmark: ({ className }) => <DialWordmark className={className} />,
+  support: {
+    githubSponsors: "https://github.com/sponsors/novincode",
+    buyMeACoffee: "https://buymeacoffee.com/codeideal",
+    shareText:
+      "SoloMotion is an open-source motion studio that runs in the browser: animation, editing, 3D and sound. No account, no subscription.",
+  },
   Splash: SoloMotionSplash,
   entry: "support",
   entitlements,

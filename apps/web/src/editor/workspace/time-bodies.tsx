@@ -96,7 +96,7 @@ export function TimelineRegionBody({ regionId }: { regionId: string }) {
   const stacked = [timelineOn, graphOn, nodesOn, colorOn].filter(Boolean).length;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="@container flex h-full min-h-0">
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
         {timelineOn && (
           <div className={cn("min-h-0", stacked > 1 ? "flex-1" : "h-full")} data-pick-area="timeline">

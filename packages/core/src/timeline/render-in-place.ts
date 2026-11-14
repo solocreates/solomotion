@@ -2,6 +2,7 @@ import type { MotionDocument, Clip, RenderInPlaceMeta, Track } from "../schema";
 import { isVisualClip } from "../clip-registry";
 import { isComponentFrame, isInstanceClip } from "../components";
 import { createId } from "../ids";
+import { hashString } from "../hash";
 import { isLayoutMember } from "../relations/layout";
 import { cloneClip, locateClip, nestClips } from "./ops";
 import { expandToDescendants } from "./groups";
@@ -132,18 +133,6 @@ export function renderInputSignature(doc: MotionDocument, clipId: string): strin
   };
   [clip, ...rows.flatMap((t) => t.clips)].forEach(visit);
   return hashString(JSON.stringify(parts));
-}
-
-/** Two independent 32-bit hashes — a collision would commit a stale render. */
-function hashString(s: string): string {
-  let a = 0x811c9dc5;
-  let b = 5381;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    a = Math.imul(a ^ c, 0x01000193);
-    b = (Math.imul(b, 33) + c) | 0;
-  }
-  return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}${s.length.toString(36)}`;
 }
 
 export interface RenderCommit {

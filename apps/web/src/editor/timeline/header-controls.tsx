@@ -29,10 +29,11 @@ import type { LoopMode } from "@solomotion/core";
  *   HeaderGroup    the ONE container for controls that belong together
  *   HeaderDivider  a hairline between two groups
  *
- * On the ACTIVE state: an armed toggle is tinted with the accent, but the tint
- * is a wash, not a slab. Several toggles are on at once in normal use (snap,
- * linked selection, markers) and at 15% fill they became a row of solid violet
- * blocks that read as errors. The mark is now carried mostly by the ICON.
+ * On the ACTIVE state: an armed toggle is the app's one armed recipe
+ * (`material-glass-raised text-primary`): a neutral raised pane, the accent
+ * on the icon. Several toggles are on at once in normal use (snap, linked
+ * selection, markers), and any accent fill turned them into a row of green
+ * blocks competing with the selection and the Export button.
  */
 
 /** Shared geometry: one height, one radius, one icon size, for every control. */
@@ -42,10 +43,10 @@ const CONTROL =
   "focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 " +
   "[&_svg]:size-3.5 [&_svg]:shrink-0";
 
-/** Off / hover / on. `on` is a wash plus a coloured icon, never a filled slab. */
+/** Off / hover / on. `on` is the armed recipe: a neutral pane, a coloured icon. */
 const STATE = {
   off: "text-muted-foreground hover:bg-accent hover:text-foreground",
-  on: "bg-primary/10 text-primary hover:bg-primary/15",
+  on: "material-glass-raised text-primary",
 } as const;
 
 export function HeaderDivider() {

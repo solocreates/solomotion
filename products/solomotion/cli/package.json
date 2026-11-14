@@ -1,0 +1,42 @@
+{
+  "name": "solomotion",
+  "version": "1.0.0-beta.1",
+  "description": "Open SoloMotion, the open-source motion studio, or run its MCP server for your agent.",
+  "keywords": [
+    "solomotion",
+    "motion-graphics",
+    "animation",
+    "video-editor",
+    "mcp",
+    "cli"
+  ],
+  "type": "module",
+  "bin": {
+    "solomotion": "bin/solomotion.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@solomotion/mcp": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novincode/solomotion.git",
+    "directory": "products/solomotion/cli"
+  },
+  "homepage": "https://github.com/novincode/solomotion/tree/main/products/solomotion/cli#readme",
+  "bugs": {
+    "url": "https://github.com/novincode/solomotion/issues"
+  }
+}

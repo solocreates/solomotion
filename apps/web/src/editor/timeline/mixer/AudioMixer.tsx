@@ -49,8 +49,6 @@ export function AudioMixer() {
   // `version` rebuilds the plan as measurements land (livePlan keys on it).
   const plan = React.useMemo(() => livePlan(doc, frame.id), [doc, frame.id, version]); // eslint-disable-line react-hooks/exhaustive-deps
   const strips = [...plan.buses.values()].filter((b) => b.used);
-  // Only Master: the mixer is one bar, and its header shrinks to icons to match.
-  const compact = strips.length === 0;
   const leveler = frame.soundMix.leveler;
 
   const setMix = (label: string, fn: (m: typeof frame.soundMix) => void, mergeKey?: string) =>
@@ -64,14 +62,19 @@ export function AudioMixer() {
     );
 
   return (
-    <div className="flex h-full min-h-0 w-fit max-w-[60vw] shrink-0 flex-col border-l bg-background/60">
-      <div className={cn("flex h-8 shrink-0 items-center gap-1 border-b", compact ? "justify-center px-1" : "px-2")}>
-        {!compact && (
-          <>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Mix</span>
-            <span className="flex-1" />
-          </>
-        )}
+    // THE LANES COME FIRST. The mixer takes what the region has left after
+    // 20rem of lanes (never more than 60vw), and its strips scroll inside
+    // that: on a 390 phone it is the master meter, not half the timeline.
+    // `cqw` is the time region's width (`@container` there), so a mixer in a
+    // narrow region and a mixer on a narrow screen obey the same rule.
+    <div className="flex h-full min-h-0 w-fit max-w-[min(60vw,max(4.5rem,100cqw-20rem))] shrink-0 flex-col overflow-hidden border-l bg-background/60">
+      {/* The header never sizes the mixer: it is a container (no intrinsic
+          width), so the strips decide the width and the header folds to
+          three icons when that is narrow (master-only, or a 390 phone). */}
+      <div className="@container h-8 shrink-0 border-b">
+      <div className="flex h-full items-center justify-center gap-0.5 px-0.5 @[9rem]:justify-start @[9rem]:gap-1 @[9rem]:px-2">
+        <span className="hidden text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground @[9rem]:inline">Mix</span>
+        <span className="hidden flex-1 @[9rem]:block" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -80,13 +83,12 @@ export function AudioMixer() {
               aria-label="Level"
               onClick={() => setMix(leveler.enabled ? "Leveler off" : "Leveler on", (m) => void (m.leveler.enabled = !m.leveler.enabled))}
               className={cn(
-                "flex h-6 items-center gap-1 rounded-md text-[11px] transition-colors",
-                compact ? "w-6 justify-center" : "px-1.5",
-                leveler.enabled ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                "flex size-5 items-center justify-center gap-1 rounded-md text-[11px] transition-colors @[9rem]:h-(--control-h-sm) @[9rem]:w-auto @[9rem]:px-1.5",
+                leveler.enabled ? "material-glass-raised text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
               <Sparkles className={cn("size-3", measuring > 0 && leveler.enabled && "animate-pulse")} />
-              {!compact && "Level"}
+              <span className="hidden @[9rem]:inline">Level</span>
             </button>
           </TooltipTrigger>
           <TooltipContent side="top">
@@ -95,7 +97,7 @@ export function AudioMixer() {
         </Tooltip>
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" aria-label="Mix settings" className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5">
+            <button type="button" aria-label="Mix settings" className="flex size-5 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground @[9rem]:size-(--control-h-sm) [&_svg]:size-3.5">
               <Settings2 />
             </button>
           </PopoverTrigger>
@@ -107,10 +109,11 @@ export function AudioMixer() {
           type="button"
           aria-label="Hide mixer"
           onClick={() => usePanels.getState().setVisible("mixer", false)}
-          className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5"
+          className="flex size-5 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground @[9rem]:size-(--control-h-sm) [&_svg]:size-3.5"
         >
           <X />
         </button>
+      </div>
       </div>
       <MeterBank plan={plan} strips={strips} masterVolume={frame.soundMix.volume} onMaster={(v) => setMix("Master level", (m) => void (m.volume = v), "master-vol")} />
     </div>

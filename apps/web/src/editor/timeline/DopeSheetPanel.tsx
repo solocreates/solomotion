@@ -1,5 +1,6 @@
 "use client";
 
+import { keyGlyph, KEY_GLYPH_SHAPE } from "./keyframe-glyph";
 import * as React from "react";
 import {
   locateClip,
@@ -517,7 +518,8 @@ function PropRowKeys({
               if (!session.selectedKeyframeIds.includes(k.id)) session.setSelectedKeyframes([k.id]);
             }}
             className={cn(
-              "absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 cursor-ew-resize",
+              "absolute top-1/2 size-[9px] -translate-x-1/2 -translate-y-1/2 cursor-ew-resize border border-(--track-lane)",
+              KEY_GLYPH_SHAPE[keyGlyph([k.easing])],
               sel ? "bg-primary ring-1 ring-primary/50" : "hover:bg-primary/80",
             )}
             style={{ left: xOf(row.clip, k.timeMs), backgroundColor: sel ? undefined : color }}

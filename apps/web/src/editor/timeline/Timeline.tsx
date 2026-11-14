@@ -1514,10 +1514,12 @@ export function Transport() {
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
+          {/* At rest Play is a neutral control: Export is the one accent fill.
+              Playing is LIVE, the accent's other meaning, carried on the icon. */}
           <Button
-            variant={playing ? "secondary" : "default"}
+            variant={playing ? "ghost" : "secondary"}
             size="icon-sm"
-            className="rounded-full"
+            className={cn("rounded-full", playing && "material-glass-raised text-primary")}
             aria-label={playing ? "Pause" : "Play"}
             onClick={() => {
               soundEngine.ensure();
@@ -1647,7 +1649,8 @@ export function TimeDisplay({ fps, frameId }: { fps: number; frameId?: string })
           if (e.key === "Escape") setTyping(false);
           e.stopPropagation();
         }}
-        className="h-6 w-19 rounded border border-primary/60 bg-input/45 px-1 text-center font-mono text-xs tabular-nums outline-none"
+        data-num
+        className="h-6 w-19 rounded border border-primary/60 bg-input/45 px-1 text-center text-xs outline-none"
         aria-label="Current time (seconds)"
       />
     );
@@ -1657,7 +1660,8 @@ export function TimeDisplay({ fps, frameId }: { fps: number; frameId?: string })
       ref={ref}
       title="Drag to scrub · click to type"
       onPointerDown={scrub}
-      className="min-w-19 cursor-ew-resize select-none px-1 text-center font-mono text-xs tabular-nums text-primary"
+      data-num
+      className="min-w-19 cursor-ew-resize select-none px-1 text-center text-xs text-foreground"
     />
   );
 }
@@ -1914,7 +1918,7 @@ function LinkedSelectionControl() {
           className={cn(
             "flex size-7 items-center justify-center rounded-md transition-colors [&_svg]:size-4",
             linked
-              ? "bg-primary/15 text-primary"
+              ? "material-glass-raised text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -2527,10 +2531,21 @@ const Ruler = React.memo(function Ruler({ spanMs, pxPerSec, compId }: { spanMs: 
       style={{ height: RULER_HEIGHT }}
       onPointerDown={(e) => beginPlayheadScrub(e, store, pxPerSec)}
     >
+      {/* Minor ticks: quarters of the labelled interval, ONE gradient rather
+          than four elements per second of timeline. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-1"
+        style={{
+          backgroundImage: "linear-gradient(to right, var(--border) 1px, transparent 1px)",
+          backgroundSize: `${timeToPx(interval / 4, pxPerSec)}px 100%`,
+        }}
+      />
       {ticks.map((t) => (
         <div key={t} className="absolute bottom-0 top-0" style={{ left: timeToPx(t, pxPerSec) }}>
-          <div className="absolute bottom-0 h-2 w-px bg-border" />
-          <span className="absolute left-1 top-1 font-mono text-[9px] text-muted-foreground">
+          <div className="absolute bottom-0 h-2.5 w-px bg-foreground/20" />
+          {/* The ruler speaks the code face: a measure, read like one. */}
+          <span className="absolute left-1 top-1 font-mono text-[9px] tabular-nums tracking-tight text-fg-faint">
             {formatTime(t)}
           </span>
         </div>
@@ -2865,7 +2880,13 @@ export function Playhead({
   return (
     <div ref={ref} className="pointer-events-none absolute bottom-0 top-0 z-30 will-change-transform" style={{ left: 0 }}>
       <div className={cn("absolute bottom-0 top-0 w-px", colorClassName)} />
-      <div className={cn("absolute -left-1.25 top-0 h-3 w-2.75 rounded-b-sm", colorClassName)} />
+      {/* THE NOTCH: a pointed tab on the ruler, its tip ON the line, so the
+          exact frame is where the point is, not somewhere in a blob. STICKY,
+          so it stays on the ruler while the lanes scroll under it. */}
+      <div
+        className={cn("sticky top-0 -ml-[4.5px] h-[11px] w-2.5", colorClassName)}
+        style={{ clipPath: "polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%)" }}
+      />
     </div>
   );
 }

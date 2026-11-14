@@ -174,6 +174,8 @@ export const useAppShell = create<AppShellState>((set, get) => ({
       if (at < 0) return s;
       const tabs = s.tabs.filter((t) => t !== projectId);
       saveTabs(tabs);
+      // Closing a tab ends its session: its suspended undo and view go too.
+      void import("./suspended-sessions").then((m) => m.forgetSession(projectId));
       if (s.currentProjectId !== projectId) return { ...s, tabs };
       // Closing the ACTIVE tab lands on its right-hand neighbour, then its
       // left — the browser convention, and the one that keeps a rapid

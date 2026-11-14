@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Film, Pin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TabIndicator, useTabIndicator } from "@/components/ui/tab-indicator";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -39,6 +40,9 @@ export function CompTabs() {
   const pinned = useSession((s) => s.pinnedTimelineIds);
   const followPage = useSession((s) => s.tabsFollowActivePage);
   const stripRef = React.useRef<HTMLDivElement | null>(null);
+  // The tabs PART: the theme's dialect draws the active tab (the playhead
+  // dialect slides the accent bar under its name), like every other tab row.
+  useTabIndicator(stripRef);
 
   // A flipbook is ONE tab (any cell collapses to it); a linked instance frame
   // collapses to its component definition (it has no timeline of its own). So
@@ -134,8 +138,9 @@ export function CompTabs() {
   };
 
   return (
-    <div className="flex h-8 shrink-0 items-end gap-1 border-b bg-panel px-2">
-      <div ref={stripRef} className="flex min-w-0 items-end overflow-x-auto">
+    <div className="flex h-8 shrink-0 items-center gap-1 bg-panel px-1.5">
+      <div ref={stripRef} role="tablist" aria-label="Open timelines" data-part="tabs" className="flex h-full min-w-0 items-center gap-0.5 overflow-x-auto">
+        <TabIndicator />
         {tabIds.map((id) => {
           const active = id === compId;
           const isPinned = pinnedSet.has(id);
@@ -147,11 +152,10 @@ export function CompTabs() {
                   role="tab"
                   aria-selected={active}
                   onPointerDown={(e) => tabPointerDown(e, id)}
+                  data-part="tab"
                   className={cn(
-                    "group/tab -mb-px flex h-7 shrink-0 cursor-pointer select-none items-center gap-1 rounded-t-md border px-2 text-xs transition-colors",
-                    active
-                      ? "border-border border-b-panel bg-panel font-medium text-foreground"
-                      : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                    "group/tab flex h-full shrink-0 cursor-pointer select-none items-center gap-1 px-2 text-xs",
+                    active && "font-medium",
                   )}
                 >
                   {isPinned ? (

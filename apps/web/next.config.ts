@@ -76,6 +76,8 @@ const ORT_VERSION = (
 ).version;
 
 const nextConfig: NextConfig = {
+  // The dev badge's default corner is the left rail's foot, on top of Settings.
+  devIndicators: { position: "bottom-right" },
   transpilePackages: ["@solomotion/core", "@solomotion/platform", "@solomotion/plugin-sdk", "@solomotion/ui", "@solomotion/theme"],
   env: { NEXT_PUBLIC_APP_VERSION: APP_VERSION, NEXT_PUBLIC_BUILD_ID: BUILD_ID, NEXT_PUBLIC_ORT_VERSION: ORT_VERSION },
   generateBuildId: () => BUILD_ID,

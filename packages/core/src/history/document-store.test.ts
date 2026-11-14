@@ -155,3 +155,31 @@ describe("reaches", () => {
     expect(store.reaches("asset_kept")).toBe(false);
   });
 });
+
+describe("a suspended history", () => {
+  it("comes back, undoable and redoable, over the same document", () => {
+    const a = createDocumentStore(createEmptyDocument("A"));
+    a.update("Rename", (d) => void (d.name = "B"));
+    a.update("Rename", (d) => void (d.name = "C"));
+    a.undo();
+    const history = JSON.parse(JSON.stringify(a.exportHistory()));
+    const doc = a.getState();
+
+    const b = createDocumentStore(createEmptyDocument("X"));
+    b.replace(doc);
+    expect(b.canUndo()).toBe(false);
+    b.importHistory(history);
+    expect(b.getState().name).toBe("B");
+    expect(b.redo()).toBe(true);
+    expect(b.getState().name).toBe("C");
+    expect(b.undo()).toBe(true);
+    expect(b.undo()).toBe(true);
+    expect(b.getState().name).toBe("A");
+  });
+  it("replace still clears it", () => {
+    const a = createDocumentStore(createEmptyDocument("A"));
+    a.update("Rename", (d) => void (d.name = "B"));
+    a.replace(createEmptyDocument("Z"));
+    expect(a.exportHistory()).toEqual({ undo: [], redo: [] });
+  });
+});

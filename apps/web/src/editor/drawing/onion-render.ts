@@ -17,6 +17,8 @@ import {
 } from "@solomotion/core";
 import { drawFrameContent } from "../stage/render/draw-frame";
 
+import { sceneInk } from "../stage/scene-chrome";
+
 /**
  * Onion ghost rendering — an EDITOR overlay, deliberately outside the export
  * draw contract (ghosts must never render into an export). The stage calls
@@ -65,6 +67,7 @@ export function drawGhostList(
     scratch.height = height;
   }
   const sctx = scratch.getContext("2d")!;
+  const ink = sceneInk();
 
   for (const ghost of ghosts) {
     const source = doc.frames.find(
@@ -89,7 +92,7 @@ export function drawGhostList(
     if (settings.tintStrength > 0) {
       sctx.globalCompositeOperation = "source-atop";
       sctx.globalAlpha = settings.tintStrength;
-      sctx.fillStyle = ghost.color;
+      sctx.fillStyle = ghost.color ?? (ghost.offset < 0 ? ink.onionBehind : ink.onionAhead);
       sctx.fillRect(0, 0, scratch.width, scratch.height);
     }
     sctx.restore();

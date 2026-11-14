@@ -19,9 +19,8 @@ import { TIMELINE_SURFACES } from "../timeline/timeline-surfaces";
 import { resolvePanel, usePanels } from "../state/panels";
 import { useStatusBar, type StatusKind } from "../state/status-bar";
 import { useIsCompact } from "../state/use-shell-density";
-import { AppMenu } from "../menus/AppMenu";
 import { ActivityRing } from "../runtime/ActivityRing";
-import { ExportButton, GlobalActions, useInspectorRailItems, useLeftRailItems } from "./SideRail";
+import { GlobalActions, useInspectorRailItems, useLeftRailItems } from "./SideRail";
 import { panelDef } from "./panel-registry";
 import { useLayout } from "../workspace/store";
 import { findRegion, regions, setCollapsed } from "../workspace/layout-tree";
@@ -319,7 +318,6 @@ function RailDock() {
     <Rail
       side="bottom"
       className="h-11"
-      header={<AppMenu />}
       // Export comes down here too. It is the right RAIL's header, and the
       // right rail does not exist at this width — leaving it there would have
       // made shipping the thing you made impossible on a phone.
@@ -327,7 +325,6 @@ function RailDock() {
         <>
           <ActivityRing />
           <GlobalActions horizontal />
-          <ExportButton />
         </>
       }
       items={[...left, "separator", ...time, "separator", ...inspector, ...(user.length ? (["separator", ...user] as const) : [])]}

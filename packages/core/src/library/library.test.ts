@@ -6,6 +6,8 @@ import { packCouldMatch, parseQuery, searchLibrary, tagFacets, termsFor } from "
 import { compareShelfOrder, dedupeBySubject, type LibraryItem } from "./item";
 import type { IndexPack, PackManifest } from "./manifest";
 import { previewPathFor, publishRequestSchema, upsertPackSource } from "./publish";
+import { indexPackSchema, manifestEntrySchema, packSourceSchema } from "./manifest";
+import { availableTo, entryScope, packScope } from "./scope";
 
 /** A click 100 ms into a 1 s file at 1 kHz, with a silent tail. */
 function clickAt(ms: number, sampleRate = 1000, lengthMs = 1000): Float32Array {
@@ -128,6 +130,7 @@ const indexPack = (patch: Partial<IndexPack>): IndexPack => ({
   bytes: 1000,
   tagCounts: { ui: 2 },
   terms: ["soft", "tap", "ui", "click"],
+  products: null,
   updatedAt: 0,
   ...patch,
 });
@@ -228,6 +231,7 @@ describe("LibraryClient", () => {
         payload: { kind: "sound", hitMs: 4, durationMs: 120, loudnessDb: -14 },
         createdAt: 5,
         order: null,
+        products: null,
       },
     ],
   };
@@ -238,7 +242,7 @@ describe("LibraryClient", () => {
       const body = String(url).endsWith("index.json") ? index : pack;
       return { ok: true, status: 200, json: async () => body } as Response;
     }) as unknown as typeof fetch;
-    return new LibraryClient({ baseUrl: "https://library.test/v1", fetch: fetchMock });
+    return new LibraryClient({ baseUrl: "https://library.test/v1", product: "acme", fetch: fetchMock });
   }
 
   it("fetches ONLY the packs a query could match", async () => {
@@ -370,5 +374,82 @@ describe("compareShelfOrder", () => {
       { id: "first", createdAt: 2, order: 1 },
     ];
     expect([...items].sort(compareShelfOrder).map((i) => i.id)).toEqual(["first", "third", "new", "old"]);
+  });
+});
+
+describe("product scope", () => {
+  const entry = (id: string, products: string[] | null) =>
+    manifestEntrySchema.parse({
+      id,
+      kind: "template",
+      name: id,
+      blob: { path: `blobs/${id}.motion`, sha256: id, bytes: 1, mime: "application/json" },
+      payload: { kind: "template" },
+      products,
+    });
+
+  it("reads an absent scope as every product, and rejects an empty or malformed one", () => {
+    const old = manifestEntrySchema.parse({ ...entry("x", null), products: undefined });
+    expect(old.products).toBeNull();
+    expect(() => entry("x", [])).toThrow();
+    expect(() => entry("x", ["Atom Cut"])).toThrow();
+    expect(packSourceSchema.parse({ id: "p", title: "P", kind: "template", files: [] }).products).toBeNull();
+  });
+
+  it("resolves a file over its pack, and a pack row to the union of its entries", () => {
+    expect(entryScope(undefined, ["acme"])).toEqual(["acme"]);
+    expect(entryScope(null, ["acme"])).toEqual(["acme"]);
+    expect(entryScope(["solomotion"], ["acme"])).toEqual(["solomotion"]);
+    expect(packScope([{ products: ["acme"] }, { products: ["solomotion"] }])).toEqual(["acme", "solomotion"]);
+    expect(packScope([{ products: ["acme"] }, { products: null }])).toBeNull();
+    expect(packScope([])).toBeNull();
+    expect(availableTo(undefined, "solomotion")).toBe(true);
+    expect(availableTo(["acme"], "solomotion")).toBe(false);
+  });
+
+  // The leak this exists for: one catalogue, two products, a brand template
+  // that is one product's own.
+  const index = {
+    version: 1,
+    generatedAt: 0,
+    packs: [
+      indexPack({ id: "community", kind: "template", manifestPath: "packs/community.json", terms: [] }),
+      indexPack({ id: "brand-only", kind: "template", manifestPath: "packs/brand-only.json", terms: [], products: ["acme"] }),
+    ],
+  };
+  const community = {
+    version: 1,
+    id: "community",
+    title: "Community",
+    kind: "template",
+    updatedAt: 0,
+    entries: [entry("acme-brand", ["acme"]), entry("black-hole", null)],
+  };
+  function clientFor(product: string, seen: string[] = []) {
+    const fetchMock = (async (url: string) => {
+      seen.push(String(url));
+      const body = String(url).endsWith("index.json") ? index : { ...community, id: "brand-only" };
+      return { ok: true, status: 200, json: async () => (String(url).includes("community") ? community : body) } as Response;
+    }) as unknown as typeof fetch;
+    return new LibraryClient({ baseUrl: "https://library.test/v1", product, fetch: fetchMock });
+  }
+
+  it("hides another product's entries and packs from the one reader", async () => {
+    const seen: string[] = [];
+    const solo = clientFor("solomotion", seen);
+    expect((await solo.index()).packs.map((p) => p.id)).toEqual(["community"]);
+    expect((await solo.items("community")).map((i) => i.name)).toEqual(["black-hole"]);
+    expect((await solo.search({})).map((i) => i.name)).toEqual(["black-hole"]);
+    expect(seen.some((u) => u.includes("brand-only"))).toBe(false);
+  });
+
+  it("still shows a product its own", async () => {
+    const atom = clientFor("acme");
+    expect((await atom.index()).packs.map((p) => p.id)).toEqual(["community", "brand-only"]);
+    expect((await atom.items("community")).map((i) => i.name).sort()).toEqual(["acme-brand", "black-hole"]);
+  });
+
+  it("validates a pack row's scope like an entry's", () => {
+    expect(indexPackSchema.parse({ ...indexPack({}), products: undefined }).products).toBeNull();
   });
 });

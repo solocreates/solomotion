@@ -67,6 +67,8 @@ export function namesFor(ns: string) {
       speech: `${ns}-speech`,
       depth: `${ns}-depth`,
       fsHandles: `${ns}-fs-handles`,
+      /** Each open project's suspended undo and view (state/suspended-sessions). */
+      sessions: `${ns}-sessions`,
     },
     /** Cache Storage (the offline worker's own are named in `public/sw.js` from the same `ns`). */
     caches: {

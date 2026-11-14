@@ -8,6 +8,7 @@ import {
 } from "./manifest";
 import { packCouldMatch, searchLibrary, type LibraryQuery } from "./query";
 import type { LibraryItem, LibraryPreview } from "./item";
+import { availableTo } from "./scope";
 
 /**
  * The ONLINE catalogue, headless.
@@ -24,8 +25,15 @@ import type { LibraryItem, LibraryPreview } from "./item";
  */
 
 export interface LibraryClientOptions {
-  /** Catalogue root, e.g. `https://library.the product site/v1`. No trailing slash. */
+  /** Catalogue root, e.g. `https://library.example.com/v1`. No trailing slash. */
   baseUrl: string;
+  /**
+   * The product reading it (`identity.ns`). One catalogue serves every product
+   * on the engine; packs and entries scoped to other products (scope.ts) are
+   * dropped here, the one place the catalogue is read, so nothing downstream
+   * ever sees them.
+   */
+  product: string;
   fetch?: typeof globalThis.fetch;
   /** How long a fetched index/pack stays fresh. Default 5 minutes. */
   ttlMs?: number;
@@ -38,6 +46,7 @@ interface Cached<T> {
 
 export class LibraryClient {
   readonly baseUrl: string;
+  readonly product: string;
   private readonly doFetch: typeof globalThis.fetch;
   private readonly ttlMs: number;
   private indexCache: Cached<LibraryIndex> | null = null;
@@ -47,6 +56,7 @@ export class LibraryClient {
 
   constructor(options: LibraryClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
+    this.product = options.product;
     this.doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.ttlMs = options.ttlMs ?? 5 * 60_000;
   }
@@ -78,7 +88,8 @@ export class LibraryClient {
     const hit = this.fresh(this.indexCache);
     if (hit) return hit;
     return this.once("index", async () => {
-      const value = libraryIndexSchema.parse(await this.json("index.json"));
+      const parsed = libraryIndexSchema.parse(await this.json("index.json"));
+      const value = { ...parsed, packs: parsed.packs.filter((p) => availableTo(p.products, this.product)) };
       this.indexCache = { at: Date.now(), value };
       return value;
     });
@@ -90,9 +101,8 @@ export class LibraryClient {
     return this.once(`pack:${packId}`, async () => {
       const index = await this.index();
       const row = index.packs.find((p) => p.id === packId);
-      const value = packManifestSchema.parse(
-        await this.json(row?.manifestPath ?? `packs/${packId}.json`),
-      );
+      const parsed = packManifestSchema.parse(await this.json(row?.manifestPath ?? `packs/${packId}.json`));
+      const value = { ...parsed, entries: parsed.entries.filter((e) => availableTo(e.products, this.product)) };
       this.packCache.set(packId, { at: Date.now(), value });
       return value;
     });

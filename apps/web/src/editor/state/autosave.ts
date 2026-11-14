@@ -3,6 +3,7 @@
 import type { MotionDocument, DocumentStore } from "@solomotion/core";
 import { useAppShell } from "./app-shell";
 import { saveDocument } from "./project-store";
+import { keepSession, suspend } from "./suspended-sessions";
 
 /**
  * THE AUTOSAVE — the one owner of "the open project is on disk".
@@ -108,7 +109,15 @@ export function startAutosave(store: DocumentStore): () => void {
   const unsub = store.subscribe(() => {
     if (openProjectId()) schedule(r);
   });
-  const flush = () => void saveNow(r);
+  // Leaving the page writes down BOTH halves of the open project: its
+  // document, and its session (undo, view), so a reload hands back the undo
+  // that a tab switch would have. The session is checked against the document
+  // when it comes back, so a write that loses the race is dropped, not wrong.
+  const flush = () => {
+    void saveNow(r);
+    const id = openProjectId();
+    if (id) keepSession(id, suspend(store));
+  };
   const onVisibility = () => {
     if (document.visibilityState === "hidden") flush();
   };

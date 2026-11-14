@@ -1,10 +1,21 @@
 {
   "name": "@solomotion/mcp",
   "version": "1.0.0-beta.1",
+  "description": "The SoloMotion MCP server: lets Claude Code, Cursor or any MCP client drive a running SoloMotion editor.",
+  "keywords": [
+    "solomotion",
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "claude-code",
+    "motion-graphics",
+    "animation",
+    "video-editor"
+  ],
+  "license": "GPL-3.0-only",
   "type": "module",
-  "description": "Drive a running SoloMotion editor from Claude Code, Claude Desktop, Cursor or any MCP client — every editor verb as a tool, renders as images, the skill as resources.",
   "bin": {
-    "solomotion-mcp": "./src/cli.mjs"
+    "solomotion-mcp": "src/cli.mjs"
   },
   "exports": {
     "./protocol": {
@@ -15,50 +26,54 @@
       "types": "./src/identity.d.mts",
       "default": "./src/identity.mjs"
     },
+    "./identity.json": "./src/identity.json",
     "./package.json": "./package.json"
-  },
-  "scripts": {
-    "start": "node src/cli.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --test-timeout=45000 test/*.test.mjs",
-    "prepack": "node scripts/pack-skill.mjs"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.2"
-  },
-  "dependencies": {
-    "ws": "^8.21.3"
-  },
-  "license": "GPL-3.0-only",
-  "keywords": [
-    "solomotion",
-    "mcp",
-    "model-context-protocol",
-    "claude-code",
-    "motion-design",
-    "video-editing"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/novincode/solomotion.git",
-    "directory": "packages/mcp"
-  },
-  "homepage": "https://github.com/novincode/solomotion/tree/main/packages/mcp#readme",
-  "engines": {
-    "node": ">=18"
   },
   "files": [
     "src/cli.mjs",
     "src/identity.mjs",
     "src/identity.d.mts",
     "src/identity.json",
-    "src/protocol.ts",
-    "skill",
-    "README.md"
+    "dist",
+    "skill"
   ],
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": ">=18"
   },
+  "scripts": {
+    "start": "node src/cli.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --test-timeout=45000 test/*.test.mjs",
+    "prepack": "pnpm run build && node scripts/pack-skill.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      "./protocol": {
+        "types": "./dist/protocol.d.ts",
+        "default": "./dist/protocol.js"
+      },
+      "./identity": {
+        "types": "./src/identity.d.mts",
+        "default": "./src/identity.mjs"
+      },
+      "./identity.json": "./src/identity.json",
+      "./package.json": "./package.json"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novincode/solomotion.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/novincode/solomotion/tree/main/packages/mcp#readme",
   "bugs": {
     "url": "https://github.com/novincode/solomotion/issues"
   }

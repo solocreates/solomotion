@@ -1,31 +1,25 @@
 "use client";
 
-import { product } from "@/editor/product";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Bug, Download, LayoutPanelTop, Redo2, Settings, Undo2 } from "lucide-react";
+import { LayoutPanelTop, Settings } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AppMenu, WindowMenuItems } from "../menus/AppMenu";
-import { ExportMenu } from "../export/ExportMenu";
+import { WindowMenuItems } from "../menus/AppMenu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search } from "lucide-react";
 import { useLayout } from "../workspace/store";
 import { regions, setCollapsed } from "../workspace/layout-tree";
 import type { EditorId } from "../workspace/editor-registry";
 import { WorkspaceMenuItems } from "../workspace/WorkspaceMenu";
-import { useHistoryInfo } from "../state/document-context";
 import { useSession } from "../state/session";
 import { resolvePanel, usePanels } from "../state/panels";
-import { useIsCompact } from "../state/use-shell-density";
 import { useInspectorSections } from "../inspector/inspector-sections";
 import { Rail, type RailItem } from "./Rail";
 import { panelDef } from "./panel-registry";
-import { redoActive, undoActive } from "../state/history";
 
 /**
  * The LEFT and RIGHT rails — the vertical twins of the bottom bar.
@@ -150,12 +144,8 @@ export function LeftRail() {
       // the bottom. Both used to live in a full-width bar whose only other job
       // was holding them — removing it is what lets this rail reach the top and
       // bottom of the window, which is where the dark corners came from.
-      header={
-        <>
-          <AppMenu />
-          <SearchButton />
-        </>
-      }
+      // The mark, the app menu, search and Export live in the top bar now;
+      // the rail is the panels and the app's own controls at its foot.
       footer={<GlobalActions />}
       items={useLeftRailItems()}
       dock
@@ -198,14 +188,10 @@ export function RightRail() {
   return (
     <Rail
       side="right"
-      // Minimal by design: this rail is pressed against the property panel, so
-      // every pixel it takes is one the panel loses.
-      variant="compact"
       // The button opens the export MENU, not the dialog directly — picking
       // what to export is a real choice (composition, this layer, Lottie, a
       // PNG of the current frame, a slice file) and the dialog only covers
       // some of them.
-      header={<ExportButton />}
       items={useInspectorRailItems()}
       dock
     />
@@ -221,93 +207,20 @@ export function useInspectorRailItems(): Array<RailItem | "separator"> {
 }
 
 /**
- * SEARCH, under the mark (D10). The palette has always existed behind ⌘K and
- * nobody found it; a door at the top of the rail is how it gets found.
- */
-function SearchButton() {
-  const large = !useIsCompact();
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label="Search"
-          onClick={() => useSession.getState().setCommandPaletteOpen(true)}
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-            large ? "mt-1 size-10 [&_svg]:size-5" : "size-8 [&_svg]:size-4",
-          )}
-        >
-          <Search />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        Search <span className="ml-1 text-muted-foreground">⌘K</span>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-/** Export — the one accent action in the app's chrome, on both rails and the
- *  compact dock. */
-export function ExportButton() {
-  return (
-    <ExportMenu>
-      <button
-        type="button"
-        aria-label="Export"
-        className="group/action flex size-7 shrink-0 items-center justify-center rounded-md material-action text-primary transition-[filter] hover:brightness-110 [&_svg]:size-3.5"
-      >
-        <Download className="action-arrow" />
-      </button>
-    </ExportMenu>
-  );
-}
-
-/**
- * UNDO · REDO · WORKSPACE · SETTINGS — the controls that belong to the app
- * rather than to any one surface.
+ * WORKSPACE · SETTINGS — the controls that belong to the app rather than to
+ * any one surface or document. Undo and redo are the document's and live in
+ * the top bar beside the project tabs; reporting a bug is in the app menu.
  *
  * They anchor the left rail's foot when there is a left rail, and the compact
- * dock's end when there is not. One component because they are one GROUP: a
- * second copy in the dock is a second place to remember that undo is disabled
- * when there is nothing to undo, and the copy is the one that would forget.
- *
- * The dock keeps only what it has no other way to reach. Undo, redo and the
- * workspace presets all have a second door on a narrow screen — two- and
- * three-finger tap (`docs/responsive-and-gestures.md`) and the app menu, which
- * is at the other end of this same bar — and a dock that spends 90 of its 375
- * pixels on doors that already exist elsewhere leaves four of nine surfaces
- * reachable without a swipe. Duplicating a control is only free when there is
- * room for it.
+ * dock's end when there is not (Settings only: the workspace presets have a
+ * second door in the app menu, and the dock's width is for surfaces).
  */
 export function GlobalActions({ horizontal }: { horizontal?: boolean }) {
-  const history = useHistoryInfo();
-  // The rail narrows itself when the shell does (see Rail); its buttons have to
-  // follow, or four 40px squares sit in a 44px column with no margin.
-  const large = !useIsCompact() && !horizontal;
+  // A side rail is 44px at every width (see Rail): 32px squares, centred.
+  const large = !horizontal;
 
   return (
     <>
-      {!horizontal && (
-        <>
-          <RailIconButton
-            large={large}
-            icon={Undo2}
-            label={history.undoLabel ? `Undo ${history.undoLabel}` : "Undo"}
-            disabled={!history.canUndo}
-            onClick={() => undoActive()}
-          />
-          <RailIconButton
-            large={large}
-            icon={Redo2}
-            label={history.redoLabel ? `Redo ${history.redoLabel}` : "Redo"}
-            disabled={!history.canRedo}
-            onClick={() => redoActive()}
-          />
-          <span aria-hidden className="my-1 h-px w-5 shrink-0 bg-border" />
-        </>
-      )}
       {!horizontal && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -315,8 +228,7 @@ export function GlobalActions({ horizontal }: { horizontal?: boolean }) {
               type="button"
               aria-label="Workspace"
               className={cn(
-                "flex shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                large ? "size-10 [&_svg]:size-5" : "size-8 [&_svg]:size-4",
+                "flex size-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg [&_svg]:size-4",
               )}
             >
               <LayoutPanelTop />
@@ -329,8 +241,6 @@ export function GlobalActions({ horizontal }: { horizontal?: boolean }) {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {/* Beside Settings: both are about the app, not the document. */}
-      <RailIconButton large={large} icon={Bug} label="Report a bug" onClick={() => product.feedback.open("bug")} />
       <RailIconButton
         large={large}
         icon={Settings}
@@ -358,12 +268,7 @@ function RailIconButton({
   label: string;
   accent?: boolean;
   disabled?: boolean;
-  /**
-   * Sized for the WIDE (left) rail. A 28px button centred in a 64px column
-   * reads as a stray dot; in the 44px right rail the same button is correctly
-   * proportioned. The difference belongs to the rail, not to the button, which
-   * is why this is a prop rather than a new size everywhere.
-   */
+  /** A side rail's 32px square; the bottom bar's buttons are 28px. */
   large?: boolean;
   onClick: () => void;
 }) {
@@ -377,10 +282,10 @@ function RailIconButton({
           onClick={onClick}
           className={cn(
             "flex shrink-0 items-center justify-center rounded-md",
-            large ? "size-10 [&_svg]:size-5" : "size-7 [&_svg]:size-3.5",
+            large ? "size-8 [&_svg]:size-4" : "size-7 [&_svg]:size-3.5",
             accent
               ? "group/action material-action text-primary transition-[filter] hover:brightness-110"
-              : "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+              : "text-fg-muted transition-colors hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-40",
           )}
         >
           <Icon className={accent ? "action-arrow" : undefined} />

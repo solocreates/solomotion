@@ -162,14 +162,14 @@ export function PanelSection({
         {hint ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <PartLabel text={title} className="truncate text-label text-fg decoration-dotted underline-offset-2 hover:underline" />
+              <PartLabel level="head" text={title} className="truncate text-fg decoration-dotted underline-offset-2 hover:underline" />
             </TooltipTrigger>
             <TooltipContent side="left" className="max-w-56">
               {hint}
             </TooltipContent>
           </Tooltip>
         ) : (
-          <PartLabel text={title} className="truncate text-label text-fg" />
+          <PartLabel level="head" text={title} className="truncate text-fg" />
         )}
         {count !== undefined && count > 0 && (
           <span className="text-meta tabular-nums text-fg-faint">{count}</span>
@@ -632,7 +632,7 @@ export function PropRow({
         <PartLabel
           text={label ?? ""}
           className={cn(
-            "w-fit max-w-full cursor-help text-body text-fg-muted decoration-dotted underline-offset-2 hover:underline",
+            "w-fit max-w-full cursor-help text-fg-muted decoration-dotted underline-offset-2 hover:underline",
             toggle ? "whitespace-nowrap" : "truncate",
           )}
         />
@@ -643,7 +643,7 @@ export function PropRow({
     <PartLabel
       text={label ?? ""}
       className={cn(
-        "text-body text-fg-muted",
+        "text-fg-muted",
         toggle ? "whitespace-nowrap" : "truncate",
         start && "flex h-(--control-h) items-center",
       )}

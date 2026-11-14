@@ -474,7 +474,7 @@ export function WorldToolBar({ act }: { act: Actions }) {
   const Section = kind && editTargetKindOf(kind) === "path" && !WORLD_TOOL_SECTIONS[tool] ? PathPoints : WORLD_TOOL_SECTIONS[tool];
   if (!Section) return null;
   return (
-    <BarCapsule measure>
+    <BarCapsule>
       <Section act={act} />
     </BarCapsule>
   );

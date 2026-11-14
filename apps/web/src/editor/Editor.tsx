@@ -44,6 +44,8 @@ import { LeftRail, RightRail } from "./panels/SideRail";
 import { BottomRail } from "./panels/BottomRail";
 import { FloatingPanelDock } from "./panels/FloatingPanelDock";
 import { WorkspaceShell } from "./workspace/WorkspaceShell";
+import { TopBar } from "./topbar/TopBar";
+import { SupportDialog } from "./support/SupportDialog";
 import { installZoomShortcuts } from "./workspace/zoom-shortcuts";
 import { DropOverlay } from "./workspace/DropOverlay";
 import { usePlayback } from "./state/use-playback";
@@ -414,6 +416,7 @@ function EditorShell() {
   return (
     <>
       <WorkspaceLayout />
+      <SupportDialog />
       <EasingShortcutOverlay />
       <PickModeLayer />
       <CommandPalette />
@@ -536,9 +539,12 @@ function WorkspaceLayout() {
   const rails = !focusMode;
 
   return (
-    // RAILS FIRST, full height — the outermost children, edge to edge, so no
-    // bar owns a strip of the window and no dark L sits in any corner.
-    <div className="flex min-h-0 flex-1 overflow-hidden pt-(--shell-gap)">
+    // THE TOP BAR owns one row (identity, the open projects, Export); the
+    // rails start under it, full height to the bottom. It takes room from
+    // nothing below it, so opening a project never moves a panel.
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    {rails && <TopBar />}
+    <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Wide only: when the window is narrow these are in the dock at the
           bottom instead (see `BottomRail`) — a position, not a fork. */}
       {rails && !compact && <LeftRail />}
@@ -557,6 +563,7 @@ function WorkspaceLayout() {
       </div>
       {rails && !compact && <RightRail />}
       <DropOverlay />
+    </div>
     </div>
   );
 }

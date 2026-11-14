@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useEdgeFade } from "@/components/ui/use-edge-fade";
 import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -376,18 +377,23 @@ export function PodMenu({
  * options, a 3D view's header). THE CAPSULE NEVER SCROLLS — THE STRIP INSIDE
  * IT DOES: a cell that scrolls clips its children, which cost the capsule its
  * rounded corners and shadow and drew a native scrollbar inside its radius.
- * The scrollbar is an overlay, up only while you scroll or hover, and
- * `rounded-lg` (the capsule's radius less its padding) keeps the scroller's
- * square corner from poking over the capsule's round one.
+ * No scrollbar: the overflowing edge FADES (`useEdgeFade`), the same tell as
+ * the rail, and the wheel and a finger both swipe it. `rounded-lg` (the
+ * capsule's radius less its padding) keeps the scroller's square corner from
+ * poking over the capsule's round one.
  */
-export function BarCapsule({ children, measure }: { children: React.ReactNode; /** Mark the row the band measures for fit (see `useRoomBeside`). */ measure?: boolean }) {
+export function BarCapsule({ children }: { children: React.ReactNode }) {
+  const inner = React.useRef<HTMLDivElement>(null);
+  useEdgeFade(inner, "x");
   return (
     <div data-wheel-scroll className={cn(CHROME_CAPSULE, "min-w-0 max-w-full")}>
-      <ScrollArea orientation="horizontal" className="min-w-0 max-w-full rounded-lg" viewportClassName={SCROLL_SURFACE}>
-        <ToolRow data-chrome-measure={measure || undefined} className="px-1">
-          {children}
-        </ToolRow>
-      </ScrollArea>
+      <div
+        ref={inner}
+        data-fade-axis="x"
+        className={cn("edge-fade min-w-0 max-w-full overflow-x-auto overflow-y-hidden rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", SCROLL_SURFACE)}
+      >
+        <ToolRow className="w-max px-1">{children}</ToolRow>
+      </div>
     </div>
   );
 }
@@ -408,11 +414,18 @@ export function BarCapsule({ children, measure }: { children: React.ReactNode; /
 export const RailCapsule = React.forwardRef<HTMLDivElement, { children: React.ReactNode; className?: string } & Omit<React.HTMLAttributes<HTMLDivElement>, "children">>(
   function RailCapsule({ children, className, ...rest }, scrollerRef) {
     const vertical = useChromeAxis() === "vertical";
+    // The capsule scrolls when the stage is narrower than its tools; its
+    // overflowing edge fades so it reads as more, never as cut off.
+    const inner = React.useRef<HTMLDivElement>(null);
+    React.useImperativeHandle(scrollerRef, () => inner.current as HTMLDivElement);
+    useEdgeFade(inner, vertical ? "y" : "x");
     return (
       <div data-toolbar data-wheel-scroll className={cn(CHROME_CAPSULE, vertical ? "flex-col" : "flex-row", className)} {...rest}>
         <div
-          ref={scrollerRef}
+          ref={inner}
+          data-fade-axis={vertical ? "y" : "x"}
           className={cn(
+            "edge-fade",
             // `items-center` is load-bearing: a divider is narrower than a
             // button, and stretch would park it against the rail's edge.
             "flex min-h-0 min-w-0 items-center gap-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden *:shrink-0",

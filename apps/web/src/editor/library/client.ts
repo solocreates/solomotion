@@ -47,7 +47,7 @@ function devOverride(): string | null {
 export function libraryClient(): LibraryClient | null {
   if (client !== undefined) return client;
   const baseUrl = devOverride() ?? BASE_URL;
-  client = baseUrl ? new LibraryClient({ baseUrl }) : null;
+  client = baseUrl ? new LibraryClient({ baseUrl, product: identity.ns }) : null;
   return client;
 }
 
