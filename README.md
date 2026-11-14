@@ -10,9 +10,8 @@
 </p>
 
 SoloMotion is a studio for motion design and video. Animate, draw, edit, grade
-and score in one place, in your browser or as a desktop app. There is no
-account, no subscription and no watermark, and your projects stay on your
-machine.
+and score in one place, in your browser. There is no account, no subscription
+and no watermark, and your projects stay on your machine.
 
 ## What it does
 
@@ -31,6 +30,8 @@ and a 3D world for scenes that need depth.
 registry. The same commands are open to AI agents over the Model Context
 Protocol, so an agent can build a scene while you watch and undo it in one
 step.
+[`@solomotion/mcp`](packages/mcp) connects Claude Code, Codex, Cursor or any
+other MCP client to the studio running in your browser.
 
 **Make it yours.** The whole look is one theme file: colours, type, shape, and
 how each control is drawn. Switch between the shipped themes or write your own.
@@ -61,7 +62,7 @@ Everyone who funds SoloMotion or makes something about it is listed here, in thr
 
 The wall is empty today. [Sponsor](https://github.com/sponsors/novincode) or [tell us what you made](https://github.com/novincode/solomotion/issues/new?template=3-made-something.yml) to be the first name on it.
 
-## Build from source
+## Run it locally
 
 You need [Node.js](https://nodejs.org) 22 or later and pnpm, which Node
 provides through Corepack.
@@ -71,12 +72,34 @@ git clone https://github.com/novincode/solomotion.git
 cd solomotion
 corepack enable
 pnpm install
-pnpm test
+pnpm dev
 ```
+
+The studio opens at http://localhost:3000.
+
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Runs the studio with hot reload |
+| `pnpm test` | Runs every package's tests |
+| `pnpm typecheck` | Typechecks the whole workspace |
+| `pnpm build` | Builds every package and the studio |
 
 ## Repository
 
-_The workspace is empty._
+| Package | What it is |
+| --- | --- |
+| [`@solomotion/web`](apps/web) | The editor: canvas, timeline, inspector, export — one app, any product on the engine. |
+| [`@solomotion/agent`](packages/agent) | The agent runtime: provider dialects, the tool loop, knowledge packs, media generation and feedback folding. Provider- and UI-agnostic. |
+| [`@solomotion/core`](packages/core) | The engine: the document, animation, timeline, effects, physics, rigging, the command API and its agent verbs. Pure data — no DOM, no React; runs in a test, a worker and the exporter alike. |
+| [`@solomotion/lipsync`](packages/lipsync) | Headless speech foundation: lazy speech engines (analyze/align/synthesize), ARPAbet G2P, viseme alphabets, an offline Test Voice, cue post-processing and an evaluation harness. Zero dependencies, zero DOM. |
+| [`@solomotion/mcp`](packages/mcp) | Drive a running SoloMotion editor from Claude Code, Claude Desktop, Cursor or any MCP client — every editor verb as a tool, renders as images, the skill as resources. |
+| [`@solomotion/platform`](packages/platform) | The bridge between the app and its host (browser or desktop shell): files, clipboard, fonts, folders, updates, the log bus. |
+| [`@solomotion/plugin-sdk`](packages/plugin-sdk) | The plugin contract: manifest, capabilities, the sandboxed client and the wire protocol. |
+| [`@solomotion/skill`](packages/skill) | The agent skill and default design system — how an AI works inside the studio. |
+| [`@solomotion/templates`](packages/templates) | The templates that ship in the studio — each a build script and the art it reads. |
+| [`@solomotion/theme`](packages/theme) | The theme file: one schema that picks colours, type, shape and a dialect for every part, compiled to CSS. |
+| [`@solomotion/ui`](packages/ui) | Shared UI primitives and cursors. |
+| [`@solomotion/product`](products/solomotion) | SoloMotion, the open studio: its identity, Support, hosts and entitlements (everything unlocked). |
 
 ## Contributing
 

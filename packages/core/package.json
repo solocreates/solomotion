@@ -1,0 +1,38 @@
+{
+  "name": "@solomotion/core",
+  "version": "1.0.0-beta.1",
+  "description": "The engine: the document, animation, timeline, effects, physics, rigging, the command API and its agent verbs. Pure data — no DOM, no React; runs in a test, a worker and the exporter alike.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./analysis": {
+      "types": "./src/tracking/analysis.ts",
+      "default": "./src/tracking/analysis.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@solomotion/lipsync": "workspace:*",
+    "bidi-js": "^1.0.3",
+    "cannon-es": "0.20.0",
+    "immer": "^10.1.1",
+    "nanoid": "^5.0.9",
+    "polygon-clipping": "^0.15.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@solomotion/skill": "workspace:*",
+    "@solomotion/templates": "workspace:*",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "license": "GPL-3.0-only"
+}

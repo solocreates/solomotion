@@ -1,0 +1,28 @@
+{
+  "name": "@solomotion/agent",
+  "version": "1.0.0-beta.1",
+  "description": "The agent runtime: provider dialects, the tool loop, knowledge packs, media generation and feedback folding. Provider- and UI-agnostic.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@fal-ai/client": "^1.10.1",
+    "@google/genai": "^2.24.0",
+    "openai": "^7.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "license": "GPL-3.0-only"
+}

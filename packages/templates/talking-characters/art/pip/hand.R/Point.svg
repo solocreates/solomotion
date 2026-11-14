@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" data-pivot="188 812">
+  <path id="Finger1.R" d="M 175.8 859.6 L 155.1 912 C 152.8 917.7 146.5 920.4 140.8 918.2 C 135.2 916 132.4 909.6 134.6 903.9 L 155.3 851.6 C 157.6 845.9 164 843.1 169.6 845.4 C 175.3 847.6 178 854 175.8 859.6 Z" fill="#FFD23F" stroke="#1B1230" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Palm.R" d="M 149.2 832.4 C 144.7 848.4 155 865.1 172 869.8 C 189 874.5 206.4 865.4 210.8 849.4 C 215.3 833.5 205 816.7 188 812 C 171 807.3 153.6 816.4 149.2 832.4 Z" fill="#FFD23F" stroke="#1B1230" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Knuckles.R" d="M 189.3 873.5 L 173.3 871.1 C 166.2 870.1 161.3 863.5 162.3 856.4 C 163.4 849.3 170 844.4 177.1 845.4 L 193 847.7 C 200.1 848.8 205.1 855.4 204 862.5 C 203 869.6 196.4 874.5 189.3 873.5 Z" fill="#FFD23F" stroke="#1B1230" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Thumb.R" d="M 202.5 858.3 L 173.9 856.6 C 167.8 856.3 163.2 851 163.6 845 C 163.9 838.9 169.1 834.3 175.2 834.6 L 203.8 836.3 C 209.8 836.7 214.5 841.9 214.1 848 C 213.8 854 208.6 858.7 202.5 858.3 Z" fill="#FFD23F" stroke="#1B1230" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

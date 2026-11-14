@@ -18,6 +18,11 @@ on:
   push:
     tags: ["v*"]
 
+# The public repo has one product, so builds would pick it anyway. Naming it
+# means a fork that adds a second product can never ship the wrong one.
+env:
+  PRODUCT: solomotion
+
 permissions: {}
 
 concurrency:

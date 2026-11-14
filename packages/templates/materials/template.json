@@ -1,0 +1,7 @@
+{
+  "name": "Material library",
+  "blurb": "One scene in every material the studio has: paper, felt, clay, foil, chrome, neon, stained glass, print, ink and screens. Filed by family, with a reel of one shape becoming many.",
+  "tags": ["heavy", "materials", "texture", "styles", "library", "paper", "felt", "clay", "foil", "chrome", "neon", "glass", "print", "morph"],
+  "version": 2,
+  "entry": "build.js"
+}

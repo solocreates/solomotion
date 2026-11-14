@@ -18,6 +18,7 @@ You need Node.js 22 or later and pnpm (run `corepack enable` once).
 
 ```sh
 pnpm install
+pnpm dev          # the studio at http://localhost:3000
 pnpm typecheck
 pnpm lint
 pnpm test

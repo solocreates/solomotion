@@ -1,0 +1,7 @@
+{
+  "name": "Hook Lab",
+  "blurb": "Twenty hooks that earn attention, each built by Claude with the prompt that made it.",
+  "tags": ["hooks", "retention", "storytelling", "prompts", "paper", "ink", "physics", "handwriting", "shorts"],
+  "version": 1,
+  "entry": "build.js"
+}

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 240" data-pivot="150 130">
+  <path id="Lips" d="M 202 136 C 202 163.6 178.7 186 150 186 C 121.3 186 98 163.6 98 136 C 98 108.4 121.3 86 150 86 C 178.7 86 202 108.4 202 136 Z" fill="#5A1030" stroke="#1B1230" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Tongue" d="M 178 160 C 178 167.7 165.5 174 150 174 C 134.5 174 122 167.7 122 160 C 122 152.3 134.5 146 150 146 C 165.5 146 178 152.3 178 160 Z" fill="#FF7A9C"/>
+</svg>

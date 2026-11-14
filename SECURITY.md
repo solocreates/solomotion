@@ -30,8 +30,8 @@ latest release.
 
 ## Scope
 
-In scope: the studio, the desktop app, the `@solomotion/*` packages and the
-website. Out of scope: problems that need a malicious browser extension, a
+In scope: the studio, the `@solomotion/*` packages (the MCP bridge included)
+and the website. Out of scope: problems that need a malicious browser extension, a
 compromised machine, or physical access to an unlocked device.
 
 Project files are code-like: a project can contain expressions and scripts.

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" data-pivot="308 322">
+  <path id="Lid.R" d="M 370 322 C 370 240.3 342.2 248 308 248 C 273.8 248 246 240.3 246 322 C 277 336 339 336 370 322 Z" fill="#FFD23F"/>
+  <path id="LidLine.R" d="M 366 324 C 339 338 277 338 250 324" fill="none" stroke="#1B1230" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Outline.R" d="M 246 322 C 246 362.9 273.8 396 308 396 C 342.2 396 370 362.9 370 322 C 370 281.1 342.2 248 308 248 C 273.8 248 246 281.1 246 322 Z" fill="none" stroke="#1B1230" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

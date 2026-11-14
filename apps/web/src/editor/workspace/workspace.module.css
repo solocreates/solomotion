@@ -1,0 +1,286 @@
+/*
+ * Workspace chrome that has no utility in the design system yet. Co-located
+ * on purpose: `globals.css` belongs to the design-language session. Every
+ * value reads a token.
+ */
+
+.overlayRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.dropRect {
+  position: fixed;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 70%, transparent);
+  transition:
+    left 120ms ease-out,
+    top 120ms ease-out,
+    width 120ms ease-out,
+    height 120ms ease-out;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px;
+}
+
+.dropRect[data-float] {
+  background: color-mix(in oklab, var(--popover) 70%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent),
+    0 12px 32px rgb(0 0 0 / 0.28);
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropRect {
+    transition: none;
+  }
+}
+
+.dropLabel {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 550;
+  color: var(--primary);
+  background: var(--popover);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* The editor switcher: columns by group, like a pro tool's menu. */
+.switcher {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(9.5rem, 1fr));
+  gap: 4px 12px;
+}
+
+.switcherHeading {
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+  padding: 6px 8px 4px;
+}
+
+.switcherItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 1.75rem;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--foreground);
+  text-align: left;
+  width: 100%;
+}
+
+.switcherItem:hover,
+.switcherItem[data-highlight] {
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+}
+
+.switcherItem[data-current] {
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+}
+
+.switcherItem svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.switcherShortcut {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A region's header: one control-height row — its tab strip and the switcher. */
+.regionHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--control-h);
+  flex: none;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--line);
+  cursor: grab;
+}
+
+.tabScroller {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  --fade-s: 0px;
+  --fade-e: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-s),
+    #000 calc(100% - var(--fade-e)),
+    transparent 100%
+  );
+}
+
+.tabScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.tabScroller[data-fade-start] {
+  --fade-s: 16px;
+}
+
+.tabScroller[data-fade-end] {
+  --fade-e: 16px;
+}
+
+/* A tab: icon + name. Its PAINT is in the components layer, beside the
+   theme's tab dialects (parts.css), so a dialect can restyle the active tab;
+   an unlayered module rule would outrank every dialect. */
+@layer components {
+  .tab {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    height: var(--control-h-sm);
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    color: var(--fg-muted);
+    white-space: nowrap;
+    cursor: grab;
+    transition:
+      background-color 120ms ease-out,
+      color 120ms ease-out,
+      opacity 120ms ease-out;
+  }
+
+  .tab:hover {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  .tab:active {
+    background: var(--pressed);
+  }
+}
+
+.tab[data-collapsed] {
+  justify-content: center;
+  width: var(--control-h-sm);
+  padding: 0;
+}
+
+.tab[data-lifted] {
+  opacity: 0.4;
+}
+
+.tab svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* Invisible: the real widths fitTabs needs. */
+.tabMeasure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  gap: 2px;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stripButton {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--r-sm);
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.stripButton:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.stripButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The carried editor: a chip beside the pointer (never under it). */
+.ghost {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--control-h-sm);
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  background: var(--popover);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 6px 16px rgb(0 0 0 / 0.22);
+  color: var(--fg);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  white-space: nowrap;
+}
+
+.ghost svg {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+}
+
+/* While an editor is being moved, the whole app says so. A drag's cursor
+   has to win over every element it passes, which is what !important is for. */
+:global(html[data-ws-dragging]),
+:global(html[data-ws-dragging] *) {
+  cursor: grabbing !important;
+}
+
+/* Properties' sections, one level under a strip: same tabs, no grab. */
+.sectionBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--control-h);
+  flex: none;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sectionTab {
+  cursor: default;
+}
+
+/* No rule under a tab row unless the theme draws its tabs as chips: the
+   playhead's bar, a boxed tab or a tmux window marks the row on its own. */
+:global(:root:not([data-tabs="chip"])) .regionHeader,
+:global(:root:not([data-tabs="chip"])) .sectionBar {
+  border-bottom-color: transparent;
+}

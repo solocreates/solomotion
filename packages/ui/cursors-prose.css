@@ -1,0 +1,14 @@
+/*
+ * For pages people read: controls say they are controls, and text keeps its
+ * I-beam. A root cursor would otherwise inherit over prose and hide that it can
+ * be selected. Selection itself is untouched; this only changes what is shown.
+ */
+@layer base {
+  button:not(:disabled), summary, select, label[for], [role="button"], [role="link"], [role="tab"], input[type="button"], input[type="submit"], input[type="checkbox"], input[type="radio"] {
+    cursor: var(--cursor-pointer, pointer);
+  }
+  button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: var(--cursor-not-allowed, not-allowed); }
+  :where(p, li, h1, h2, h3, h4, h5, h6, blockquote, figcaption, td, th, dd, dt, pre, code) { cursor: var(--cursor-text, text); }
+  :where(a, button, summary, label, [role="button"], [role="link"], [role="tab"], .select-none) :where(p, li, h1, h2, h3, h4, h5, h6, blockquote, figcaption, td, th, dd, dt, pre, code),
+  :where(.select-none):where(p, li, h1, h2, h3, h4, h5, h6, blockquote, figcaption, td, th, dd, dt, pre, code) { cursor: inherit; }
+}

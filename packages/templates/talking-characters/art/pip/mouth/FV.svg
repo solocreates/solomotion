@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 240" data-pivot="150 130">
+  <path id="Lips" d="M 98 132 C 105.9 124.5 127.1 124 150 124 C 172.9 124 194.1 124.5 202 132 C 209.9 139.5 197.4 151 186 158 C 174.6 165 165.8 164 150 164 C 134.2 164 125.4 165 114 158 C 102.6 151 90.1 139.5 98 132 Z" fill="#5A1030" stroke="#1B1230" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
+  <path id="Teeth" d="M 108 118 L 192 118 L 190 138 C 166 142 134 142 110 138 Z" fill="#FFFFFF"/>
+  <path id="TeethLine" d="M 108 118 L 192 118" fill="none" stroke="#1B1230" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

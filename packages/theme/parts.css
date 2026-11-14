@@ -1,0 +1,934 @@
+/*
+ * THE PARTS — every dialect of every part, keyed on the root attributes a
+ * compiled theme sets (`data-switch="notch"`, `data-tabs="playhead"`, …).
+ *
+ * The contract with a component is markup, not classes: a part carries
+ * `data-part="…"`, its pieces carry `data-el="…"`, and it paints NOTHING
+ * itself. Everything a dialect draws lives here, inside `@layer components`,
+ * so a call site's own utilities (a width, a margin) still win over it.
+ *
+ * Every value is a token. Components never learn which theme is on.
+ */
+
+@property --dial-p {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes dial-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+
+@layer components {
+  :root {
+    /* Fields, bars and tabs keep at least 3px of corner even when a theme is
+       square; cards and menus may go fully square (they read --r-md/--r-lg). */
+    --r-control: max(3px, var(--r-sm, calc(var(--radius) / 2)));
+    --motion-snap: 110ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+
+  /* ══ LABELS ══════════════════════════════════════════════════════════════
+     One element, four casings. `title` is AS WRITTEN (sentence case).
+     The --var form is drawn from `data-var`, so the words stay the accessible
+     name and no component rewrites its own text. */
+  :root[data-labels="upper"] [data-part="label"] {
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-size: 0.9em;
+    font-weight: var(--label-weight, 600);
+  }
+  :root[data-labels="lower"] [data-part="label"] {
+    text-transform: lowercase;
+  }
+  :root[data-labels="var"] [data-part="label"][data-var] {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+  :root[data-labels="var"] [data-part="label"][data-var]::before {
+    content: attr(data-var);
+    font-family: var(--font-code);
+    font-size: calc(var(--text-body, 0.75rem) - 0.0625rem);
+    font-weight: 400;
+  }
+
+  /* ══ NUMERALS ════════════════════════════════════════════════════════════
+     Numbers in value fields wear the theme's numeral face. At meta size a
+     dot-matrix face turns to mush, so small numbers take the code face. */
+  [data-num] {
+    font-family: var(--font-num, inherit);
+    font-weight: var(--num-weight, inherit);
+    font-size: calc(1em * var(--num-scale, 1));
+    font-variant-numeric: tabular-nums;
+  }
+  [data-num="small"] {
+    font-family: var(--font-num-small, var(--font-num, inherit));
+    font-weight: inherit;
+    font-size: inherit;
+  }
+
+  /* ══ SWITCH ══════════════════════════════════════════════════════════════
+     One body for every theme: a recessed slot with a hairline, which fills
+     with the accent tint when on. A dialect changes the thumb. (Pill is the
+     one exception: it is the classic product switch, kept exactly as it ships.) */
+  [data-part="switch"] {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    width: 2.125rem;
+    height: 1.125rem;
+    padding: 0;
+    border-radius: var(--r-control);
+    background: var(--input);
+    box-shadow: inset 0 0 0 1px var(--line);
+    cursor: pointer;
+    /* The thumb is absolute, so the body has no baseline of its own; without
+       this it sits ON the text baseline and every switch row grows by the
+       descender. */
+    vertical-align: middle;
+    transition:
+      background-color var(--motion-snap),
+      box-shadow var(--motion-snap);
+  }
+  [data-part="switch"][data-state="checked"] {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent);
+  }
+  [data-part="switch"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  [data-part="switch"] > [data-el="word"] {
+    display: none;
+  }
+  [data-part="switch-thumb"] {
+    position: absolute;
+    left: 0.1875rem;
+    top: 50%;
+    display: block;
+    pointer-events: none;
+    transition:
+      transform var(--motion-snap),
+      background-color var(--motion-snap),
+      box-shadow var(--motion-snap),
+      --dial-p 160ms steps(4, jump-none);
+  }
+
+  /* notch — a square thumb that clicks into place. No divider. */
+  :root:not([data-switch]) [data-part="switch-thumb"],
+  :root[data-switch="notch"] [data-part="switch-thumb"] {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top: -0.375rem;
+    border-radius: 2px;
+    background: var(--muted-foreground);
+  }
+  :root:not([data-switch]) [data-part="switch-thumb"][data-state="checked"],
+  :root[data-switch="notch"] [data-part="switch-thumb"][data-state="checked"] {
+    transform: translateX(1rem);
+    background: var(--primary);
+  }
+
+  /* dial — the logo's o. It fills a quarter at a time as it crosses. */
+  :root[data-switch="dial"] [data-part="switch-thumb"] {
+    width: 0.8125rem;
+    height: 0.8125rem;
+    margin-top: -0.40625rem;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary) 0 var(--dial-p), transparent var(--dial-p));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--foreground) 45%, transparent);
+  }
+  :root[data-switch="dial"] [data-part="switch-thumb"][data-state="checked"] {
+    --dial-p: 360deg;
+    transform: translateX(0.9375rem);
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+  }
+
+  /* pill — the classic switch, kept exactly as it ships: the thumb is a HOLE cut in the
+     accent, painted as the surface behind it, never a white headlight. */
+  :root[data-switch="pill"] [data-part="switch"] {
+    width: 2.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    box-shadow:
+      inset 0 0 0 1px var(--border),
+      inset 0 1px 2px var(--glass-shade);
+  }
+  :root[data-switch="pill"] [data-part="switch"][data-state="checked"] {
+    background: var(--primary);
+    box-shadow: none;
+  }
+  :root[data-switch="pill"] [data-part="switch-thumb"] {
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    margin-top: -0.5rem;
+    border-radius: 9999px;
+    background: var(--popover);
+    box-shadow:
+      0 1px 2px var(--glass-shade),
+      inset 0 0 0 1px var(--glass-rim);
+  }
+  :root[data-switch="pill"] [data-part="switch-thumb"][data-state="checked"] {
+    transform: translateX(1rem);
+  }
+
+  /* led — a lamp and a word, for the terminal. */
+  :root[data-switch="led"] [data-part="switch"] {
+    width: auto;
+    min-width: 2.875rem;
+    height: 1.25rem;
+    padding: 0 0.4375rem 0 1.125rem;
+    background: transparent;
+    font-family: var(--font-code);
+    font-size: calc(var(--text-body, 0.75rem) - 0.09375rem);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-faint);
+  }
+  :root[data-switch="led"] [data-part="switch"][data-state="checked"] {
+    background: transparent;
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  :root[data-switch="led"] [data-part="switch"] > [data-el="word"][data-word="off"],
+  :root[data-switch="led"] [data-part="switch"][data-state="checked"] > [data-el="word"][data-word="on"] {
+    display: block;
+  }
+  :root[data-switch="led"] [data-part="switch"][data-state="checked"] > [data-el="word"][data-word="off"] {
+    display: none;
+  }
+  :root[data-switch="led"] [data-part="switch-thumb"] {
+    left: 0.4375rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    margin-top: -0.1875rem;
+    background: color-mix(in srgb, var(--foreground) 25%, transparent);
+  }
+  :root[data-switch="led"] [data-part="switch-thumb"][data-state="checked"] {
+    background: var(--primary);
+  }
+
+  /* rocker — two words, one pressed in. */
+  :root[data-switch="rocker"] [data-part="switch"] {
+    width: auto;
+    height: 1.375rem;
+    gap: 0;
+    padding: 0.125rem;
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
+    font-size: 0.59375rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  :root[data-switch="rocker"] [data-part="switch"][data-state="checked"] {
+    background: var(--input);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
+  }
+  :root[data-switch="rocker"] [data-part="switch"] > [data-el="word"] {
+    display: grid;
+    place-items: center;
+    height: 1.125rem;
+    padding: 0 0.375rem;
+    border-radius: calc(var(--r-control) - 1px);
+    color: var(--fg-faint);
+    transition: background-color var(--motion-snap);
+  }
+  :root[data-switch="rocker"] [data-part="switch"]:not([data-state="checked"]) > [data-word="off"],
+  :root[data-switch="rocker"] [data-part="switch"][data-state="checked"] > [data-word="on"] {
+    background: linear-gradient(var(--card), var(--panel));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 50%, transparent),
+      0 1px 1px rgb(0 0 0 / 0.2);
+    color: var(--foreground);
+  }
+  :root[data-switch="rocker"] [data-part="switch"][data-state="checked"] > [data-word="on"] {
+    color: var(--primary);
+  }
+  :root[data-switch="rocker"] [data-part="switch-thumb"] {
+    display: none;
+  }
+
+  /* ══ TABS ════════════════════════════════════════════════════════════════
+     A row of names. NO dialect draws a rule under the row: separation is the
+     indicator's job, and a hairline under a strip is the shadcn tell. The
+     indicator is one element positioned by `--tab-x`/`--tab-w`, which the
+     host measures, so it slides instead of jumping. */
+  [data-part="tabs"] {
+    position: relative;
+    isolation: isolate;
+  }
+  [data-part="tabs"] > [data-el="indicator"] {
+    position: absolute;
+    left: 0;
+    width: var(--tab-w, 0);
+    transform: translateX(var(--tab-x, 0));
+    pointer-events: none;
+    display: none;
+    z-index: -1;
+    transition:
+      transform var(--motion-snap),
+      width var(--motion-snap);
+  }
+  [data-part="tabs"][data-measured="0"] > [data-el="indicator"] {
+    transition: none;
+  }
+  [data-part="tab"] {
+    color: var(--fg-muted);
+    transition: color 120ms;
+  }
+  [data-part="tab"]:hover {
+    color: var(--foreground);
+  }
+  [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    color: var(--foreground);
+  }
+  [data-part="tab"] > [data-el="index"] {
+    display: none;
+  }
+
+  /* playhead — the default: the active tab wears the timeline's playhead, a
+     2px accent bar that slides. No chevron, no rule. */
+  :root[data-tabs="playhead"] [data-part="tabs"] {
+    background: transparent;
+  }
+  :root[data-tabs="playhead"] [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    background: transparent;
+    box-shadow: none;
+  }
+  /* The bar sits under the tab's WORDS, not its padding box. */
+  :root[data-tabs="playhead"] [data-part="tabs"] > [data-el="indicator"] {
+    display: block;
+    bottom: 0;
+    height: 2px;
+    margin-left: 0.375rem;
+    width: max(0px, calc(var(--tab-w, 0px) - 0.75rem));
+    border-radius: 1px;
+    background: var(--primary);
+    z-index: 1;
+  }
+
+  /* boxed — the active tab is a raised box. Still no rule under the row. */
+  :root[data-tabs="boxed"] [data-part="tabs"] {
+    gap: 0.125rem;
+    background: transparent;
+  }
+  :root[data-tabs="boxed"] [data-part="tab"] {
+    border-radius: var(--r-control);
+    background: transparent;
+    box-shadow: none;
+  }
+  :root[data-tabs="boxed"] [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    background: var(--card);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  /* chip — the active tab a raised pane of glass with the accent on its
+     label. A row that is a control of its own (`data-track`: a dialog's tabs)
+     sits in a recessed track with concentric corners; a region's strip does
+     not, it is already chrome. */
+  :root[data-tabs="chip"] [data-part="tabs"][data-track] {
+    background: var(--input);
+    border-radius: var(--r-sm);
+    padding: 0.125rem;
+  }
+  :root[data-tabs="chip"] [data-part="tabs"][data-track] > [data-part="tab"] {
+    border-radius: max(2px, calc(var(--r-sm) - 2px));
+  }
+  :root[data-tabs="chip"] [data-part="tabs"][data-track] > [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    color: var(--primary);
+  }
+  :root[data-tabs="chip"] [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    background-color: color-mix(in srgb, var(--primary) 16%, var(--glass-raised));
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-specular-strong),
+      inset 0 0 0 1px var(--glass-rim),
+      0 1px 2px rgb(0 0 0 / 0.28);
+  }
+
+  /* tmux — numbered windows; the active one is lit. */
+  :root[data-tabs="tmux"] [data-part="tabs"] {
+    gap: 0.25rem;
+    background: transparent;
+  }
+  :root[data-tabs="tmux"] [data-part="tab"] {
+    overflow: hidden;
+    padding-left: 0;
+    border-radius: var(--r-control);
+    font-family: var(--font-code);
+    text-transform: lowercase;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  :root[data-tabs="tmux"] [data-part="tab"] > [data-el="index"] {
+    display: grid;
+    place-items: center;
+    align-self: stretch;
+    min-width: 1.25rem;
+    margin-right: 0.375rem;
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color: var(--fg-faint);
+  }
+  :root[data-tabs="tmux"] [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  :root[data-tabs="tmux"] [data-part="tab"]:is([data-state="active"], [aria-selected="true"]) > [data-el="index"] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* ══ RANGE ═══════════════════════════════════════════════════════════════
+     A bar the height of a field; label and value live inside it; the whole
+     bar is the target. The component sets `data-dialect` from the root (an
+     amount reads `data-range`, a measure `data-measure`) and the geometry as
+     variables: --lo/--hi (fill), --f (the value), --rule-* (ticks). */
+  [data-part="range"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--r-control);
+    background: var(--input);
+    border: 1px solid transparent;
+    transition:
+      background-color 100ms,
+      border-color 100ms;
+  }
+  [data-part="range"]:hover {
+    border-color: var(--border);
+  }
+  [data-part="range"]:focus-visible,
+  [data-part="range"][data-dragging] {
+    border-color: var(--ring);
+  }
+  [data-part="range"] > [data-el] {
+    position: absolute;
+    pointer-events: none;
+  }
+  [data-part="range"] > :is([data-el="label"], [data-el="value"]) {
+    position: relative;
+    pointer-events: auto;
+  }
+  [data-part="range"] > [data-el="label"] {
+    pointer-events: none;
+    color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  }
+  [data-part="range"] > [data-el="value"] {
+    color: color-mix(in srgb, var(--foreground) 90%, transparent);
+  }
+  [data-part="range"] > [data-el="fill"] {
+    inset-block: 0;
+    left: calc(var(--lo) * 100%);
+    width: calc((var(--hi) - var(--lo)) * 100%);
+    z-index: -1;
+    background: var(--range-tone, color-mix(in srgb, var(--foreground) 9%, transparent));
+    transition: background-color 100ms;
+  }
+  [data-part="range"]:hover > [data-el="fill"] {
+    filter: brightness(1.5);
+  }
+  [data-part="range"][data-dragging] > [data-el="fill"] {
+    background: var(--range-tone, color-mix(in srgb, var(--foreground) 16%, transparent));
+  }
+  [data-part="range"] > [data-el="edge"] {
+    inset-block: 0.125rem;
+    width: 2px;
+    border-radius: 9999px;
+    left: calc(var(--f) * 100% - (var(--f) * 2px));
+    background: var(--range-edge, var(--primary));
+    transition: left 75ms;
+  }
+  [data-part="range"] > :is([data-el="ghost"], [data-el="rule"], [data-el="blocks"]) {
+    display: none;
+  }
+
+  /* trail — the edge leaves an onion trail as it moves: three ghosts that
+     follow it late, so a drag reads as motion. CSS only; nothing per frame. */
+  [data-part="range"][data-dialect="trail"] > [data-el="ghost"] {
+    display: block;
+    inset-block: 0.1875rem;
+    width: 2px;
+    border-radius: 9999px;
+    left: calc(var(--f) * 100% - (var(--f) * 2px));
+    background: var(--range-edge, var(--primary));
+    opacity: 0;
+    transition:
+      left 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      opacity 400ms;
+  }
+  [data-part="range"][data-dialect="trail"][data-dragging] > [data-el="ghost"] {
+    opacity: 0.35;
+  }
+  [data-part="range"][data-dialect="trail"] > [data-el="ghost"]:nth-of-type(2) {
+    transition-duration: 420ms, 400ms;
+  }
+  [data-part="range"][data-dialect="trail"][data-dragging] > [data-el="ghost"]:nth-of-type(2) {
+    opacity: 0.2;
+  }
+  [data-part="range"][data-dialect="trail"] > [data-el="ghost"]:nth-of-type(3) {
+    transition-duration: 600ms, 400ms;
+  }
+  [data-part="range"][data-dialect="trail"][data-dragging] > [data-el="ghost"]:nth-of-type(3) {
+    opacity: 0.1;
+  }
+
+  /* ruler — for measures. Ticks at the real spacing, the fill an accent tint,
+     the edge a full-height needle with a notch on top. It snaps tick to tick
+     (the component's job, from range-math); Shift frees it. */
+  [data-part="range"][data-dialect="ruler"] {
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.12);
+    padding-bottom: 0.3125rem;
+  }
+  [data-part="range"][data-dialect="ruler"] > [data-el="rule"] {
+    display: block;
+    inset-inline: 0;
+    bottom: 0;
+    height: 0.375rem;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--foreground) 34%, transparent) 0 1px,
+        transparent 1px calc(var(--rule-major) * 1%)
+      ),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--foreground) 18%, transparent) 0 1px,
+        transparent 1px calc(var(--rule-minor) * 1%)
+      );
+    background-size:
+      100% 0.375rem,
+      100% 0.1875rem;
+    background-position:
+      calc(var(--rule-offset) * 1%) 0,
+      calc(var(--rule-offset) * 1%) 0.1875rem;
+    background-repeat: repeat-x;
+  }
+  [data-part="range"][data-dialect="ruler"] > [data-el="fill"] {
+    background: var(--range-tone, color-mix(in srgb, var(--primary) 13%, transparent));
+  }
+  [data-part="range"][data-dialect="ruler"] > [data-el="edge"] {
+    inset-block: 0;
+    border-radius: 0;
+  }
+  [data-part="range"][data-dialect="ruler"] > [data-el="edge"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 8px;
+    height: 5px;
+    background: var(--range-edge, var(--primary));
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
+  /* blocks / steps — cells. Blocks fill by exact share (the last lit one is
+     partial); steps show the same value by opacity. Square by nature. */
+  [data-part="range"]:is([data-dialect="blocks"], [data-dialect="steps"]) {
+    background: transparent;
+    border-radius: 0;
+    gap: 0.625rem;
+    font-family: var(--font-code);
+  }
+  [data-part="range"]:is([data-dialect="blocks"], [data-dialect="steps"]) > :is([data-el="fill"], [data-el="edge"]) {
+    display: none;
+  }
+  [data-part="range"]:is([data-dialect="blocks"], [data-dialect="steps"]) > [data-el="blocks"] {
+    display: flex;
+    position: static;
+    order: 2;
+    flex: 1;
+    gap: 2px;
+    height: 0.75rem;
+    min-width: 0;
+  }
+  [data-part="range"] > [data-el="blocks"] > i {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+    background: color-mix(in srgb, var(--foreground) 11%, transparent);
+  }
+  [data-part="range"] > [data-el="blocks"] > i::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--bf, 0) * 100%);
+    background: var(--range-edge, var(--primary));
+  }
+  [data-part="range"][data-dialect="steps"] > [data-el="blocks"] > i::after {
+    width: 100%;
+    opacity: var(--bo, 0);
+  }
+  [data-part="range"]:is([data-dialect="blocks"], [data-dialect="steps"]) > [data-el="label"] {
+    order: 1;
+    flex: 0 0 auto;
+    width: 5.25rem;
+    padding-left: 0;
+  }
+  [data-part="range"]:is([data-dialect="blocks"], [data-dialect="steps"]) > [data-el="value"] {
+    order: 3;
+    flex: none;
+    min-width: 2.75rem;
+    text-align: right;
+    padding-right: 0;
+  }
+
+  /* line — a hairline track and a dot, for the press. */
+  [data-part="range"][data-dialect="line"] {
+    background: transparent;
+    border-radius: 0;
+    border-color: transparent;
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+  [data-part="range"][data-dialect="line"] > [data-el="fill"] {
+    top: auto;
+    height: 1.5px;
+    background: var(--range-edge, var(--primary));
+  }
+  [data-part="range"][data-dialect="line"] > [data-el="edge"] {
+    top: auto;
+    bottom: -0.1875rem;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    margin-left: -0.21875rem;
+    border-radius: 50%;
+    transform: scale(0.8);
+    transition: transform 120ms;
+  }
+  [data-part="range"][data-dialect="line"]:is(:hover, [data-dragging]) > [data-el="edge"] {
+    transform: scale(1);
+  }
+
+  /* ══ FIELD ═══════════════════════════════════════════════════════════════
+     Never black: a field is a step of the surface it sits on. */
+  [data-part="field"] {
+    border: 1px solid transparent;
+    border-radius: var(--r-control);
+    background: var(--input);
+    transition:
+      border-color 120ms,
+      box-shadow 120ms;
+  }
+  [data-part="field"]:hover {
+    border-color: var(--line);
+  }
+  [data-part="field"]:is(:focus-within, [data-scrubbing]) {
+    border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  }
+  :root[data-field="line"] [data-part="field"] {
+    background: transparent;
+    border-color: transparent;
+    border-radius: 0;
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+  :root[data-field="line"] [data-part="field"]:hover {
+    border-color: transparent;
+    box-shadow: inset 0 -1px 0 var(--fg-muted);
+  }
+  :root[data-field="line"] [data-part="field"]:is(:focus-within, [data-scrubbing]) {
+    border-color: transparent;
+    box-shadow: inset 0 -1.5px 0 var(--primary);
+  }
+  :root[data-field="box"] [data-part="field"] {
+    background: transparent;
+    border-color: var(--line);
+  }
+  :root[data-field="box"] [data-part="field"]:hover {
+    border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+  }
+  :root[data-field="box"] [data-part="field"]:is(:focus-within, [data-scrubbing]) {
+    border-color: var(--primary);
+  }
+
+  /* A linked --variable: the token reads as live (accent) or dead (grey,
+     dashed, struck) without opening anything. */
+  [data-part="var-token"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    padding: 0 0.375rem;
+    border-radius: calc(var(--r-control) - 1px);
+    font-family: var(--font-code);
+    font-size: calc(var(--text-body, 0.75rem) - 0.03125rem);
+    white-space: nowrap;
+    color: var(--bind-variable, var(--primary));
+    background: color-mix(in srgb, var(--bind-variable, var(--primary)) 15%, transparent);
+  }
+  [data-part="var-token"][data-status="dead"] {
+    color: var(--fg-faint);
+    background: transparent;
+    outline: 1px dashed color-mix(in srgb, var(--foreground) 22%, transparent);
+    outline-offset: -1px;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  }
+
+  /* ══ BUTTON ══════════════════════════════════════════════════════════════
+     `data-variant` is what the button is FOR (primary, secondary, ghost,
+     danger, outline, link); the dialect is how this theme draws that. */
+  [data-part="button"] {
+    color: var(--foreground);
+    border-radius: var(--r-control);
+  }
+  [data-part="button"][data-variant="link"] {
+    color: var(--primary);
+    text-underline-offset: 4px;
+  }
+  [data-part="button"][data-variant="link"]:hover {
+    text-decoration: underline;
+  }
+  [data-part="button"][data-variant="ghost"] {
+    color: var(--fg-muted);
+  }
+  [data-part="button"][data-variant="ghost"]:hover {
+    color: var(--foreground);
+    background: var(--hover);
+  }
+
+  /* glass — the primary is a pane of accent-tinted glass. */
+  :root[data-button="glass"] [data-part="button"][data-variant="primary"] {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.14),
+      inset 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
+      0 1px 2px rgb(0 0 0 / 0.3);
+  }
+  :root[data-button="glass"] [data-part="button"][data-variant="primary"]:hover {
+    background: color-mix(in srgb, var(--primary) 38%, transparent);
+  }
+  :root[data-button="glass"] [data-part="button"][data-variant="primary"]:active {
+    background: color-mix(in srgb, var(--primary) 44%, transparent);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="accent"],
+  :root[data-button="solid"] [data-part="button"][data-variant="primary"] {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"]:is([data-variant="accent"], [data-variant="primary"]):hover {
+    filter: brightness(1.08);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="secondary"] {
+    background: var(--secondary);
+    box-shadow:
+      inset 0 0 0 1px var(--border),
+      0 2px 0 -1px rgb(0 0 0 / 0.35);
+  }
+  :root[data-button="solid"] [data-part="button"][data-variant="secondary"] {
+    background: var(--card);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"]:is([data-variant="secondary"], [data-variant="outline"]):hover {
+    background: var(--accent);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="outline"] {
+    box-shadow: inset 0 0 0 1px var(--input);
+  }
+  :root[data-button="solid"] [data-part="button"][data-variant="outline"] {
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="danger"] {
+    color: #fff;
+    background: var(--destructive);
+    box-shadow: 0 2px 0 -1px rgb(0 0 0 / 0.4);
+  }
+  :root[data-button="solid"] [data-part="button"][data-variant="danger"] {
+    color: var(--destructive);
+    background: color-mix(in srgb, var(--destructive) 14%, transparent);
+    box-shadow: none;
+  }
+
+  /* outline — the terminal: every button a frame, the primary in accent. */
+  :root[data-button="outline"] [data-part="button"] {
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  :root[data-button="outline"] [data-part="button"]:hover {
+    background: var(--hover);
+  }
+  :root[data-button="outline"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    box-shadow: inset 0 0 0 1px var(--primary);
+  }
+  :root[data-button="outline"] [data-part="button"]:is([data-variant="ghost"], [data-variant="link"]) {
+    box-shadow: none;
+  }
+  :root[data-button="outline"] [data-part="button"][data-variant="danger"] {
+    color: var(--destructive);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--destructive) 50%, transparent);
+  }
+
+  /* keycap — the instrument: a key with a ledge that you press down. */
+  :root[data-button="keycap"] [data-part="button"]:not([data-variant="ghost"], [data-variant="link"]) {
+    background: linear-gradient(to bottom, var(--card), var(--panel));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 60%, transparent),
+      inset 0 0 0 1px rgb(0 0 0 / 0.1),
+      0 2px 0 rgb(0 0 0 / 0.18);
+  }
+  :root[data-button="keycap"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      inset 0 0 0 1px rgb(0 0 0 / 0.12),
+      0 2px 0 color-mix(in srgb, var(--primary) 55%, #000);
+  }
+  :root[data-button="keycap"] [data-part="button"][data-variant="danger"] {
+    color: var(--destructive);
+  }
+  :root[data-button="keycap"] [data-part="button"]:not([data-variant="ghost"], [data-variant="link"]):active {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
+  }
+
+  /* offset — the press: square, an ink frame, the primary casting a hard
+     shadow it drops into when pressed. */
+  :root[data-button="offset"] [data-part="button"] {
+    border-radius: 0;
+    box-shadow: inset 0 0 0 1.5px var(--foreground);
+  }
+  :root[data-button="offset"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    box-shadow:
+      inset 0 0 0 1.5px var(--foreground),
+      3px 3px 0 var(--foreground);
+  }
+  :root[data-button="offset"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]):active {
+    transform: translate(3px, 3px);
+    box-shadow: inset 0 0 0 1.5px var(--foreground);
+  }
+  :root[data-button="offset"] [data-part="button"]:is([data-variant="ghost"], [data-variant="link"]) {
+    box-shadow: none;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  :root[data-button="offset"] [data-part="button"][data-variant="danger"] {
+    color: var(--destructive);
+    box-shadow: inset 0 0 0 1.5px var(--destructive);
+  }
+
+  /* ══ MENU ════════════════════════════════════════════════════════════════
+     Context menus, dropdowns, selects, the menubar and the palette share one
+     surface and one item. */
+  [data-part="menu"] {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    box-shadow: var(--elevation-3);
+  }
+  [data-part="menu-item"] {
+    position: relative;
+    border-radius: var(--r-xs);
+    outline: none;
+  }
+  [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) {
+    background: var(--hover);
+    color: var(--foreground);
+  }
+  [data-part="menu-item"][data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  [data-part="menu-item"][data-variant="danger"] {
+    color: var(--destructive);
+  }
+  [data-part="menu-shortcut"] {
+    margin-left: auto;
+    padding-left: 1rem;
+    color: var(--fg-faint);
+  }
+  [data-part="menu-separator"] {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* terminal — a quiet hover: a faint tint, the accent on the words, a caret.
+     Never a slab. */
+  :root[data-menu="terminal"] [data-part="menu"] {
+    background-color: var(--background);
+    border-radius: var(--r-control);
+    font-family: var(--font-code);
+  }
+  :root[data-menu="terminal"] [data-part="menu-item"]::before {
+    content: "›";
+    position: absolute;
+    /* In the item's own left padding, so no item's layout moves for it. */
+    left: 0.125rem;
+    color: var(--primary);
+    opacity: 0;
+    transform: translateX(-3px);
+    transition:
+      opacity 80ms,
+      transform 80ms;
+  }
+  :root[data-menu="terminal"] [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) {
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+    color: var(--primary);
+  }
+  :root[data-menu="terminal"] [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"])::before {
+    opacity: 1;
+    transform: none;
+  }
+  :root[data-menu="terminal"] [data-part="menu-item"][data-variant="danger"]:is([data-highlighted], [aria-selected="true"]) {
+    color: var(--destructive);
+    background: color-mix(in srgb, var(--destructive) 7%, transparent);
+  }
+
+  /* inverted — the press: an ink slab with paper type on it. */
+  :root[data-menu="inverted"] [data-part="menu"] {
+    background-color: var(--foreground);
+    color: var(--background);
+    border-color: transparent;
+  }
+  :root[data-menu="inverted"] [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) {
+    background: color-mix(in srgb, var(--background) 14%, transparent);
+    color: var(--background);
+  }
+  :root[data-menu="inverted"] :is([data-part="menu-shortcut"], [data-part="menu"] [data-el="muted"]) {
+    color: color-mix(in srgb, var(--background) 55%, transparent);
+  }
+  :root[data-menu="inverted"] [data-part="menu-separator"] {
+    background: color-mix(in srgb, var(--background) 18%, transparent);
+  }
+
+  /* ══ THE DIAL LOADER — the mark's quarter steps round, a beat at a time. */
+  [data-part="dial-loader"] [data-el="wedge"] {
+    transform-box: view-box;
+    transform-origin: 32px 32px;
+    animation: dial-turn var(--dial-beat, 1.6s) steps(4, jump-none) infinite;
+  }
+  [data-part="wordmark"] {
+    font-family: var(--font-display, inherit);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+  }
+  [data-part="wordmark"] [data-el="quarter"] {
+    transition: transform 460ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-part="dial-loader"] [data-el="wedge"] {
+      animation: none;
+    }
+    [data-part="wordmark"] [data-el="quarter"] {
+      transition: none;
+    }
+    [data-part="switch-thumb"],
+    [data-part="tabs"] > [data-el="indicator"],
+    [data-part="range"] > [data-el] {
+      transition: none !important;
+    }
+  }
+}

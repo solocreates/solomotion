@@ -1,0 +1,23 @@
+{
+  "$comment": "THE ENGINE FILES - the one list of what the app downloads on first use and never bundles. Read by engines/files.ts (the app), scripts/models/publish.mjs (uploads them) and scripts/release.mjs (refuses to ship while any is missing). Paths are under the product's models host (`identity.hosts.models`); a new export goes to a new version prefix (v2), never over v1. Changing a file here or bumping onnxruntime-web means: pnpm models:publish BEFORE pnpm release.",
+  "runtime": {
+    "package": "onnxruntime-web",
+    "files": [
+      "ort.webgpu.min.mjs",
+      "ort-wasm-simd-threaded.asyncify.mjs",
+      "ort-wasm-simd-threaded.asyncify.wasm"
+    ]
+  },
+  "depth": {
+    "video": [
+      "depth/vda-small-encoder.onnx",
+      "depth/vda-small-head.onnx"
+    ],
+    "stillGpu": {
+      "graph": "depth/da3-small.onnx",
+      "data": "depth/da3-small.onnx_data",
+      "dataPath": "model.onnx_data"
+    },
+    "stillCpu": "depth/da3-small-q8.onnx"
+  }
+}

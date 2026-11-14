@@ -1,6 +1,26 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
-.DS_Store
-*.log
+out/
+.next/
+.open-next/
+.api-stash/
+*.tsbuildinfo
+*.tgz
+
+# Local Cloudflare state
+.wrangler/
+
+# Engine weights and runtimes fetched for local development
+apps/web/public/models/
+
+# Environment files. .env.example is the documented template and is tracked.
 .env
 .env.*
+!.env.example
+
+# Editors and systems
+.DS_Store
+*.log

@@ -1,0 +1,12 @@
+# Cloudflare Workers static-asset headers (ADR-offline).
+#
+# Everything under /_next/static is content-hashed: a changed file is a new
+# URL, so a year-long immutable cache can never be stale — and without it the
+# browser revalidates every chunk on every load (the asset default is
+# max-age=0, must-revalidate), which is also why none of them survived offline.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The offline worker must be re-read on every update check.
+/sw.js
+  Cache-Control: no-cache

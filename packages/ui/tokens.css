@@ -1,0 +1,151 @@
+/*
+ * @solomotion/ui — shared design tokens.
+ *
+ * This file is the marketing site's palette, and it is deliberately the SAME
+ * palette as the editor's `globals.css`. Two rules keep them one product:
+ *
+ *  1. BRAND is not ACCENT. The logo's orange→pink gradient is a fixed identity
+ *     asset — the mark, one hero glow, one CTA. `--brand` is the *interface*
+ *     accent: the colour that means "this is the action / this is active". It
+ *     is the gradient's rose, not its orange, and it matches `UI_ACCENT` in
+ *     `apps/web/src/editor/theme/theme-tokens.ts` on purpose. Change one and
+ *     change the other; they are the same decision seen from two apps.
+ *
+ *     (This is worth stating because the site got it wrong for a long time:
+ *     `--brand` was the gradient's ORANGE stop *and* `--primary`, so every
+ *     button, ring, eyebrow and link on the site was a different colour from
+ *     every button, ring and selection in the app — and read as amber.)
+ *
+ *  2. Separate with ELEVATION, not hairlines. Borders are WHITE AT LOW ALPHA,
+ *     never a solid grey, so one value reads correctly on the page ground, on a
+ *     card and inside a popover. A solid grey border is heavier on the darker
+ *     surface than on the lighter one, and boxes-inside-boxes is the single
+ *     strongest "generated, not designed" signal a page can send.
+ *
+ * The ink ramp is COOL (#ececf1 → #a0a0ab). It used to be a warm cream
+ * (#f2f0ea / #b6b3aa), which is the other half of why the site read as amber:
+ * every paragraph on it was faintly yellow.
+ *
+ * Consume from a Tailwind v4 entry:  @import "tailwindcss"; @import "@solomotion/ui/tokens.css";
+ * Names follow the shadcn convention (--primary is the accent; --accent is a neutral
+ * hover surface) so shadcn/new-york primitives work unchanged.
+ */
+
+:root {
+  --radius: 0.625rem;
+
+  /* ── Brand: the identity gradient ──────────────────────────────────────────
+     A fixed asset, never re-themed and deliberately rationed: the mark, the
+     hero glow, the one upgrade CTA. Everything else uses the accent below. */
+  --brand-from: #ff8732;
+  --brand-to: #ff2885;
+  --gradient-brand: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-to) 100%);
+  --brand-glow: color-mix(in srgb, var(--brand-to) 55%, transparent);
+  --brand-shadow: #9c1247;
+
+  /* ── Accent: the colour that means "active" ────────────────────────────────
+     Drawn FROM the mark (the gradient's rose) rather than being a second
+     identity — the one place brand and interface meet. Mirrors `UI_ACCENT`. */
+  --brand: #ff4e6a;
+  --brand-hover: #ff6b82;
+  --brand-ink: #ffffff;
+
+  /* ── Neutral ramp (cool graphite, never pure black) ─────────────────────── */
+  --background: #0a0a0d;
+  --foreground: #ececf1;
+  --card: #17171c;
+  --card-foreground: #ececf1;
+  --popover: #1b1b21;
+  --popover-foreground: #ececf1;
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-ink);
+  --secondary: #ffffff0f;
+  --secondary-foreground: #d8d8e0;
+  --muted: #ffffff08;
+  --muted-foreground: #85858f;
+  --accent: #ffffff14;
+  --accent-foreground: #f4f4f8;
+  --destructive: #f2555a;
+  --destructive-foreground: #ffffff;
+  --success: #46d39a;
+  --warning: #f2b13c;
+
+  /* Hairlines are ALPHA, not grey — see rule 2 above. */
+  --border: #ffffff12;
+  --input: #ffffff0a;
+  --ring: color-mix(in srgb, var(--brand) 45%, transparent);
+
+  /* Marketing surfaces. `surface-2` is the editor's panel value and `surface-3`
+     its popover value, so a mock of the app built from these tokens is not an
+     impression of the app — it is the same set of greys. */
+  --ink-muted: #a0a0ab;
+  --hairline: #ffffff12;
+  --hairline-strong: #ffffff1f;
+  --surface-2: #121216;
+  --surface-3: #1b1b21;
+  --stage: #08080b;
+  --track-lane: #131318;
+
+  /* Motion vocabulary (design.md §7) */
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Fonts — provided by next/font as CSS variables in the app layout.
+     Body text is the editor's UI face, so a paragraph on the site and a label
+     in the app are the same voice; DISPLAY is the site's own, used for
+     headlines only. A marketing face at 15px body size is a costume. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-sans);
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "JetBrains Mono", monospace;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-from: var(--brand-from);
+  --color-brand-to: var(--brand-to);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-glow: var(--brand-glow);
+  --color-ink-muted: var(--ink-muted);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-stage: var(--stage);
+  --color-track-lane: var(--track-lane);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --ease-standard: var(--ease-standard);
+  --ease-emphasis: var(--ease-emphasis);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}

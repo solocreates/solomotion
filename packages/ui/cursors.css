@@ -1,0 +1,41 @@
+/*
+ * The cursor set's CSS half. The art lives in `src/cursors/index.ts` and arrives
+ * as custom properties (`cursorVariables()`, inlined by each root layout); this
+ * file holds no images. It re-points Tailwind's cursor utilities at those
+ * properties, so every `cursor-*` class and variant wears the set, and each read
+ * falls back to the keyword it replaced.
+ */
+@utility cursor-default { cursor: var(--cursor-arrow, default); }
+@utility cursor-pointer { cursor: var(--cursor-pointer, pointer); }
+@utility cursor-text { cursor: var(--cursor-text, text); }
+@utility cursor-grab { cursor: var(--cursor-grab, grab); }
+@utility cursor-grabbing { cursor: var(--cursor-grabbing, grabbing); }
+@utility cursor-move { cursor: var(--cursor-move, move); }
+@utility cursor-crosshair { cursor: var(--cursor-crosshair, crosshair); }
+@utility cursor-not-allowed { cursor: var(--cursor-not-allowed, not-allowed); }
+@utility cursor-help { cursor: var(--cursor-help, help); }
+@utility cursor-copy { cursor: var(--cursor-copy, copy); }
+@utility cursor-col-resize { cursor: var(--cursor-col-resize, col-resize); }
+@utility cursor-row-resize { cursor: var(--cursor-row-resize, row-resize); }
+@utility cursor-trim-start { cursor: var(--cursor-trim-start, ew-resize); }
+@utility cursor-trim-end { cursor: var(--cursor-trim-end, ew-resize); }
+@utility cursor-slip { cursor: var(--cursor-slip, ew-resize); }
+@utility cursor-ew-resize { cursor: var(--cursor-ew-resize, ew-resize); }
+@utility cursor-ns-resize { cursor: var(--cursor-ns-resize, ns-resize); }
+@utility cursor-nwse-resize { cursor: var(--cursor-nwse-resize, nwse-resize); }
+@utility cursor-nesw-resize { cursor: var(--cursor-nesw-resize, nesw-resize); }
+
+@layer base {
+  /* The page's own defaults, below every utility. `auto` keeps a device without the set native. */
+  html { cursor: var(--cursor-arrow, auto); }
+  /* The browser gives these its own plain arrow, which would not inherit the root's. */
+  button, select, summary, label, input[type="button"], input[type="submit"], input[type="reset"], input[type="file"], input[type="range"], input[type="checkbox"], input[type="radio"], input[type="color"] {
+    cursor: var(--cursor-arrow, default);
+  }
+  a[href], a[href] * { cursor: var(--cursor-pointer, pointer); }
+  textarea,
+  [contenteditable]:not([contenteditable="false"]),
+  input:not([type="range"], [type="checkbox"], [type="radio"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="image"]) {
+    cursor: var(--cursor-text, text);
+  }
+}

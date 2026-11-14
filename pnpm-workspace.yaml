@@ -1,1 +1,11 @@
-packages: []
+packages:
+  - packages/*
+  - apps/*
+  - products/*
+
+# Build scripts approved to run on install (pnpm blocks them by default).
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - '@tailwindcss/oxide'
+  - sharp

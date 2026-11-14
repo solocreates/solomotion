@@ -1,0 +1,7 @@
+{
+  "name": "Playground",
+  "blurb": "Twelve scenes in twelve styles, made by Claude Opus. Pixel art, neon, riso, paper, liquid glass, a lip-synced character, physics and 3D, each with the prompt that made it.",
+  "tags": ["starter", "playground", "prompts", "pixel art", "neon", "glass", "character", "physics", "3d"],
+  "version": 2,
+  "entry": "build.js"
+}

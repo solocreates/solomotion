@@ -1,0 +1,7 @@
+{
+  "name": "Talking Characters",
+  "blurb": "Pip, a 2D cut-out, and Orbit, a 3D head, each with its own voice, blinking and looking around.",
+  "tags": ["character", "lip sync", "rig", "3d"],
+  "version": 1,
+  "entry": "build.js"
+}

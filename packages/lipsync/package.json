@@ -1,0 +1,39 @@
+{
+  "name": "@solomotion/lipsync",
+  "version": "1.0.0-beta.1",
+  "private": true,
+  "type": "module",
+  "description": "Headless speech foundation: lazy speech engines (analyze/align/synthesize), ARPAbet G2P, viseme alphabets, an offline Test Voice, cue post-processing and an evaluation harness. Zero dependencies, zero DOM.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./spectral": {
+      "types": "./src/spectral.ts",
+      "default": "./src/spectral.ts"
+    },
+    "./g2p": {
+      "types": "./src/g2p/index.ts",
+      "default": "./src/g2p/index.ts"
+    },
+    "./align": {
+      "types": "./src/align/index.ts",
+      "default": "./src/align/index.ts"
+    },
+    "./voice": {
+      "types": "./src/voice/index.ts",
+      "default": "./src/voice/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "license": "GPL-3.0-only"
+}

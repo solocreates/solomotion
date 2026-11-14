@@ -1,0 +1,17 @@
+{
+  // Typechecks THIS product against the editor's Product contract. The editor
+  // itself typechecks against the contract alone (apps/web/product.d.ts), so
+  // neither side can lean on the other's details.
+  "extends": "../../apps/web/tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "paths": {
+      "@/*": ["../../apps/web/src/*"],
+      "#product": ["./web/index.tsx"],
+      "#product/identity": ["./web/identity.ts"],
+      "#product/assets": ["./web/assets.ts"]
+    }
+  },
+  "include": ["web/**/*.ts", "web/**/*.tsx"],
+  "exclude": ["node_modules"]
+}

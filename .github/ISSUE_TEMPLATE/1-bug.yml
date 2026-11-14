@@ -32,11 +32,9 @@ body:
     attributes:
       label: Where you run it
       options:
-        - Browser
-        - Desktop app (macOS)
-        - Desktop app (Windows)
-        - Desktop app (Linux)
+        - The live app in a browser
         - Built from source
+        - The MCP bridge (@solomotion/mcp)
     validations:
       required: true
   - type: input

@@ -1,0 +1,1269 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@solomotion/ui/cursors.css";
+/* Every part's dialects, keyed on the root attributes a compiled theme sets. */
+@import "@solomotion/theme/parts.css";
+
+/* Generate utilities for classes authored inside the shared @solomotion/ui package
+   (workspace packages live under node_modules and aren't auto-scanned) — so the
+   ONE canonical Button styles resolve in the editor too. */
+@source "../../../../packages/ui/src";
+@source "../../../../packages/feedback/src";
+/* The product this build is (its mark, splash, Support or licence UI): `products/<id>/web`. */
+@source "../../../../products";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ══ The design system ═══════════════════════════════════════════════════
+ *
+ * Three rules, and every decision below follows from one of them:
+ *
+ *  1. ONE accent does the UI's work. The logo's orange→pink gradient is BRAND
+ *     (mark, marketing, the single upgrade CTA). The interface accent is a cool
+ *     violet — playhead, keyframes, selection, active tool. Figma's mark is
+ *     multicolour and its UI is one blue; Spline's is violet. An accent used for
+ *     both identity and state stops meaning "this is active" and starts meaning
+ *     "this app is loud".
+ *
+ *  2. Separate with ELEVATION, not hairlines. Borders here are white at 5–9%,
+ *     never a solid grey. A surface steps forward by getting lighter and
+ *     catching a shadow. Boxes-inside-boxes-inside-boxes is what makes a tool
+ *     look generated rather than designed.
+ *
+ *  3. The type scale is TOOL-sized. Tailwind's defaults (12/14/16) are built for
+ *     documents; chrome lives at 11–13.5. The scale is redefined here once so
+ *     `text-xs`/`text-sm` mean the right thing everywhere, instead of 400 files
+ *     reaching for `text-[11px]`.
+ */
+:root {
+  /* ── Geometry ───────────────────────────────────────────────────────────── */
+  /* Roundness — the LARGEST radius. Settings → Roundness writes this one
+     value; the graded scale below derives from it (see "v5 redesign tokens"). */
+  --radius: 0.75rem;
+  /* The app shell's breathing room — the padded ground that floating panels and
+     the rounded stage card sit on (see AppFrame). One token so the whole
+     layout tightens or loosens together. */
+  --shell-gap: 0.375rem;
+  /* Every interactive control is one of two heights. Fields, sliders, toggles
+     and toolbar buttons all resolve to `--control-h`, which is why a slider now
+     lines up with the input beside it instead of floating in its row.
+     REM, not px, and that is load-bearing: UI scale moves the root font size
+     (see applyThemeToDom), so rem is the unit that carries the chrome with it.
+     A px control height at 130% scale is a 28px box around 15px text. */
+  --control-h: 1.75rem;
+  --control-h-sm: 1.5rem;
+  --control-h-lg: 2rem;
+
+  /* ── Hit targets ────────────────────────────────────────────────────────────
+     A grab zone and the MARK that shows where it is are two different numbers.
+     A finger needs ~15px of target; the eye needs 3px of drawing. Conflating
+     them is how "make it touch friendly" turns chrome into slabs, so the zone
+     grows on a coarse pointer and nothing visual changes.
+
+     Emitted as a variable rather than read per component on purpose: there are
+     hundreds of clips, keyframes and handles on screen, and a `usePointerEnv`
+     subscription in each of them is hundreds of media-query listeners for one
+     boolean. `data-pointer` is set once on <html> (see `useCoarsePointerSync`)
+     and the cascade does the rest — the same shape `data-glass` uses. */
+  --hit-grip: 8px;
+  --hit-target: 1.75rem;
+  /* The resize gutter between panels: the SHELL GAP, always, on every device.
+     The gap between two cards is already the separator, so the gutter is that
+     gap and nothing more — it never widens, never moves a panel, and looks the
+     same on a phone as on a desktop. `--gutter-reach` below is how it becomes
+     grabbable instead. */
+  --gutter-w: var(--shell-gap);
+  /* How far PAST the gutter still grabs it. Zero for a mouse: a pointer that
+     lands within a pixel does not need help, and a reach here would sit over
+     the scroll bar flush against the gutter, which a mouse user does grab. */
+  --gutter-reach: 0px;
+
+  /* ── Neutral ramp (cool graphite, never pure black) ─────────────────────── */
+  --background: #0c0c0e;
+  --foreground: #ededf0;
+
+  --panel: #141416;
+  --card: #1b1b1e;
+  --card-foreground: #ededf0;
+  --popover: #212125;
+  --popover-foreground: #ededf0;
+  --stage: #09090b;
+  --track-lane: #161618;
+
+  --secondary: #ffffff0f;
+  --secondary-foreground: #d8d8e0;
+  --muted: #ffffff08;
+  --muted-foreground: #8e8e96;
+  --accent: #ffffff14;
+  --accent-foreground: #f4f4f8;
+
+  /* Hairlines are ALPHA, not grey: one value reads correctly on the stage, on a
+     panel and inside a popover, so a border never looks heavier on the darker
+     surface than on the lighter one. */
+  --border: #ffffff12;
+  --input: #ffffff0a;
+
+  /* ── Brand (identity) vs accent (state) ─────────────────────────────────── */
+  /* The logo gradient. A fixed brand asset — never re-themed, and deliberately
+     rationed: the mark, the site, the upgrade CTA. Nothing else. */
+  --brand-from: #ff8732;
+  --brand-to: #ff2885;
+  /* The gradient's SOLID stand-in, for ink and hairlines that can't carry a
+     gradient (the upgrade dialog's eyebrow, its check marks). It is the
+     gradient's rose rather than its orange, and it is the same value as
+     `--brand` in `packages/ui/tokens.css` and as `UI_ACCENT` — so the one
+     screen in the app that speaks with the brand voice speaks in the same
+     colour as the site that sent you here. As the orange stop it read as
+     amber, which is a different brand entirely. */
+  --brand: #ff4e6a;
+  --brand-hover: #ff6b82;
+  --gradient-brand: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-to) 100%);
+  --brand-glow: color-mix(in srgb, var(--brand-to) 55%, transparent);
+  --brand-shadow: #9c1247;
+
+  /* The interface accent (theme-tokens.ts drives this at runtime). */
+  --primary: #ff4e6a;
+  --primary-foreground: #ffffff;
+  --ring: #ff4e6a99;
+
+  --destructive: #f2555a;
+  --destructive-foreground: #ffffff;
+  --success: #46d39a;
+  --warning: #f2b13c;
+
+  /* ── Glass material (see `.material-glass`) ─────────────────────────────── */
+  /* Dark-theme defaults; `applyThemeToDom` re-emits all four per theme. */
+  /* 86%, not 60%. A menu is chrome you look THROUGH; a colour picker or an
+     effect editor is a dense tool you have to read, and at 60% the content
+     behind it showed through the swatches. Depth comes from the blur and the
+     edge light, not from being see-through. */
+  --glass-tint: color-mix(in srgb, var(--popover) 88%, transparent);
+  /* Glass OFF must be FULLY opaque. Anything less and turning the effect off
+     makes surfaces MORE see-through than leaving it on, which is the opposite
+     of what the switch promises. */
+  --glass-solid: var(--popover);
+  --glass-raised: rgb(255 255 255 / 0.10);
+  --glass-specular: rgb(255 255 255 / 0.12);
+  --glass-specular-strong: rgb(255 255 255 / 0.18);
+  --glass-shade: rgb(0 0 0 / 0.22);
+  --glass-rim: rgb(255 255 255 / 0.08);
+
+  /* ── Elevation ──────────────────────────────────────────────────────────── */
+  /* A ring of light on top + a real cast shadow. The inset highlight is what
+     separates a "floating panel" from "a div with a box-shadow".
+     DARK-THEME DEFAULTS — `applyThemeToDom` re-emits all three per theme, for
+     exactly the reason the glass tokens are re-emitted: a shadow at 40–70%
+     black is calibrated against a near-black ground. Dropped on a pale one it
+     is not a shadow, it is a grey smear that pools in every rounded corner,
+     and the white inset highlight it is paired with is invisible there. Light
+     themes get a much weaker, cooler cast and a dark rim instead. */
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elevation-2: 0 4px 16px -6px rgb(0 0 0 / 0.55), 0 1px 3px rgb(0 0 0 / 0.35);
+  --elevation-3:
+    0 16px 48px -12px rgb(0 0 0 / 0.7), 0 4px 12px -4px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+
+  /* ── Clip identity (timeline) ───────────────────────────────────────────── */
+  /*
+   * Clips are tinted by WHAT THEY ARE. Only the HUE is a constant; the fill is
+   * that hue MIXED INTO THE LANE IT SITS ON.
+   *
+   * That is the whole fix, and it is structural rather than a repaint. The
+   * fills used to be three frozen hexes (#241f3d, #16303a, #16332a) — navy,
+   * teal and green washes picked against a near-black lane. On a light theme
+   * the lane goes to #f1f1f3 and those same hexes stay midnight, so every clip
+   * in the timeline reads as a dark hole punched in a pale room. A theme knob
+   * can't reach them because they aren't theme values, and adding three more
+   * to `ThemeColors` would mean every preset (and every user theme) has to get
+   * three timeline colours right by hand.
+   *
+   * Mixing into `--track-lane` means the fill is a TINT of whatever surface it
+   * lands on, by construction: dark lane → dark tinted clip, light lane → light
+   * tinted clip, and a hand-picked lane colour drags its clips with it. The
+   * saturated edge stays constant, because a 100%-chroma hairline reads on both.
+   */
+  --clip-text-border: #9d8bff;
+  --clip-caption-border: #4cc3e0;
+  --clip-audio-border: #46d39a;
+  --clip-text: color-mix(in srgb, var(--clip-text-border) 22%, var(--track-lane));
+  --clip-caption: color-mix(in srgb, var(--clip-caption-border) 22%, var(--track-lane));
+  --clip-audio: color-mix(in srgb, var(--clip-audio-border) 22%, var(--track-lane));
+  /* A GROUP is a container, not content: it takes the lane's own value with a
+     hairline, so a row of members reads as the coloured thing and the group
+     reads as the box around them. */
+  /* NESTING (v67): the rail down a sub-lane's left edge, one per enclosing
+     group, and the shade that separates a group's rows from the comp's own.
+     Both are values, not boxes — see `nestStyle`. */
+  --nest-rail: color-mix(in srgb, var(--foreground) 14%, transparent);
+  --nest-lane: color-mix(in srgb, var(--foreground) 3.5%, var(--track-lane));
+  --clip-group-border: #b9c2d6;
+  --clip-group: color-mix(in srgb, var(--clip-group-border) 10%, var(--track-lane));
+  /* An open group's WINDOW, painted under its rows exactly the bar's span —
+     a tint, so a row's own clips still read as clips on top of it. */
+  --group-band: color-mix(in srgb, var(--clip-group-border) 7%, transparent);
+  --group-band-border: color-mix(in srgb, var(--clip-group-border) 28%, transparent);
+
+  /* Clip-edge decorations (core `clip-edges.ts`): one hue per GRAIN, so a
+     glance tells you whether a span animates the whole layer, the glyphs
+     inside it, or the cut between two clips. */
+  --edge-layer: #7c9dff;
+  --edge-text: #d99bff;
+  --edge-transition: #4cc3e0;
+
+  /* Expression syntax. The point of the palette is that a REFERENCE tells you
+     where its value comes from before you read the name: cyan is built into the
+     app, pink is a variable you made, periwinkle is a name you defined on the
+     line above. Anything unresolved falls through to the destructive colour, so
+     a typo looks wrong rather than merely being underlined. */
+  --syntax-number: #e8b04b;
+  --syntax-text: #8fd97a;
+  --syntax-global: #4cc3e0;
+  --syntax-variable: #ff86c8;
+  --syntax-local: #9db4ff;
+  --syntax-function: #b892ff;
+  --syntax-punct: #85858f;
+  --syntax-comment: #5c5c66;
+
+  /* WHERE A FIELD'S VALUE COMES FROM. The same idea as the reference colours
+     above, moved out of the expression editor and onto the field itself: a
+     driven input is tinted by its source, so you can see that a value is
+     computed — and by what — without selecting it or opening anything. */
+  --bind-expression: var(--syntax-function);
+  --bind-graph: #ff9d3d;
+  --bind-variable: var(--syntax-variable);
+  --bind-pose: #5ee0b0;
+  --bind-input: #b48cff;
+
+  /* ══ v5 redesign tokens (docs/redesign/README.md D6–D8) ═════════════════════
+     The SEMANTIC layer every new surface reads. Each is DERIVED from the theme
+     colours above with `color-mix`, never stored per theme, so all eight
+     presets and every user theme — dark and light — get a correct value by
+     construction, and the theme editor needs no new fields.
+
+     PLANES. void → docked → raised (fields, wells, cards) → floating. */
+  --raised: var(--card);
+  /* The ONE hairline: where two planes meet, never as decoration. Alpha, so it
+     reads the same on every plane. */
+  --line: var(--border);
+
+  /* INK, three tiers. `faint` is counts, shortcuts, placeholders — the text
+     you read only when you go looking for it. */
+  --fg: var(--foreground);
+  --fg-muted: var(--muted-foreground);
+  --fg-faint: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
+
+  /* STATES (D8). Hover and pressed are a wash of INK, so they darken a light
+     theme and lighten a dark one with one rule. */
+  --hover: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --pressed: color-mix(in srgb, var(--foreground) 8%, transparent);
+  /* Selection is a TINT — accent at 16%, accent ink, and no outline. An
+     outlined red row (the old Layers/Pages selection) reads as an error. */
+  --selection: color-mix(in srgb, var(--primary) 16%, transparent);
+  --selection-hover: color-mix(in srgb, var(--primary) 22%, transparent);
+  --selection-fg: color-mix(in srgb, var(--primary) 78%, var(--foreground));
+  /* Keyboard focus only (`:focus-visible`): 2px of accent at 60%. */
+  --focus-ring: color-mix(in srgb, var(--primary) 60%, transparent);
+
+  /* RADII — one knob, graded (D6). 4 inner chips · 6 controls · 8 menus,
+     popovers, cards, rows · 12 dialogs, floating windows, stage capsules.
+     Derived from `--radius` so Settings → Roundness still reshapes the whole
+     app together, but a button is no longer as round as the window it is in. */
+  /* Chips and controls keep a corner even when a theme is square (0): a field,
+     a bar or a tab at 0px reads as a hole in the panel. Menus and windows may
+     go fully square. */
+  --r-xs: max(2px, calc(var(--radius) / 3));
+  --r-sm: max(3px, calc(var(--radius) / 2));
+  --r-md: calc(var(--radius) * 2 / 3);
+  --r-lg: var(--radius);
+
+  /* SPACING the shell uses by name (D7): panel inset, section gap, dialog inset. */
+  --inset-panel: 0.75rem;
+  --gap-section: 1rem;
+  --inset-dialog: 1.5rem;
+
+  /* The shared @solomotion/ui Button reads these (its fallbacks are the site's
+     marketing sizes). In the editor nothing is taller than 32 (D7). */
+  --button-h-xs: var(--control-h-sm);
+  --button-h-sm: var(--control-h);
+  --button-h: var(--control-h);
+  --button-h-md: var(--control-h-lg);
+  --button-h-lg: var(--control-h-lg);
+  --button-px: 0.75rem;
+  --button-px-lg: 1rem;
+  --button-text: 0.75rem;
+  --button-text-lg: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand is exposed to Tailwind so the one brand-voiced surface (the upgrade
+     dialog) can say `text-brand` instead of reaching for a palette colour that
+     belongs to no token at all — which is how it ended up amber. */
+  --color-brand: var(--brand);
+  --color-brand-from: var(--brand-from);
+  --color-brand-to: var(--brand-to);
+
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-hover: var(--hover);
+  --color-pressed: var(--pressed);
+  --color-selection: var(--selection);
+  --color-selection-hover: var(--selection-hover);
+  --color-selection-fg: var(--selection-fg);
+  --color-focus-ring: var(--focus-ring);
+  --color-stage: var(--stage);
+  --color-track-lane: var(--track-lane);
+
+  /* A GRADED scale from ONE knob (v5 redesign, D6). This used to map every
+     step to `--radius`, on the theory that a button at 8px beside a card at
+     12px reads as two systems. In practice it made the app a toy: a 12px
+     button inside a 12px menu inside a 12px panel is a pill in a pill in a
+     pill. Real tools grade radius by SIZE — inner chip < control < menu <
+     window — and keep them concentric. Every step still derives from
+     `--radius`, so Roundness drags them all together.
+       rounded-xs / rounded-sm / rounded  →  4   inner chips, keycaps, menu items
+       rounded-md                         →  6   controls: buttons, fields
+       rounded-lg                         →  8   menus, popovers, cards, rows
+       rounded-xl / 2xl / 3xl             → 12   dialogs, floating windows */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-xs);
+  --radius-md: var(--r-sm);
+  --radius-lg: var(--r-md);
+  --radius-xl: var(--r-lg);
+  --radius-2xl: var(--r-lg);
+  --radius-3xl: var(--r-lg);
+
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+
+  /* Tool-sized type scale — see rule 3 at the top of this file. `2xs` is new
+     (badges, keycaps, ruler ticks); everything below `lg` is tightened.
+     Authored in rem so UI scale reaches it; the comment beside each value is
+     its size at 100%. */
+  --text-3xs: 0.5625rem;
+  --text-3xs--line-height: 1.25;
+  --text-3xs--letter-spacing: 0.02em;
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 1.3;
+  --text-2xs--letter-spacing: 0.01em;
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1.36;
+  --text-xs--letter-spacing: 0.005em;
+  --text-sm: 0.78125rem;
+  --text-sm--line-height: 1.45;
+  --text-sm--letter-spacing: 0em;
+  --text-base: 0.84375rem;
+  --text-base--line-height: 1.5;
+  --text-base--letter-spacing: -0.005em;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.4;
+  --text-lg--letter-spacing: -0.011em;
+  --text-xl: 1.1875rem;
+  --text-xl--line-height: 1.32;
+  --text-xl--letter-spacing: -0.017em;
+  --text-2xl: 1.4375rem;
+  --text-2xl--line-height: 1.25;
+  --text-2xl--letter-spacing: -0.021em;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.16;
+  --text-3xl--letter-spacing: -0.026em;
+
+  /* ── v5 redesign type scale (D7) — USE THESE in new chrome. ──────────────────
+     Named for their JOB, so a call site says what the text is rather than how
+     big: `text-meta` (counts, hints, shortcuts), `text-body` (controls and
+     rows), `text-label` (the label that leads a row or a group), `text-title`
+     (panel titles), `text-heading` (dialog titles), `text-display` (page
+     titles on Home/Settings). Rem, so UI scale carries them. */
+  --text-meta: calc(0.6875rem + var(--type-step, 0rem));
+  --text-meta--line-height: 0.875rem;
+  --text-meta--letter-spacing: 0.01em;
+  --text-body: calc(0.75rem + var(--type-step, 0rem));
+  --text-body--line-height: 1rem;
+  --text-label: calc(0.75rem + var(--type-step, 0rem));
+  --text-label--line-height: 1rem;
+  --text-label--font-weight: 550;
+  --text-title: calc(0.8125rem + var(--type-step, 0rem));
+  --text-title--line-height: 1.125rem;
+  --text-title--font-weight: 600;
+  --text-heading: calc(0.9375rem + var(--type-step, 0rem));
+  --text-heading--line-height: 1.25rem;
+  --text-heading--font-weight: 600;
+  --text-heading--letter-spacing: -0.006em;
+  --text-display: calc(1.25rem + var(--type-step, 0rem));
+  --text-display--line-height: 1.625rem;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.014em;
+
+  /* The theme's faces (compile → --font-ui / --font-code / --font-display /
+     --font-num). The fallbacks are the default look's, for the first paint. */
+  --font-sans: var(--font-ui, var(--font-inter)), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-code, var(--font-jetbrains-mono)), ui-monospace, monospace;
+  --font-heading: var(--font-display, var(--font-ui)), ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: var(--font-num, var(--font-ui)), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* The UI face's tuned alternates (Inter's straight-tailed l and clearer
+       1/i), from the theme, so another face is not handed Inter's features. */
+    font-feature-settings: var(--font-features, normal);
+    /* App chrome is not prose — accidental text selection makes drags buggy. */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  /* Numbers in a tool must not dance as they tick. Every numeric field, timecode
+     and readout is monospaced-by-figure, app-wide, without opting in per call. */
+  input[type="number"],
+  input[inputmode="decimal"],
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Media/canvas must never start a NATIVE drag or get selected — that
+     hijacks our pointer-based drags (a GIF thumb would drag the image itself,
+     needing a second drop) and lets a stray "selection" get dragged around. */
+  img,
+  video,
+  canvas,
+  svg {
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+  /* ONE focus ring (D8): keyboard only, 2px of accent at 60%. In `base`, so a
+     component that draws its own (`focus-visible:ring-*`) or opts out
+     (`outline-none`) still wins from the utilities layer. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+
+/* The glass material, as UTILITIES rather than component classes. This is not a
+   style choice: Tailwind can only attach variants to utilities it generates, so
+   as `@layer components` classes these could not be written
+   `data-[state=active]:material-glass-raised` — the variant compiled to a
+   class name that existed nowhere, and every tab strip in the app silently lost
+   its armed chip while plain-class call sites kept theirs. */
+/*
+ * A grab zone that only exists once its object is SELECTED — and only on a
+ * coarse pointer.
+ *
+ * A trim handle is an invisible strip at a clip's edge. With a mouse that is
+ * fine: it is 8px, the cursor changes on hover, and a click that misses it
+ * simply selects the clip. With a finger it is 15px of nothing at each end of
+ * every clip on the timeline, revealed by no hover state that exists, and
+ * landing in it trims a clip you were trying to pick up. So on touch the zone
+ * waits for the gesture that says "this one" — the same reason selection, not
+ * hover, is what reveals the grips' drawing.
+ *
+ * Applied to the ZONE, never the drawing: what you can see does not change.
+ */
+@utility grip-needs-select {
+  :root[data-pointer="coarse"] & {
+    pointer-events: none;
+  }
+}
+
+@utility material-glass {
+  background-color: var(--glass-solid);
+  border-radius: var(--radius);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular),
+    inset 0 -1px 0 0 var(--glass-shade),
+    inset 0 0 0 1px var(--glass-rim),
+    var(--elevation-3);
+}
+/* The one PRIMARY action (Export). Same glass family as an armed tool — not a
+   flat accent slab, which read as a sticker pasted onto the rail — but carrying
+   more of the accent so it is unmistakably the button you press. It is made
+   special by MOTION, not by a glow: the arrow nudges down on hover, which is
+   the thing the button actually does. */
+@utility material-action {
+  background-color: color-mix(in srgb, var(--primary) 30%, var(--glass-raised));
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular-strong),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.3);
+}
+@utility material-chip {
+  background-color: var(--glass-raised);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular),
+    inset 0 0 0 1px var(--glass-rim),
+    0 1px 1px rgb(0 0 0 / 0.22);
+}
+@utility material-glass-raised {
+  background-color: color-mix(in srgb, var(--primary) 16%, var(--glass-raised));
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular-strong),
+    inset 0 0 0 1px var(--glass-rim),
+    0 1px 2px rgb(0 0 0 / 0.28);
+}
+/*
+ * ══ THE POPOVER PLANE — solid, always (v5 redesign, D6) ════════════════════════
+ *
+ * Menus, popovers, selects, dropdowns, tooltips, dialogs and the command
+ * palette. These float over CHROME, not artwork: a translucent menu over a
+ * panel lets that panel's hairlines and row edges show straight through it,
+ * and blur does nothing to a 1px line — so the Pages list over the Layers card
+ * looked broken, with the front window's content crossed by the back window's
+ * borders. Glass is right where the thing behind is a picture (stage capsules,
+ * floating windows over the canvas). Everywhere else the plane is opaque.
+ *
+ * Deliberately NOT named `material-glass-*`: the glass switch below matches
+ * `[class*="material-glass"]`, and this surface must never be caught by it.
+ */
+@utility material-popover {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--elevation-3);
+}
+/*
+ * ══ THE WORKBENCH PANE — a floating WINDOW ══════════════════════════════════
+ *
+ * Deliberately SOLID, and the only surface in the app that opts out of glass.
+ *
+ * "How see-through should this be" has two honest answers, and the deciding
+ * factor is how long you look. A menu, a tooltip, a stage capsule is chrome you
+ * glance at for a second and dismiss; letting the artwork wash through it is
+ * the whole pleasure of the material, and that is what `material-glass` is for.
+ * A WINDOW is a workbench — the effect editor, a plugin, the variables list —
+ * and you sit at it for minutes reading thirty numeric fields. Even at 3%
+ * transmission, every hard panel edge and clip bar behind it survives the blur
+ * as a ghost line ruled straight through the controls, because blur softens a
+ * photograph and does nothing whatsoever to a 1px hairline. The result does not
+ * read as glass. It reads as an opacity slider someone left down.
+ *
+ * So a window keeps everything the material is actually made of — the tint, the
+ * edge-concentrated specular, the bottom shade, the rim, the cast shadow, which
+ * together are what make a pane look like it is floating above the app — and
+ * gives up the one property that was fighting it.
+ *
+ * There is no `data-glass` branch below for this utility, on purpose: an opaque
+ * surface has nothing for the switch to turn off, and no `backdrop-filter` to
+ * pay for. These are the largest floating surfaces in the app and the ones
+ * parked over the canvas during playback, so that is the cheapest they can be.
+ */
+@utility material-glass-strong {
+  background-color: var(--glass-solid);
+  border-radius: var(--radius);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular),
+    inset 0 -1px 0 0 var(--glass-shade),
+    inset 0 0 0 1px var(--glass-rim),
+    var(--elevation-3);
+}
+:root[data-glass="on"]:not([data-stage-live="1"]) .material-glass,
+:root[data-glass="on"]:not([data-stage-live="1"]) [class*="material-glass"]:not([class*="raised"]):not([class*="strong"]) {
+  background-color: var(--glass-tint);
+  -webkit-backdrop-filter: blur(24px) saturate(1.9);
+  backdrop-filter: blur(24px) saturate(1.9);
+}
+
+/*
+ * ══ THE GLASS SWITCH IS GLOBAL ══════════════════════════════════════════════
+ *
+ * Settings → Glass promises one thing: no `backdrop-filter` anywhere. The
+ * material recipes above have always honoured it, but roughly twenty surfaces
+ * grew their own `backdrop-blur` utility over time — node cards, the minimap,
+ * the notification toasts, the zoom dials, drag ghosts — and each of those is a
+ * surface the switch silently did not reach. So someone who turned glass off
+ * (for a laptop's battery, or because reduced-transparency is an accessibility
+ * need, not a taste) still paid for a dozen live blur regions over the canvas.
+ *
+ * This is the one place in the app where `!important` is the correct tool and
+ * not a workaround: it is a USER PREFERENCE overriding presentation, the same
+ * shape as the `prefers-reduced-motion` block further down this file. A
+ * preference that can be out-specificity'd by a utility class is not a
+ * preference. It also means a surface added tomorrow is covered on the day it
+ * is written, which no amount of converting call sites can promise.
+ */
+:root[data-glass="off"] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@layer components {
+  /*
+   * The three surface recipes. A panel, a floating slab, and the padded ground
+   * they sit on. Used by AppFrame and every floating window so "what elevation
+   * is this?" has one answer per level rather than a bespoke class list.
+   */
+  .surface-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  /*
+   * THE SHELL. Spline's and Figma's chrome is not a grid of bordered boxes —
+   * it is a dark ground with surfaces floating on it. `.shell-ground` is that
+   * ground (the void, plus the gap that separates everything on it) and
+   * `.shell-card` is anything sitting on it: a side panel, the stage, the
+   * timeline. The gap between two cards IS the separator, which is why none of
+   * them needs a border on the side that faces another card.
+   */
+  .shell-ground {
+    background: var(--background);
+    /* No padding-top. The top bar already sits on this same ground and ends
+       with its own breathing room, so a top pad here stacked two gaps into one
+       seam and the cards floated further from the tabs than from each other.
+       The same is true below it, where the bottom bar does the same job — so
+       only the sides get padding. */
+    padding: 0;
+    /* No gap. A rail and the panel it controls are ONE object — VS Code's
+       activity bar, Blender's tab column — so a gutter between them reads as
+       two unrelated strips and wastes a column of a narrow sidebar. The gaps
+       that should exist (panel↔stage↔panel) come from the resize handles,
+       which are already `--shell-gap` wide; this was a second gap stacked on
+       top of those. */
+    gap: 0;
+  }
+  /* The docked host. It paints `--panel` so panel BODIES don't have to — the
+     same body floats in a glass window, where the window paints instead. A body
+     that painted its own fill covered whichever surface it landed in. */
+  .shell-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--panel);
+    border-radius: var(--radius);
+    box-shadow: var(--elevation-1);
+  }
+  /* The scroller keeps its NATIVE scrolling and loses only the native BAR —
+     ours is drawn beside it. Never `overflow: hidden` with JS-driven scrolling:
+     momentum, rubber-banding, keyboard paging, `scrollIntoView` and the
+     browser's own focus tracking all come free with a real scroller and are
+     miserable to re-implement. See `components/ui/scroll-area.tsx`. */
+  .tm-no-native-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tm-no-native-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* THE GUTTER BETWEEN TWO CARDS — and the whole geometry of grabbing it.
+     Paired with `ResizableHandle`; the reasoning lives there.
+
+     A target bigger than its drawing is ordinary. What is NOT ordinary, and is
+     what kept breaking this, is a target bigger than its ELEMENT: the touch
+     policy — `touch-action`, the arbiter's claim, `data-gesture` — all hang off
+     an element, so a hit test that reaches past one is a gesture nothing
+     governs. It lands on the neighbouring scroller instead, the browser reads a
+     pan, and the resize is cancelled a few pixels in.
+
+     So the element grows and the LAYOUT does not. The border box takes the
+     reach on both sides; a negative margin of the same size hands it straight
+     back to the flex line. The panels are laid out exactly as if the gutter
+     were `--gutter-w`, because as far as the line is concerned it is. */
+  .shell-gutter {
+    position: relative;
+    flex: none;
+    inline-size: calc(var(--gutter-w) + 2 * var(--gutter-reach));
+    margin-inline: calc(-1 * var(--gutter-reach));
+    /* Overlapping a neighbour only works if we paint above it. The cards are
+       `position: relative; z-index: auto`, so one step is enough. */
+    z-index: 1;
+  }
+  .shell-gutter[data-panel-group-direction="vertical"] {
+    inline-size: 100%;
+    block-size: calc(var(--gutter-w) + 2 * var(--gutter-reach));
+    margin-inline: 0;
+    margin-block: calc(-1 * var(--gutter-reach));
+  }
+
+  /* The edge is drawn ABOVE the card's contents, not as an inset shadow on its
+     background. An inset shadow sits under child content, so the stage — whose
+     canvas is `absolute inset-0` — painted straight over its own border and was
+     the one card in the shell with no edge. */
+  .shell-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--border);
+    pointer-events: none;
+  }
+
+  /*
+   * ══ LIQUID GLASS ═══════════════════════════════════════════════════════════
+   *
+   * ONE material for every floating surface — stage capsules, popovers, menus,
+   * floating windows. Apple's version is four things at once, and dropping any
+   * of them is what makes a glassmorphism attempt look like a grey box:
+   *
+   *   1. blur AND a saturation boost. The saturation is the tell: colour behind
+   *      frosted glass gets richer, not washed out. Blur alone reads as fog.
+   *   2. a tint, so the surface owns a colour instead of merely becoming
+   *      whatever sits behind it.
+   *   3. EDGE-CONCENTRATED light: a hairline specular on the top edge and a
+   *      hairline shade on the bottom, and nothing across the body. This is the
+   *      detail that separates Apple's material from 2010 glassmorphism —
+   *      a big top-to-bottom gradient wash across the surface is exactly the
+   *      glossy-button look, and it is what a first attempt always reaches for.
+   *   4. a rim and a cast shadow, so it sits ABOVE rather than in.
+   *
+   * THEME-SAFE BY CONSTRUCTION. Every value is a token and all four are
+   * re-emitted per theme, because the naive recipe breaks in light mode: a white
+   * specular on a pale surface is invisible and a white rim disappears entirely,
+   * so light themes get a dark rim and a much weaker highlight. Nothing here
+   * hardcodes an rgba, which is the usual reason glass only works in one theme.
+   *
+   * PERFORMANCE — the reason this is opt-in. `backdrop-filter` re-samples and
+   * re-blurs everything beneath it on every frame that anything beneath it
+   * repaints. Over a static panel that costs nothing after first paint; over the
+   * stage canvas during playback or scrubbing it is several large blurred
+   * regions at 60fps, which is the classic reason a creative app runs hot and
+   * drains a laptop. So:
+   *   • `data-glass="on"` — a theme switch, off by default. Solid is the
+   *     fallback, not the exception.
+   *   • `data-stage-live="1"` — set while the stage is playing or scrubbing.
+   *     The blur drops for exactly those frames and the tint stays, so the
+   *     geometry and colour weight are unchanged and there is no visible jump.
+   */
+
+  /*
+   * The RAISED variant — a selected row, an armed tool: something sitting on a
+   * glass surface rather than on the page. It is a lighter pane of the same
+   * material, which is how Apple marks selection: the chip catches more light,
+   * it does not get painted a different colour. A saturated accent-filled slab
+   * (what the armed tool used to be) fights the artwork behind the canvas and
+   * has to be re-tuned for every theme; a brighter piece of glass never does.
+   * The accent survives where it belongs — in the icon.
+   */
+  /*
+   * Kept as a NAME for the floating plane, but it no longer owns a recipe: it
+   * defers to the same tokens as `material-glass`, so the glass switch and the
+   * per-theme tint reach it too. It used to hardcode `blur(16px)` and a 92%
+   * mix, which is why a surface wearing it stayed translucent with glass turned
+   * off — a second material pretending to be the first one, drifting.
+   */
+  .surface-float {
+    background: var(--glass-solid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--elevation-3);
+  }
+  :root[data-glass="on"]:not([data-stage-live="1"]) .surface-float {
+    background: var(--glass-tint);
+    -webkit-backdrop-filter: blur(24px) saturate(1.9);
+    backdrop-filter: blur(24px) saturate(1.9);
+  }
+  /*
+   * SECTION LABEL — the small caps heading above a group of controls. One
+   * recipe, so a panel heading in the inspector, the library and the theme
+   * editor are the same object instead of three near-misses.
+   */
+  /* v5 redesign: a section heading is `text-label` in ink, with SPACE above it —
+     not 10px shouting capitals. Hierarchy from weight, not from case. */
+  .label-section {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--fg);
+  }
+
+  /*
+   * ══ THE SEPARATOR LAW ═══════════════════════════════════════════════════
+   *
+   * A separator is NOT a thing you render. It is a fact about two neighbours
+   * that both have content, and only the browser knows that.
+   *
+   * Every option bar in this app used to emit `<Divider />` as a sibling,
+   * which is a guess: the section says "put a line here" before knowing
+   * whether the group after it renders anything. With controls that appear
+   * conditionally — vector art in range, a wet-paint pod, a node selection —
+   * the guess is wrong constantly, and it is wrong in both directions. Two
+   * dividers land side by side (the doubled hairline in the pen bar), or a
+   * bar opens with a leading line against nothing, or a group vanishes and
+   * leaves its line behind.
+   *
+   * So the rule is structural and has no runtime half at all:
+   *
+   *   a group with no DOM children is not displayed
+   *   a non-empty group PRECEDED by a non-empty group draws its own line
+   *
+   * The first visible group can never draw one, because `~` requires a
+   * predecessor. A group that empties out takes its line with it in the same
+   * frame. There is nothing to keep in sync, and no call site can get it
+   * wrong — which is the only reason this bug can be called fixed rather
+   * than patched.
+   *
+   * `:empty` is exact here: React renders `null` children as no node at all,
+   * and pseudo-elements do not count against it, so the line a group draws
+   * cannot make that group look non-empty to the next one.
+   */
+  .tool-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.375rem;
+    white-space: nowrap;
+  }
+  .tool-row > .tool-group {
+    display: flex;
+    align-items: center;
+    /* NEVER SHRINKS. The row's `scrollWidth` is what the stage's band measures
+       to decide whether the bar fits beside the zoom cluster, and a content
+       width that gives under pressure is a measurement that depends on its own
+       answer — which is an infinite render loop, not a layout nicety. The bar
+       overflows and scrolls instead. */
+    flex: none;
+    gap: 0.25rem;
+  }
+  .tool-row > .tool-group:empty {
+    display: none;
+  }
+  .tool-row > .tool-group > * {
+    flex: none;
+  }
+  .tool-row > .tool-group:not(:empty) ~ .tool-group:not(:empty)::before {
+    content: "";
+    flex: none;
+    align-self: center;
+    width: 1px;
+    height: 1.125rem;
+    margin-inline-end: 0.125rem;
+    background: var(--border);
+  }
+}
+
+/* Thin, unobtrusive scrollbars for surfaces that can't use <ScrollArea> —
+   canvas-backed and virtualised scrollers (the timeline lanes, the flipbook
+   sheet, the stage). These own their scroll natively on purpose: they are
+   pinch-zoomed and two-finger panned, and a Radix ScrollArea puts a
+   transform-driven viewport between the gesture and the element, which is
+   where `touch-action` has to live. Everything with plain content should use
+   <ScrollArea> instead.
+
+   `scrollbar-width` / `scrollbar-color` FIRST, then the WebKit pseudo-elements.
+   Only the pseudo-elements were here, so Chrome and Safari got the app's thin
+   bar and Firefox got the operating system's — which is the whole of "why does
+   the timeline have normal scrollbars again". A scrollbar style written in one
+   engine's dialect is a style that works by luck. */
+.tm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent) transparent;
+}
+.tm-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.tm-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tm-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.tm-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 26%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.tm-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* A scroller whose axes are driven by its own ZoomBars: no native bars at all. */
+.tm-scroll-owned {
+  scrollbar-width: none;
+}
+.tm-scroll-owned::-webkit-scrollbar {
+  display: none;
+}
+
+/* A horizontal shelf rail — chips or cards you swipe sideways, with no
+   scrollbar under them. Lives here rather than in a <style> tag inside one
+   component, because more than one surface has rails and a class injected by
+   whichever of them happens to be mounted is a style that works by luck. */
+.tm-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tm-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Boot splash (components/ui/app-splash). Transform + opacity only, so the
+   whole animation stays on the compositor while the editor chunk downloads. */
+@keyframes splash-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+@keyframes splash-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(410%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="splash-"] {
+    animation: none !important;
+  }
+}
+
+/* Tab-switch veil (Editor.tsx). Delayed fade-in, so a switch that completes in
+   under ~120ms never flashes a loading state at all. */
+@keyframes switch-veil {
+  to {
+    opacity: 1;
+  }
+}
+
+/* The compact side panel sliding in from its rail (OverlayPanel).
+   Transform + opacity only, so it never touches layout — the panel is already
+   absolutely positioned over a live canvas, and an animation that reflowed
+   would stutter the playhead beside it. `prefers-reduced-motion` drops the
+   travel and keeps the fade, which is the part that says "this arrived". */
+@keyframes overlay-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8%);
+  }
+}
+@keyframes overlay-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8%);
+  }
+}
+@utility animate-overlay-in-left {
+  animation: overlay-in-left 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@utility animate-overlay-in-right {
+  animation: overlay-in-right 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes overlay-in-left {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes overlay-in-right {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+/* Export's hover: the arrow travels the direction the action goes. Transform
+   only, so it stays on the compositor. */
+.action-arrow {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.group\/action:hover .action-arrow {
+  transform: translateY(2px);
+}
+.group\/action:active .action-arrow {
+  transform: translateY(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-arrow {
+    transition: none;
+  }
+}
+
+/* Record mode: breathing gradient wash + pulsing record dot */
+@keyframes tm-record-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleX(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+.tm-record-glow {
+  animation: tm-record-glow 1.8s ease-in-out infinite;
+}
+@keyframes tm-record-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.tm-record-pulse {
+  animation: tm-record-pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-record-glow,
+  .tm-record-pulse {
+    animation: none;
+  }
+}
+
+/* A coarse primary pointer — a tablet or a phone. Grab zones widen; nothing
+   else about the layout changes, because chrome sized for a finger everywhere
+   is chrome that has eaten the canvas. See `--hit-grip`. */
+:root[data-pointer="coarse"] {
+  --hit-grip: 15px;
+  --hit-target: 2.25rem;
+  /* A finger gets the reach, not a wider gutter. The gap stays 6px and the
+     panels keep every pixel they had. */
+  --gutter-reach: 0.625rem;
+}
+
+
+/* ── Agent chat ───────────────────────────────────────────────────────────────
+   Three motions and no more: a shimmer on the live status word (the one place
+   that must read "working" at a glance), a caret on streaming text, and a soft
+   rise for each new message. All honour reduced motion. */
+@keyframes agent-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+@utility agent-shimmer {
+  background-image: linear-gradient(90deg, var(--muted-foreground) 0%, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%, var(--muted-foreground) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: agent-shimmer 2.2s linear infinite;
+}
+@keyframes agent-caret {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+@utility agent-caret {
+  animation: agent-caret 1s step-end infinite;
+}
+/* AI WORK — a layer an AI job is touching: a turning gradient ring, a sheen
+   sweeping across, a slow glow. Session-only chrome (see ai-activity.ts). */
+@property --ai-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ai-turn {
+  to { --ai-angle: 360deg; }
+}
+@keyframes ai-sheen {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to { transform: translateX(220%) skewX(-18deg); }
+}
+@keyframes ai-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent), 0 0 18px 2px color-mix(in oklab, var(--primary) 22%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent), 0 0 34px 6px color-mix(in oklab, var(--primary) 34%, transparent); }
+}
+@utility ai-work {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 6px;
+  overflow: hidden;
+  animation: ai-breathe 2.4s ease-in-out infinite;
+  background: color-mix(in oklab, var(--primary) 7%, transparent);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--ai-angle), transparent 0deg, var(--primary) 70deg, #f0abfc 140deg, transparent 220deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: ai-turn 2.2s linear infinite;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    top: -10%;
+    bottom: -10%;
+    width: 38%;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, white 22%, transparent), transparent);
+    animation: ai-sheen 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+/* The same, on a timeline clip bar. */
+@utility ai-work-bar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--ai-angle), transparent 0deg, var(--primary) 90deg, #f0abfc 160deg, transparent 240deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: ai-turn 2s linear infinite;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, white 18%, transparent), transparent);
+    animation: ai-sheen 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+@keyframes agent-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@utility agent-rise {
+  animation: agent-rise 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-shimmer, .agent-caret, .agent-rise { animation: none; }
+  .ai-work, .ai-work::before, .ai-work::after, .ai-work-bar::before, .ai-work-bar::after { animation: none; }
+  .ai-work::after, .ai-work-bar::after { display: none; }
+  .agent-shimmer { color: var(--muted-foreground); background: none; }
+}
+
+/*
+ * TRACKS — a padded strip whose children are the choices (tabs, segmented
+ * controls, pod rows). A child's corner must be CONCENTRIC with the strip's:
+ * its radius is the strip's minus the gap between them, or the curves visibly
+ * disagree (a pill with square-ish chips inside, or chips rounder than their
+ * own frame). With one theme radius that is one subtraction, so it lives here
+ * once instead of in every strip's guess.
+ *
+ * Unlayered on purpose: it must beat a child's own `rounded*` utility (which
+ * sits in the utilities layer), because the child cannot know where it lives.
+ */
+.track {
+  /* A track is a CONTROL (segmented, tab strip), so it rounds like one (6),
+     and its chips sit concentric inside it (4) — not at window radius. */
+  border-radius: var(--r-sm);
+  padding: var(--track-gap, 2px);
+}
+.track > * {
+  border-radius: max(2px, calc(var(--r-sm) - var(--track-gap, 2px)));
+}
+
+/*
+ * ══ RAILS — the LOOK, from here (v5 redesign) ═════════════════════════════════
+ *
+ * The rails' STRUCTURE belongs to the workspace engine (`panels/Rail.tsx`);
+ * their look belongs to the design language, so it is set here and the two
+ * can change independently. Unlayered on purpose: it must beat the
+ * utilities a rail item carries.
+ *
+ *  • Icons 16px at a 1.5 stroke (D7) — they were 14px at lucide's 2, which
+ *    read heavier AND smaller than the type beside them.
+ *  • Labels `text-meta` (11px), not 9px: a word you have to squint at is not
+ *    a label.
+ *  • Armed = a NEUTRAL raised pane with the accent on the icon and word only.
+ *    The rail is the one place five armed things can be lit at once (left,
+ *    right, bottom), and five accent-tinted slabs was the loudest thing in
+ *    the shell. Hover is the ink wash.
+ *
+ * Hook: `[data-rail]` when the rail declares it; until then, the rail's
+ * tablist (the only tablist painted on the app ground).
+ */
+:is([data-rail], [role="tablist"].bg-background) > * [role="tab"],
+:is([data-rail], [role="tablist"].bg-background) > [role="tab"] {
+  color: var(--fg-muted);
+}
+:is([data-rail], [role="tablist"].bg-background) [role="tab"] svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.5;
+}
+:is([data-rail], [role="tablist"].bg-background)[aria-orientation="vertical"] [role="tab"] > span {
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+  letter-spacing: 0.01em;
+}
+:is([data-rail], [role="tablist"].bg-background) [role="tab"]:hover {
+  background-color: var(--hover);
+  color: var(--fg);
+}
+:is([data-rail], [role="tablist"].bg-background) [role="tab"][aria-selected="true"] {
+  background-color: var(--glass-raised);
+  color: var(--primary);
+}
+
+/*
+ * PICK MODE (`editor/pick/pick-mode.ts`) — the whole app is the picker.
+ *
+ * What cannot be picked DIMS wherever it is tagged (timeline bars, layer rows:
+ * `data-pick` is written by the mode onto the elements surfaces already tag).
+ * The cursor is the mode's, everywhere but the mode's own UI — and that is the
+ * one place `!important` is the honest tool: an app-wide modal cursor has to
+ * beat every element's own (the stage sets one inline per tool), exactly like
+ * a busy cursor would. Unlayered so it beats the utilities layer.
+ */
+:root[data-picking] [data-pick="off"] {
+  opacity: 0.28;
+  filter: saturate(0.35);
+  transition: opacity 120ms ease-out, filter 120ms ease-out;
+}
+:root[data-picking] *:not([data-pick-ui], [data-pick-ui] *) {
+  cursor: var(--cursor-crosshair, crosshair) !important;
+}
+:root[data-picking="blocked"] *:not([data-pick-ui], [data-pick-ui] *) {
+  cursor: var(--cursor-not-allowed, not-allowed) !important;
+}
