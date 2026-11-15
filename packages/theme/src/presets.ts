@@ -2,7 +2,8 @@ import { THEME_SCHEMA_VERSION } from "./parts-list";
 import type { Theme } from "./schema";
 
 /**
- * The four looks the open studio ships. Every value here is a decision from
+ * The four looks the open studio ships. Ids are stable storage keys and never
+ * change; names are what a person reads in a switcher, so they are plain words. Every value here is a decision from
  * the brand rounds (notes/solomotion/brand/round-4.html and the brief), not a
  * placeholder: green with no glow, ink neutrals, Geist for the interface,
  * Space Grotesk for display, Doto for the numbers in value fields.
@@ -36,7 +37,7 @@ const define = (t: Omit<Theme, "schema">): Theme => ({ schema: THEME_SCHEMA_VERS
 
 export const SOLOMOTION: Theme = define({
   id: "solomotion",
-  name: "SoloMotion",
+  name: "Ink",
   mode: "dark",
   neutral: INK,
   accent: { dark: "#3df2a8", light: "#0b8a57" },
@@ -54,8 +55,9 @@ export const SOLOMOTION: Theme = define({
 });
 
 export const TERMINAL: Theme = define({
+  // The id keeps its slash so saved choices still resolve; the name is plain.
   id: "solo/motion",
-  name: "solo/motion",
+  name: "Terminal",
   mode: "dark",
   neutral: TERM,
   accent: { dark: "#36f1a8", light: "#00875a" },

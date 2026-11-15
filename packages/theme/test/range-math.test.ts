@@ -100,7 +100,7 @@ describe("fund amounts", () => {
     expect(stepFund(3, -1)).toBe(1);
   });
   it("answers each amount", () => {
-    expect(fundLine(100)).toMatch(/believer/);
+    expect(fundLine(100)).toMatch(/Founding/);
     expect(fundLine(1)).toMatch(/counts/);
   });
 });

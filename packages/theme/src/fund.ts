@@ -41,12 +41,12 @@ export function stepFund(v: number, dir: 1 | -1): number {
 
 /** What the page says back to an amount. Honest: a feeling, not a price list. */
 export function fundLine(v: number): string {
-  if (v >= 100) return "First-believer territory. Thank you.";
-  if (v >= 50) return "You're carrying a feature over the line.";
-  if (v >= 25) return "That moves the first release closer.";
-  if (v >= 10) return "That's real time on the next release.";
-  if (v >= 5) return "A coffee for whoever fixes the next bug.";
-  return "Small, and it still counts.";
+  if (v >= 100) return "Founding-supporter territory.";
+  if (v >= 50) return "That's a feature, sooner.";
+  if (v >= 25) return "That's real hours on the studio.";
+  if (v >= 10) return "That's a bug fixed sooner.";
+  if (v >= 5) return "Coffee for the next late night.";
+  return "Every dollar counts.";
 }
 
 /** GitHub Sponsors opens on the right tab; it takes no amount in its URL. */

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { DEFAULT_O, DIAL_DIRECTIONS, oMetricsFrom, wedgePath, WORDMARK_PARTS, type OMetrics } from "../dial";
+import { DEFAULT_O, DIAL_DIRECTIONS, moonAt, oMetricsFrom, orbitRest, stepOrbit, wedgePath, WORDMARK_PARTS, type OMetrics } from "../dial";
 
 /**
  * THE DIAL, drawn. One filled disc with a brighter quarter: the mark, the
@@ -199,5 +199,86 @@ export function DialWordmark({
         ),
       )}
     </span>
+  );
+}
+
+/**
+ * THE ORBIT, drawn (`stepOrbit` in ../dial is the physics): the centre dial
+ * turning, a still ring of moons each spinning on its own, caught to face the
+ * centre as its quarter sweeps past. `speed` is the centre's turns per second;
+ * change it and it eases there. `lit` moons are bright, the rest wait dim. The
+ * loop writes transforms straight to the DOM (no React render per frame), runs
+ * only while on screen and visible, and under reduced motion every moon simply
+ * faces the centre.
+ */
+export function DialOrbit({ size = "100%", moons = 12, lit = moons, speed = 0.25, className, style, label }: { size?: number | string; moons?: number; lit?: number; speed?: number; className?: string; style?: React.CSSProperties; label?: string }) {
+  const root = React.useRef<SVGSVGElement>(null);
+  const spinRef = React.useRef<SVGPathElement>(null);
+  const faceRefs = React.useRef<(SVGPathElement | null)[]>([]);
+  const speedRef = React.useRef(speed);
+  React.useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+  React.useEffect(() => {
+    const svg = root.current;
+    if (!svg || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let s = orbitRest(moons);
+    let raf = 0;
+    let last = 0;
+    let visible = true;
+    const paint = () => {
+      spinRef.current?.setAttribute("transform", `rotate(${s.spin.toFixed(2)} 100 100)`);
+      faceRefs.current.forEach((el, i) => {
+        const m = s.moons[i];
+        if (el && m) el.setAttribute("transform", `rotate(${m.a.toFixed(2)} ${el.dataset.cx} ${el.dataset.cy})`);
+      });
+    };
+    const tick = (now: number) => {
+      raf = 0;
+      if (!visible || document.hidden) {
+        last = 0;
+        return;
+      }
+      const dt = last ? (now - last) / 1000 : 0;
+      last = now;
+      s = stepOrbit(s, speedRef.current, dt);
+      paint();
+      raf = requestAnimationFrame(tick);
+    };
+    const wake = () => {
+      if (!raf && visible && !document.hidden) raf = requestAnimationFrame(tick);
+    };
+    const io = new IntersectionObserver(([e]) => {
+      visible = !!e?.isIntersecting;
+      wake();
+    });
+    io.observe(svg);
+    document.addEventListener("visibilitychange", wake);
+    wake();
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      document.removeEventListener("visibilitychange", wake);
+    };
+  }, [moons]);
+  const R = 84;
+  return (
+    <svg ref={root} width={size} height={size} viewBox="0 0 200 200" className={className} style={{ overflow: "visible", ...style }} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      {Array.from({ length: moons }, (_, i) => {
+        const a = (moonAt(i, moons) - 90) * (Math.PI / 180);
+        const cx = +(100 + Math.cos(a) * R).toFixed(2);
+        const cy = +(100 + Math.sin(a) * R).toFixed(2);
+        const on = i < lit;
+        return (
+          <g key={i} style={{ opacity: on ? 1 : 0.28, transform: `scale(${on ? 1 : 0.72})`, transformOrigin: `${cx}px ${cy}px`, transition: "opacity 300ms, transform 420ms cubic-bezier(0.34, 1.5, 0.5, 1)" }}>
+            <circle cx={cx} cy={cy} r="9" fill={DISC} />
+            {/* Drawn pointing up and TURNED, so the still pose (reduced motion) faces the centre. */}
+            <path ref={(el) => void (faceRefs.current[i] = el)} data-cx={cx} data-cy={cy} d={wedgePath(cx, cy, 9, 9, 0)} transform={`rotate(${moonAt(i, moons) + 180} ${cx} ${cy})`} fill={WEDGE} />
+          </g>
+        );
+      })}
+      <circle cx="100" cy="100" r="46" fill={DISC} />
+      <path ref={spinRef} d={wedgePath(100, 100, 46, 46, 0)} fill={WEDGE} />
+    </svg>
   );
 }

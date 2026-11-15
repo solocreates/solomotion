@@ -10,7 +10,7 @@ describe("brand fill", () => {
 
   it("paints a shape drawn with no fill in the stamped primary", () => {
     setBrandFill("#36f1a8");
-    const clip = createShapeClip({ frameId: "f", shape: "rect" });
+    const clip = createShapeClip({ frameId: "f", shape: "rect", startMs: 0 });
     const fill = clip.fills[0]!;
     expect(fill.type === "solid" && fill.color).toBe("#36F1A8");
   });
