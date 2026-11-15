@@ -119,10 +119,10 @@ export function angleTo(a: number, b: number): number {
   return ((((b - a) % 360) + 540) % 360) - 180;
 }
 
-/** How squarely the centre's quarter points at a moon, 0..1 (sharp: only near-alignment catches). */
+/** How squarely the centre's quarter points at a moon, 0..1 (a quarter about 40° wide catches). */
 export function catchOf(spin: number, at: number): number {
   const c = Math.cos((angleTo(spin, at) * Math.PI) / 180);
-  return c <= 0 ? 0 : Math.pow(c, 8);
+  return c <= 0 ? 0 : Math.pow(c, 4);
 }
 
 /**
@@ -140,7 +140,7 @@ export function stepOrbit(s: OrbitState, turnsPerSec: number, dt: number): Orbit
     const pull = catchOf(spin, at);
     // Free: ease toward its own spin. Caught: a damped spring toward facing the centre.
     const face = at + 180;
-    const k = 80;
+    const k = 300;
     const c = 2 * Math.sqrt(k);
     // Semi-implicit: the damping terms are solved for the NEW velocity, so a
     // long frame cannot overshoot and ring.

@@ -15,11 +15,11 @@ import type { Theme } from "./schema";
 // The stage is the ground itself, as on the site: its dot field sits on the
 // page colour with the panels a step above, never in a darker pit.
 const INK = {
-  dark: { bg: "#0a0b0a", panel: "#101210", raised: "#191c19", line: "rgba(220,255,235,0.08)", fg: "#e9eee9", muted: "#8f978f", faint: "#5a615a", stage: "#0a0b0a" },
+  dark: { bg: "#0a0b0a", panel: "#101210", raised: "#191c19", line: "rgba(220,255,225,0.08)", fg: "#e9eee9", muted: "#8f978f", faint: "#5a615a", stage: "#0a0b0a" },
   light: { bg: "#f6f7f5", panel: "#ffffff", raised: "#eef0ec", line: "rgba(10,20,12,0.09)", fg: "#0b0d0b", muted: "#5b635c", faint: "#9ba39c", stage: "#f6f7f5" },
 };
 const TERM = {
-  dark: { bg: "#050605", panel: "#080908", raised: "#101210", line: "rgba(160,255,210,0.10)", fg: "#dfe6e1", muted: "#83908a", faint: "#4f5a54" },
+  dark: { bg: "#050605", panel: "#080908", raised: "#101210", line: "rgba(160,255,190,0.10)", fg: "#dfe6e1", muted: "#83908a", faint: "#4f5a54" },
   light: { bg: "#f3f5f4", panel: "#fbfcfb", raised: "#e8ece9", line: "rgba(5,6,5,0.12)", fg: "#070807", muted: "#56605a", faint: "#9aa39e" },
 };
 const METAL = {
@@ -40,10 +40,10 @@ export const SOLOMOTION: Theme = define({
   name: "Ink",
   mode: "dark",
   neutral: INK,
-  accent: { dark: "#3df2a8", light: "#0b8a57" },
-  accentFg: { dark: "#03140c", light: "#ffffff" },
+  accent: { dark: "#62f06b", light: "#1f7a2c" },
+  accentFg: { dark: "#031406", light: "#ffffff" },
   // A linked variable reads in the brand green, like the token in the brief.
-  tones: { variable: { dark: "#3df2a8", light: "#0b8a57" } },
+  tones: { variable: { dark: "#62f06b", light: "#1f7a2c" } },
   font: { ui: "geist", display: "space-grotesk", mono: "geist-mono", num: "geist-mono" },
   size: 12,
   weight: 500,
@@ -60,9 +60,9 @@ export const TERMINAL: Theme = define({
   name: "Terminal",
   mode: "dark",
   neutral: TERM,
-  accent: { dark: "#36f1a8", light: "#00875a" },
-  accentFg: { dark: "#03140c", light: "#ffffff" },
-  tones: { variable: { dark: "#36f1a8", light: "#00875a" } },
+  accent: { dark: "#62f06b", light: "#1f7a2c" },
+  accentFg: { dark: "#031406", light: "#ffffff" },
+  tones: { variable: { dark: "#62f06b", light: "#1f7a2c" } },
   font: { ui: "martian-mono", display: "martian-mono", mono: "martian-mono", num: "martian-mono" },
   size: 11,
   weight: 500,
@@ -96,7 +96,7 @@ export const HARDWARE: Theme = define({
   mode: "light",
   neutral: METAL,
   accent: { dark: "#2ee59d", light: "#0f9f66" },
-  accentFg: { dark: "#03140c", light: "#ffffff" },
+  accentFg: { dark: "#031406", light: "#ffffff" },
   font: { ui: "geist", display: "space-grotesk", mono: "geist-mono", num: "doto" },
   size: 12,
   weight: 600,

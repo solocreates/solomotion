@@ -1,56 +1,84 @@
-<h1 align="center">SoloMotion</h1>
-
-<p align="center">The open-source motion studio.</p>
-
 <p align="center">
-  <a href="https://github.com/solocreates/solomotion/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/solocreates/solomotion/ci.yml?branch=main&label=CI&style=flat&labelColor=24292f"></a>
-  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-0b8a57?style=flat&labelColor=24292f"></a>
-  <a href="https://github.com/solocreates/solomotion/releases"><img alt="Latest version" src="https://img.shields.io/github/v/release/solocreates/solomotion?include_prereleases&sort=semver&label=version&style=flat&labelColor=24292f&color=0b8a57"></a>
-  <a href="https://github.com/sponsors/novincode"><img alt="Sponsors" src="https://img.shields.io/github/sponsors/novincode?label=sponsors&style=flat&labelColor=24292f&color=0b8a57"></a>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png"><img src="assets/logo.png" alt="SoloMotion" width="400"></picture>
 </p>
 
-SoloMotion is a studio for motion design and video. Animate, draw, edit, grade
-and score in one place, in your browser. There is no account, no subscription
-and no watermark, and your projects stay on your machine.
+<p align="center">The open-source motion studio. Animate, edit and export in your browser.</p>
 
-## What it does
+<p align="center">
+  <a href="https://open.solomotion.app"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-open-dark.png"><img src="assets/btn-open.png" alt="Open the studio" height="40"></picture></a>
+  <a href="https://github.com/solocreates/solomotion"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-star-dark.png"><img src="assets/btn-star.png" alt="Star on GitHub" height="40"></picture></a>
+  <a href="https://github.com/sponsors/novincode"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-fund-dark.png"><img src="assets/btn-fund.png" alt="Fund it" height="40"></picture></a>
+  <a href="https://solomotion.app/docs"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-docs-dark.png"><img src="assets/btn-docs.png" alt="Docs" height="40"></picture></a>
+</p>
 
-**Animate anything.** Keyframes, curves and expressions on every property.
-Rigs and characters with bones, poses and shape keys. Frame-by-frame drawing
-with onion skin. Physics when hand-keying would take a week.
+<p align="center">
+  <a href="https://solomotion.app">
+    <picture>
+      <source media="(prefers-reduced-motion: reduce)" srcset="assets/loop-poster.png">
+      <img src="assets/loop.gif" alt="SoloMotion's mark comes alive and turns into each feature: a character, keyframes, physics, type, effects, an agent's cursor and export, then star, fund and share. Made in SoloMotion." width="880">
+    </picture>
+  </a>
+</p>
+<p align="center"><sub>Made in SoloMotion.</sub></p>
 
-**Edit on a real timeline.** Video, sound and captions sit beside your
-animation on one timeline, with tracking, transitions, and a sound mix with
-buses and automatic levelling.
+<p align="center">
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-1f7a2c?style=flat&labelColor=24292f"></a>
+  <a href="https://github.com/solocreates/solomotion/releases"><img alt="Version" src="https://img.shields.io/github/v/release/solocreates/solomotion?include_prereleases&sort=semver&label=version&style=flat&labelColor=24292f&color=1f7a2c"></a>
+  <a href="https://github.com/solocreates/solomotion/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/solocreates/solomotion/ci.yml?branch=main&label=CI&style=flat&labelColor=24292f"></a>
+</p>
 
-**Make it look like something.** Stacked effects, a node-based colour page,
-and a 3D world for scenes that need depth.
+No account, no subscription, no watermark. Your projects stay on your machine.
 
-**Let agents drive it.** Every action in the studio is a command in one
-registry. The same commands are open to AI agents over the Model Context
-Protocol, so an agent can build a scene while you watch and undo it in one
+## Start
+
+```sh
+npx solomotion
+```
+
+Or open [open.solomotion.app](https://open.solomotion.app). Nothing to install.
+
+## What's in it
+
+**Keyframes on everything.** Every property animates, with curves, easing
+presets, motion paths and expressions. The dope sheet and the curve editor
+read the same keys.
+
+<p align="center"><img src="assets/hero.png" alt="The Dial orbit, keyed in SoloMotion's own timeline" width="880"></p>
+
+**A real timeline.** Video, sound, captions and animation on one timeline.
+Cut, trim, ripple, J and L cuts, transitions, tracking.
+
+**Characters.** Bones, IK, poses, shape keys and lip sync. Frame-by-frame
+drawing with onion skin when you want to draw it by hand.
+
+**Looks.** Stacked effects, a node-based colour page, physics and particles,
+and 3D worlds for scenes that need depth.
+
+**Export.** MP4, WebM, GIF, MOV with alpha, PNG sequences and audio.
+
+## Agents
+
+Every action in the studio is a command in one registry, and agents get the
+same commands over [MCP](https://modelcontextprotocol.io). An agent builds the
+scene in the studio you have open. You watch, and undo its whole turn in one
 step.
-[`@solomotion/mcp`](packages/mcp) connects Claude Code, Codex, Cursor or any
-other MCP client to the studio running in your browser.
 
-**Make it yours.** The whole look is one theme file: colours, type, shape, and
-how each control is drawn. Switch between the shipped themes or write your own.
+```sh
+claude mcp add -s user solomotion -- npx -y @solomotion/mcp@latest
+```
 
-## Open source, no budget
+Then in the studio: **Agents › Use your agent app › Link**. Works with Claude
+Code, Codex, Cursor and any MCP client.
 
-> **SoloMotion is open source and has no marketing budget. You're all we've got.**
+## Fund it, or spread it
 
-There are two ways to keep it going.
+SoloMotion has no investors, no price and no marketing budget.
 
-**Fund it.** SoloMotion has no investors and no price. Funding pays for the
-hours that build it.
-[Sponsor on GitHub](https://github.com/sponsors/novincode), monthly or once, or
-[buy a coffee](https://buymeacoffee.com/codeideal).
-
-**Spread it.** Without a budget, you are how people find out. Post about it,
-make a video or a tutorial, write about it, or show it to one person who makes
-videos. Then [tell us what you made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml)
-and you go on the wall below. Starring the repository helps more people find it.
+- **Fund it.** [Sponsor on GitHub](https://github.com/sponsors/novincode),
+  monthly or once, or [buy a coffee](https://buymeacoffee.com/codeideal).
+- **Spread it.** Post about it, make a video or a tutorial, show it to one
+  person who makes videos. Then [tell us what you made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml)
+  and you go on the wall.
 
 ## Supporters
 
@@ -62,10 +90,9 @@ Everyone who funds SoloMotion or makes something about it is listed here, in thr
 
 The wall is empty today. [Sponsor](https://github.com/sponsors/novincode) or [tell us what you made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml) to be the first name on it.
 
-## Run it locally
+## Run it from source
 
-You need [Node.js](https://nodejs.org) 22 or later and pnpm, which Node
-provides through Corepack.
+Node.js 22 or later, and pnpm through Corepack.
 
 ```sh
 git clone https://github.com/solocreates/solomotion.git
@@ -77,12 +104,12 @@ pnpm dev
 
 The studio opens at http://localhost:3000.
 
-| Command | What it does |
+| Command | Does |
 | --- | --- |
-| `pnpm dev` | Runs the studio with hot reload |
-| `pnpm test` | Runs every package's tests |
-| `pnpm typecheck` | Typechecks the whole workspace |
-| `pnpm build` | Builds every package and the studio |
+| `pnpm dev` | The studio, with hot reload |
+| `pnpm test` | Every package's tests |
+| `pnpm typecheck` | The whole workspace |
+| `pnpm build` | Every package and the studio |
 
 ## Repository
 
@@ -104,14 +131,14 @@ The studio opens at http://localhost:3000.
 
 ## Contributing
 
-Bug reports, fixes and ideas are welcome. Read
-[CONTRIBUTING.md](CONTRIBUTING.md) for how a change goes from your machine to a
-release, and the [Code of Conduct](CODE_OF_CONDUCT.md). Questions go to
+Bug reports, fixes and ideas are welcome. [CONTRIBUTING.md](CONTRIBUTING.md)
+covers how a change gets from your machine to a release. Read the
+[Code of Conduct](CODE_OF_CONDUCT.md). Questions go to
 [Discussions](https://github.com/solocreates/solomotion/discussions). Report security
 problems privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## License
 
-SoloMotion is free software under the [GNU Affero General Public License v3.0](LICENSE).
-You can use, study, change and share it. If you distribute a changed version,
-or run one as a service for others, its source stays open under the same license.
+[AGPL-3.0](LICENSE). Use it, study it, change it, share it. If you ship a
+changed version, or run one as a service, its source stays open under the
+same license.

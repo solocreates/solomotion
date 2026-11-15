@@ -45,8 +45,8 @@ describe("theme file", () => {
 describe("compile", () => {
   it("emits the studio's own variable names and one attribute per part", () => {
     const c = compile(SOLOMOTION);
-    expect(c.vars["--primary"]).toBe("#3df2a8");
-    expect(c.vars["--ring"]).toBe("#3df2a899");
+    expect(c.vars["--primary"]).toBe("#62f06b");
+    expect(c.vars["--ring"]).toBe("#62f06b99");
     expect(c.vars["--background"]).toBe("#0a0b0a");
     expect(c.vars["--control-h"]).toBe("1.75rem");
     expect(c.vars["--control-h-sm"]).toBe("1.5rem");
@@ -80,7 +80,7 @@ describe("compile", () => {
   it("gives each mode its own tones", () => {
     const dark = compile(SOLOMOTION, "dark");
     const light = compile(SOLOMOTION, "light");
-    expect(light.vars["--primary"]).toBe("#0b8a57");
+    expect(light.vars["--primary"]).toBe("#1f7a2c");
     expect(light.vars["--popover"]).toBe("#ffffff");
     expect(light.vars["--elevation-1"]).not.toBe(dark.vars["--elevation-1"]);
     expect(light.scheme).toBe("light");
