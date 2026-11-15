@@ -221,7 +221,7 @@ function SpeechStatusRow({ status, onRetry }: { status: ReturnType<typeof useSpe
   if (status.state === "failed")
     return (
       <PropRow label=" ">
-        <span className="flex min-w-0 flex-1 items-center justify-between text-[11px] text-amber-500">
+        <span className="flex min-w-0 flex-1 items-center justify-between text-[11px] text-warning">
           Couldn&apos;t hear a voice in this clip
           <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={onRetry}>
             Try again

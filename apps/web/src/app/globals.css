@@ -215,6 +215,19 @@
   /* NESTING (v67): the rail down a sub-lane's left edge, one per enclosing
      group, and the shade that separates a group's rows from the comp's own.
      Both are values, not boxes — see `nestStyle`. */
+  /* LAYER KINDS borrow the wheel, never a second one: a kind's glyph wears
+     the tone its clip wears on the timeline (component = nested = text,
+     world and rig = mesh, adjustment = adjust), and a kind with no clip of
+     its own takes the nearest wheel hue (drawings = light, composite and
+     frozen = caption, a retimed span = light). Turned by the accent like every clip. */
+  --kind-component: var(--clip-text-border);
+  --kind-world: var(--clip-mesh-border);
+  --kind-rig: var(--clip-mesh-border);
+  --kind-adjust: var(--clip-adjust-border);
+  --kind-drawing: var(--clip-light-border);
+  --kind-composite: var(--clip-caption-border);
+  --kind-frozen: var(--clip-caption-border);
+  --kind-speed: var(--clip-light-border);
   --nest-rail: color-mix(in srgb, var(--foreground) 14%, transparent);
   --nest-lane: color-mix(in srgb, var(--foreground) 3.5%, var(--track-lane));
   --clip-group-border: #b9c2d6;
@@ -301,6 +314,11 @@
   --inset-panel: 0.75rem;
   --gap-section: 1rem;
   --inset-dialog: 1.5rem;
+  /* Inspector rhythm: the gap between rows, and the trailing keyframe gutter
+     every row AND every section header reserves, so a header switch ends on
+     the same edge as the row switches under it. */
+  --gap-row: 0.375rem;
+  --key-gutter: 1.25rem;
 
   /* The shared @solomotion/ui Button reads these (its fallbacks are the site's
      marketing sizes). In the editor nothing is taller than 32 (D7). */
@@ -671,7 +689,109 @@
   backdrop-filter: none !important;
 }
 
+/*
+ * ══ THE STAGE DIALECTS (theme parts `tools` and `backdrop`) ═════════════════
+ *
+ * Unlayered, like the glass switch: what they repaint is drawn by utilities
+ * (`material-glass`, `size-8`, `material-glass-raised text-primary`), and an
+ * @layer rule in parts.css can never outrank a utility. Unlayered rules do,
+ * whatever their specificity; the one unlayered rival is the glass-on rule
+ * above, which the capsule selector out-specifies by `html`.
+ * `capsule` and `plain` are the markup's own look and need nothing here.
+ *
+ * `float`: a solid, roomy, neutral rail. The armed tool is a lit tile with the
+ * glyph in the foreground (no accent: the accent stays the primary action),
+ * groups part by air rather than hairlines, and the tip is a small card with
+ * the tool's keys and what it does.
+ */
+html:root[data-tools="float"] .stage-capsule.material-glass {
+  --nest-r: calc(var(--radius) * 4 / 3);
+  --nest-pad: 6px;
+  background-color: var(--popover);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 14px 36px -14px rgb(0 0 0 / 0.5),
+    0 2px 6px -2px rgb(0 0 0 / 0.22);
+}
+:root[data-tools="float"] .stage-tool {
+  width: 36px;
+  height: 36px;
+  color: var(--muted-foreground);
+}
+:root[data-tools="float"] .stage-tool svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.6;
+}
+:root[data-tools="float"] .stage-tool:hover {
+  background: var(--hover);
+  color: var(--foreground);
+}
+:root[data-tools="float"] .stage-tool[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  box-shadow: none;
+  color: var(--foreground);
+}
+:root[data-tools="float"] .stage-tool-divider {
+  background: transparent;
+}
+:root[data-tools="float"] .stage-tip {
+  max-width: 17rem;
+  padding: 9px 12px 10px;
+  gap: 3px;
+  border-radius: var(--r-md);
+}
+:root[data-tools="float"] .stage-tip > [data-el="head"] {
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--foreground);
+}
+:root[data-tools="float"] .stage-tip kbd {
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--muted-foreground);
+}
+:root[data-tools="float"] .stage-tip > [data-el="detail"] {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+:root:not([data-tools="float"]) .stage-tip > [data-el="detail"] {
+  display: none;
+}
+
+/* `dots`: a quiet dot field on the stage's surround. A document's own stage
+   colour (inline) still shows under it. */
+:root[data-backdrop="dots"] .stage-backdrop {
+  background-image: radial-gradient(
+    circle at center,
+    color-mix(in srgb, var(--foreground) 16%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 20px 20px;
+  background-position: center;
+}
+
 @layer components {
+  /* A stage capsule's frame comes from its `--nest-*` (CONCENTRIC NESTING),
+     so a dialect changes two numbers and the chips inside follow. Layered so
+     a call site's own padding utility (a label capsule's `px-2`) still wins.
+     Inside it the chip grade (`rounded-lg`, i.e. `--r-md`) IS the concentric
+     radius: every rail tool, zoom button and context chip already wears it,
+     and none of them can know which capsule or dialect it sits in. */
+  .stage-capsule {
+    --nest-r: var(--r-lg);
+    --nest-pad: 0.25rem;
+    --r-md: var(--nest-chip);
+    padding: var(--nest-pad);
+  }
+
   /*
    * The three surface recipes. A panel, a floating slab, and the padded ground
    * they sit on. Used by AppFrame and every floating window so "what elevation
@@ -1236,11 +1356,37 @@
 .track {
   /* A track is a CONTROL (segmented, tab strip), so it rounds like one (6),
      and its chips sit concentric inside it (4) — not at window radius. */
-  border-radius: var(--r-sm);
-  padding: var(--track-gap, 2px);
+  --nest-r: var(--r-sm);
+  --nest-pad: var(--track-gap, 2px);
+  border-radius: var(--nest-r);
+  padding: var(--nest-pad);
 }
 .track > * {
-  border-radius: max(2px, calc(var(--r-sm) - var(--track-gap, 2px)));
+  border-radius: var(--nest-chip);
+}
+
+/*
+ * CONCENTRIC NESTING — the one formula. A padded container (a `.track`, a stage
+ * capsule) declares its own corner `--nest-r` and inset `--nest-pad`; whatever
+ * sits in that inset rounds at `--nest-chip`, the outer corner minus the gap.
+ * Registered so it is computed ON the container from the container's values
+ * and inherited as a length — a chip never re-reads its own `--nest-*`.
+ * Roundness, UI scale and every tool dialect then stay concentric for free;
+ * a fixed chip token (the armed tool at `--r-md` in a 16px, 6px-inset capsule)
+ * is only right at one setting.
+ */
+@property --nest-chip {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 4px;
+}
+.track,
+.stage-capsule {
+  --nest-chip: max(2px, calc(var(--nest-r) - var(--nest-pad)));
+}
+/* Unlayered: the frame's corner must beat `material-glass`'s own radius. */
+.stage-capsule {
+  border-radius: var(--nest-r);
 }
 
 /*
@@ -1310,12 +1456,13 @@
 
 /* THE ZONED BAND: a horizontal stage edge with a centre occupant. Three
    zones of one grid, the rule and its reasons in `stage/chrome-layout.ts`.
-   Sides at their content (capped at a third of the stage), the centre at its
-   content up to 45rem, and under 40rem of STAGE the centre takes its own row
-   at the edge. Never a measurement. */
+   The sides keep their content and share the rest equally, so the centre is
+   centred while it can be and slides toward an EMPTY start when it cannot.
+   `data-fit="stacked"` (measured by `fitZonedBand`, never a guessed width)
+   gives the centre its own row at the edge. */
 @utility chrome-zones {
   display: grid;
-  grid-template-columns: minmax(max-content, 1fr) fit-content(45rem) minmax(max-content, 1fr);
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content) minmax(max-content, 1fr);
   grid-template-areas: "start center end";
   align-items: start;
   &[data-chrome-band="bottom"] {
@@ -1332,18 +1479,30 @@
     grid-area: start;
     justify-self: start;
   }
+  /* Its content, up to 45rem; a longer bar scrolls inside its capsule. */
   & > [data-zone="center"] {
     grid-area: center;
     justify-self: center;
-    max-width: 100%;
+    max-width: min(100%, 45rem);
   }
   & > [data-zone="end"] {
     grid-area: end;
     justify-self: end;
   }
-  @container stage-chrome (width < 40rem) {
+  /* No start: nothing to centre against on the left, so the end keeps its
+     content and every other pixel is the centre's — beside the stage
+     settings, never under an empty nav. */
+  &:not(:has(> [data-zone="start"] > *)) {
+    & > [data-zone="end"] {
+      max-width: 100%;
+    }
+  }
+  &[data-fit="stacked"] {
     grid-template-columns: minmax(0, max-content) minmax(max-content, 1fr);
-    grid-template-areas: "center center" "start end";
+    /* Nav and stage settings hug the stage's edge on every width; the armed
+       tool's options sit on the inside of them, never between them and the
+       edge (Shayan: the options above the nav read as the stage's title). */
+    grid-template-areas: "start end" "center center";
     & > [data-zone] {
       max-width: 100%;
     }
@@ -1357,15 +1516,27 @@
       justify-content: center;
     }
     & > [data-zone="center"]:has(*) {
-      margin-block-end: 4px;
+      margin-block-start: 4px;
     }
     &[data-chrome-band="bottom"] {
-      grid-template-areas: "start end" "center center";
+      grid-template-areas: "center center" "start end";
       & > [data-zone="center"]:has(*) {
-        margin-block: 4px 0;
+        margin-block: 0 4px;
       }
     }
   }
+}
+
+/* ONE HEIGHT for every capsule on a horizontal stage edge — nav, tool
+   options, stage settings, a docked rail. They sit side by side, and three
+   capsules sized by whatever happened to be inside them (a 24px crumb, a 28px
+   field, a 32px tool) read as three near-misses. The largest control plus the
+   capsule's own padding; content centres inside it (`CHROME_CAPSULE`). */
+:root {
+  --chrome-h: calc(var(--control-h-lg) + 0.5rem);
+}
+:is([data-chrome-band="top"], [data-chrome-band="bottom"]) > :is([data-zone], [data-chrome-item]) > * {
+  block-size: var(--chrome-h);
 }
 
 /* A scroller whose overflowing edge fades instead of cutting (useEdgeFade). */

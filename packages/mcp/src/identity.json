@@ -1,7 +1,7 @@
 {
   "name": "SoloMotion",
   "ns": "solomotion",
-  "webOrigin": "https://app.solomotion.app",
+  "webOrigin": "https://open.solomotion.app",
   "port": 7318,
   "sliceExt": ".motion"
 }

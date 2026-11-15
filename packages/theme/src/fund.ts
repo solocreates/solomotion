@@ -11,6 +11,17 @@ export const FUND_MAX = 500;
 export const FUND_STOPS = [5, 10, 25, 50, 100] as const;
 export const FUND_DEFAULT = 25;
 
+/**
+ * The coin row, per cadence. A month tops out at $100; a one-time gift is a
+ * bigger, rarer act, so its top coin (the full heart) is $500. Same length,
+ * so switching cadence keeps your place in the row rather than your dollars.
+ */
+export type FundCadence = "monthly" | "once";
+export const FUND_COINS: Record<FundCadence, readonly number[]> = {
+  monthly: FUND_STOPS,
+  once: [10, 25, 50, 100, 500],
+};
+
 export const fundFraction = (v: number) => Math.log(v / FUND_MIN) / Math.log(FUND_MAX / FUND_MIN);
 export const fundFromFraction = (f: number) => FUND_MIN * Math.pow(FUND_MAX / FUND_MIN, Math.min(1, Math.max(0, f)));
 

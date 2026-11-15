@@ -198,7 +198,7 @@ function InlineInput({
         onChange={(v) => onChange(v, mk)}
         step={0.1}
         precision={2}
-        className="h-5 w-16 text-[11px]"
+        className="h-(--node-field-h) w-full text-meta"
       />
     );
   }
@@ -219,7 +219,7 @@ function InlineInput({
       <Input
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(e.target.value, mk)}
-        className="h-5 w-20 text-[11px]"
+        className="h-(--node-field-h) w-full text-meta"
       />
     );
   }
@@ -377,7 +377,11 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
         selected ? "border-primary ring-1 ring-primary" : "border-border/80",
         cyclic && "border-destructive ring-1 ring-destructive",
       )}
-      style={{ left: node.x, top: node.y, width: NODE_WIDTH }}
+      // The card is WORLD geometry (px, scaled by the board's zoom) while its
+      // fields are rem tokens that grow with UI scale — so a 24px field sat in
+      // a 22px row and spilled into the next one. Row content takes its height
+      // from the same constant the sockets and wires are placed by.
+      style={{ left: node.x, top: node.y, width: NODE_WIDTH, ["--node-field-h" as string]: `${ROW_H - 4}px` }}
     >
       {/* Header */}
       <div
@@ -493,7 +497,9 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
         return (
           <div
             key={`c:${o.key}`}
-            className="group/row relative flex items-center gap-1.5 px-2.5 text-[11px]"
+            // Label · field, two columns that cannot push into each other or
+            // into the sockets (absolute, outside the flow).
+            className="group/row relative grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-1.5 px-2.5 text-meta"
             style={{ height: ROW_H, marginTop: !hasMain && outOnly.length === 0 && i === 0 ? 6 : 0 }}
           >
             <Socket
@@ -505,17 +511,17 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
               onPointerDown={(e) => props.onSocketPointerDown(e, node.id, "in", inp.key)}
               onPointerUp={(e) => props.onSocketPointerUp(e, node.id, "in", inp.key)}
             />
-            <span className="text-muted-foreground">{o.label}</span>
+            <span className="truncate text-fg-muted">{o.label}</span>
             {wired ? (
               values ? (
-                <span className="ml-auto truncate text-[10px] tabular-nums text-muted-foreground">
+                <span className="justify-self-end truncate tabular-nums text-fg-muted">
                   {formatValue(values[o.key])}
                 </span>
               ) : null
             ) : o.path && props.targetClip ? (
               <NodePropertyField clip={props.targetClip} path={o.path} />
             ) : (
-              <div className="ml-auto flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+              <div className="flex min-w-0 items-center justify-end gap-1" onPointerDown={(e) => e.stopPropagation()}>
                 <InlineInput spec={inp} value={node.params[inp.key]} onChange={(v, mk) => onParam(node.id, inp.key, v, mk)} />
                 {inp.type === "float" && keyCtl(inp.key, node.params[inp.key])}
               </div>
@@ -538,7 +544,9 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
         return (
           <div
             key={`i:${inp.key}`}
-            className="group/row relative flex items-center gap-1.5 px-2.5 text-[11px]"
+            // Label · field, two columns that cannot push into each other or
+            // into the sockets (absolute, outside the flow).
+            className="group/row relative grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-1.5 px-2.5 text-meta"
             style={{ height: ROW_H }}
           >
             <Socket
@@ -550,9 +558,9 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
               onPointerDown={(e) => props.onSocketPointerDown(e, node.id, "in", inp.key)}
               onPointerUp={(e) => props.onSocketPointerUp(e, node.id, "in", inp.key)}
             />
-            <span className="text-muted-foreground">{inp.label}</span>
+            <span className="truncate text-fg-muted">{inp.label}</span>
             {!wired && (
-              <div className="ml-auto flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+              <div className="flex min-w-0 items-center justify-end gap-1" onPointerDown={(e) => e.stopPropagation()}>
                 <InlineInput
                   spec={inp}
                   value={node.params[inp.key]}
@@ -617,16 +625,16 @@ export const NodeCard = React.memo(function NodeCard(props: NodeCardProps) {
             }
             if (opt.kind === "float") {
               return (
-                <div key={opt.key} className="group/row flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+                <div key={opt.key} className="group/row grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-1.5 text-meta text-fg-muted">
                   <span className="truncate">{opt.label}</span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex min-w-0 items-center justify-end gap-1">
                     <NumberInput
                       value={typeof val === "number" ? val : 0}
                       onChange={(v) => onParam(node.id, opt.key, v, `opt-${opt.key}`)}
                       min={opt.min}
                       max={opt.max}
                       step={opt.step ?? 0.1}
-                      className="h-5 w-16 text-[11px]"
+                      className="h-(--node-field-h) w-full text-meta"
                     />
                     {keyCtl(opt.key, val)}
                   </div>

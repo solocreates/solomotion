@@ -74,7 +74,7 @@ export function PresetDropPreview({
         <div
           className={cn(
             "pointer-events-none absolute top-1 bottom-1 z-30 flex items-center justify-center overflow-hidden rounded-md border-2 border-dashed",
-            preview.target.replaces ? "border-amber-400" : "border-primary",
+            preview.target.replaces ? "border-warning" : "border-primary",
             // An animation previews as the RAMP it becomes — the same shading
             // the committed zone draws on the clip, falling off away from the
             // edge it attaches to — while a transition previews as the solid

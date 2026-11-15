@@ -126,6 +126,8 @@ const BASE_ROW_H = 76; // px per row at laneZoom 1
 const ROW_HEADER_W = 160;
 /** The sticky frame ruler at the top of the sheet's scroller (h-6). */
 const SHEET_RULER_H = 24;
+/** A cell's inset inside its row (`top-1.5`, height `ROW_H - 12`). */
+const CELL_INSET = 6;
 
 /**
  * A drag in flight. The PLAN is the whole of it — where every cell would land
@@ -312,6 +314,22 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
   // anchor (shift-range pivot) is local UI state, same convention as
   // LayersPanel's own anchorRef.
   const sheetGridRef = React.useRef<HTMLDivElement>(null);
+  // The current cell's row is kept whole in view (vertically only: the
+  // playhead's own autoscroll owns x). Without this the last row sat half
+  // under the zoom bar and its accent ring — 3px OUTSIDE the cell — was cut.
+  // The row's 6px inset is the margin, so the ring always lands inside it.
+  React.useLayoutEffect(() => {
+    const el = sheetGridRef.current;
+    if (!el || !activeCellId) return;
+    const cell = el.querySelector<HTMLElement>(`[data-cell-id="${CSS.escape(activeCellId)}"]`);
+    if (!cell) return;
+    const box = el.getBoundingClientRect();
+    const r = cell.getBoundingClientRect();
+    const top = r.top - CELL_INSET - (box.top + SHEET_RULER_H);
+    const bottom = r.bottom + CELL_INSET - (box.top + el.clientHeight);
+    if (top < 0) el.scrollTop += top;
+    else if (bottom > 0) el.scrollTop += Math.min(bottom, top);
+  }, [activeCellId]);
   // The same hook the timeline lanes use, on the same two session axes — so
   // ⌘/pinch, ⌥, two-finger pan and the viewport's touch-action are one
   // implementation rather than a second one that drifts.
@@ -614,7 +632,7 @@ export function FlipbookPanel({ flipbook }: { flipbook: Frame }) {
           in the toolbar competing with the controls for the eye; here it reads
           as a title and the toolbar reads as a toolbar. */}
       <div className="flex h-6 shrink-0 items-center gap-1.5 border-b px-2 text-[11px] text-muted-foreground">
-        <Layers2 className="size-3 text-[#FFB86C]" />
+        <Layers2 className="size-3 text-(--kind-drawing)" />
         <span className="font-medium text-foreground">{flipbook.name}</span>
         <span>·</span>
         <span>{rows.length === 1 ? "1 row" : `${rows.length} rows`}</span>

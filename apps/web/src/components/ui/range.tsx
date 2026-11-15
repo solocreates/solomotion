@@ -6,6 +6,7 @@ import { blockFills, rangeDetent, rangeStep, rulerPaint, rulerScale, stepOpaciti
 import { useSliderControl, type SliderDetent, type SliderOrientation, type SliderScaleKind } from "./slider-base";
 import { rootDialect, useRootDialect } from "./use-root-dialect";
 import { PartLabel } from "./part-label";
+import { useFieldUnit } from "./field-unit";
 
 /**
  * RANGE — the app's one value control, on either axis.
@@ -218,7 +219,10 @@ export function Range({
   const hi = Math.max(c.fraction, originFrac);
 
   const digits = precision ?? decimalsOf(step);
-  const text = format ? format(shown) : `${shown.toFixed(digits)}${unit ? ` ${unit}` : ""}`;
+  // The readout's unit is the field's unit slot (a live length chip when a
+  // binding wrapper provides one), drawn quieter than the number it measures.
+  const unitNode = useFieldUnit(unit);
+  const text = format ? format(shown) : shown.toFixed(digits);
 
   /**
    * TYPE AN EXACT VALUE. Dragging is for exploring; some values you simply
@@ -427,6 +431,16 @@ export function Range({
           )}
         >
           {text}
+          {!format && unitNode !== null && (
+            <span
+              data-el="unit"
+              className="ml-1 text-meta text-fg-faint"
+              // A chip is a button; a literal unit is just part of the readout.
+              onPointerDown={typeof unitNode === "string" ? undefined : (e) => e.stopPropagation()}
+            >
+              {unitNode}
+            </span>
+          )}
         </span>
       )}
       {label === undefined && hideValue && <span className="flex-1" />}
@@ -453,6 +467,41 @@ export function RangeWithField({
       <div className="shrink-0" style={{ width: fieldWidth }}>
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A read-only Range: progress, a level, anything the user watches rather than
+ * sets. The range part in its `meter` dialect whatever the theme picks for
+ * controls (a progress bar never steps or rules), with the label and value
+ * inside the bar like every Range. No transition on the fill: progress
+ * arrives often and a width animation starves on a busy main thread.
+ */
+export function Meter({ value, label, valueText, className, "aria-label": ariaLabel }: { value: number; label?: React.ReactNode; valueText?: string; className?: string; "aria-label"?: string }) {
+  const f = Math.max(0, Math.min(1, value));
+  return (
+    <div
+      role="progressbar"
+      aria-label={ariaLabel ?? (typeof label === "string" ? label : undefined)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(f * 100)}
+      data-part="range"
+      data-dialect="meter"
+      className={cn("pointer-events-none relative flex h-(--control-h) min-w-0 select-none items-center text-body", className)}
+      style={{ "--lo": 0, "--hi": f, "--f": f, "--range-tone": "color-mix(in srgb, var(--primary) 22%, transparent)" } as React.CSSProperties}
+    >
+      <span aria-hidden data-el="fill" />
+      <span aria-hidden data-el="edge" />
+      {label !== undefined && (
+        <span data-el="label" className="min-w-0 flex-1 truncate pl-2">
+          {label}
+        </span>
+      )}
+      <span data-el="value" data-num="" className="ml-auto shrink-0 pr-2 tabular-nums">
+        {valueText ?? `${Math.round(f * 100)}%`}
+      </span>
     </div>
   );
 }

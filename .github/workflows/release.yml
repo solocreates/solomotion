@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   plan:
-    if: github.repository == 'novincode/solomotion'
+    if: github.repository == 'solocreates/solomotion'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

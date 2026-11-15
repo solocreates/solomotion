@@ -241,7 +241,7 @@ export function EffectPreview({ clip, effectId }: { clip: Clip; effectId: string
         )}
         {status.alive && status.playing && status.cached < 1 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/10">
-            <div className="h-full bg-emerald-400/80 transition-[width]" style={{ width: `${status.cached * 100}%` }} />
+            <div className="h-full bg-success/80 transition-[width]" style={{ width: `${status.cached * 100}%` }} />
           </div>
         )}
         {/* Zoom lives INSIDE the frame, vertical, in the corner: the preview is

@@ -105,7 +105,7 @@ export function ChatView() {
             scrollToEnd(true);
           }}
           aria-label="Jump to latest"
-          className="absolute left-1/2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border material-glass text-muted-foreground shadow-md transition-colors hover:text-foreground"
+          className="absolute left-1/2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-raised text-fg-muted shadow-(--elevation-2) transition-colors hover:text-fg"
           style={{ bottom: 96 }}
         >
           <ArrowDown className="size-3.5" />
@@ -133,14 +133,14 @@ function Starters() {
   return (
     <div className="flex flex-col items-center gap-4 px-2 pb-2 pt-10 text-center">
       <ProviderMark providerId={connection?.providerId ?? "builtin"} className="size-12 rounded-xl" />
-      <p className="text-body text-fg-muted">Ask {name} anything about this project</p>
+      <p className="text-body text-fg-muted">What should {name} make?</p>
       <div className="flex flex-wrap justify-center gap-1.5">
         {starters.map((s) => (
           <button
             key={s.text}
             type="button"
             onClick={() => askAgent(s.text)}
-            className="flex h-(--control-h) max-w-full items-center gap-1.5 rounded-md bg-raised px-2.5 text-body text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+            className="flex h-(--control-h) max-w-full items-center gap-1.5 rounded-(--r-control) border border-line px-2.5 text-body text-fg-muted transition-colors hover:bg-hover hover:text-fg"
           >
             <s.icon className="size-3.5 shrink-0" />
             <span className="truncate">{s.text}</span>

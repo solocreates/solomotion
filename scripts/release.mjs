@@ -104,7 +104,7 @@ function notes() {
       [
         "### Desktop builds are not signed yet",
         "",
-        "The installers below are not code-signed or notarized, so your system will warn you the first time you open them. Each file's checksum is in `SHA256SUMS.txt`, and its build provenance can be checked with `gh attestation verify <file> --repo novincode/solomotion`.",
+        "The installers below are not code-signed or notarized, so your system will warn you the first time you open them. Each file's checksum is in `SHA256SUMS.txt`, and its build provenance can be checked with `gh attestation verify <file> --repo solocreates/solomotion`.",
         "",
         `- **macOS:** open the disk image and drag ${product} to Applications. If macOS says the app is damaged or cannot be checked, run \`xattr -dr com.apple.quarantine "/Applications/${product}.app"\` once.`,
         "- **Windows:** if SmartScreen stops the installer, choose More info, then Run anyway.",

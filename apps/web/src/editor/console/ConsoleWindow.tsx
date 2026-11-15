@@ -68,9 +68,9 @@ const LEVELS: {
   tone: string;
 }[] = [
   { level: "debug", label: "Debug", icon: Bug, tone: "text-muted-foreground" },
-  { level: "info", label: "Info", icon: Info, tone: "text-sky-400" },
-  { level: "warn", label: "Warn", icon: TriangleAlert, tone: "text-amber-400" },
-  { level: "error", label: "Error", icon: CircleX, tone: "text-red-400" },
+  { level: "info", label: "Info", icon: Info, tone: "text-primary" },
+  { level: "warn", label: "Warn", icon: TriangleAlert, tone: "text-warning" },
+  { level: "error", label: "Error", icon: CircleX, tone: "text-destructive" },
 ];
 const TONE = Object.fromEntries(LEVELS.map((l) => [l.level, l.tone])) as Record<LogLevel, string>;
 const ICON = Object.fromEntries(LEVELS.map((l) => [l.level, l.icon])) as Record<
@@ -163,8 +163,8 @@ function LogRow({
       onPointerDown={onPointerDown}
       className={cn(
         "border-b border-border/40 px-2 py-1 font-mono text-xs leading-relaxed",
-        entry.level === "error" && "bg-red-500/5",
-        entry.level === "warn" && "bg-amber-500/5",
+        entry.level === "error" && "bg-destructive/5",
+        entry.level === "warn" && "bg-warning/5",
         selected && "bg-primary/15",
       )}
     >
@@ -186,7 +186,7 @@ function LogRow({
           {formatTime(entry.ts)}
         </span>
         {entry.count > 1 && (
-          <span className="mt-px shrink-0 rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
+          <span className="mt-px shrink-0 rounded-(--r-xs) bg-muted px-1.5 text-[10px] text-muted-foreground">
             {entry.count}
           </span>
         )}

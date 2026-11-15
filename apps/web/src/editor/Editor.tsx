@@ -4,7 +4,8 @@ import { useWorldUi } from "./world/state";
 import { RenderInPlaceDialog } from "./render/RenderInPlaceDialog";
 import { renderProfiler } from "./stage/render/profiler-instance";
 import * as React from "react";
-import { compFps, createEmptyDocument, flipbookInContext, setFrameMode, frameStepMs, quantizeMsToFrame } from "@solomotion/core";
+import { identity } from "@/editor/identity";
+import { compFps, createBlankDocument, createEmptyDocument, flipbookInContext, setFrameMode, frameStepMs, quantizeMsToFrame } from "@solomotion/core";
 import { Loader2 } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CommunityOpenDialog } from "./home/CommunityView";
@@ -45,7 +46,6 @@ import { BottomRail } from "./panels/BottomRail";
 import { FloatingPanelDock } from "./panels/FloatingPanelDock";
 import { WorkspaceShell } from "./workspace/WorkspaceShell";
 import { TopBar } from "./topbar/TopBar";
-import { SupportDialog } from "./support/SupportDialog";
 import { installZoomShortcuts } from "./workspace/zoom-shortcuts";
 import { DropOverlay } from "./workspace/DropOverlay";
 import { usePlayback } from "./state/use-playback";
@@ -218,6 +218,19 @@ function AppRoot() {
     makeResident(store, id, doc);
   };
 
+  // A product that asks nothing (`newProject: "canvas"`): every way to New —
+  // Home, the app menu, the tabs, the palette — lands on a blank canvas, which
+  // opens on the Frame tool (`resetForDocument`). The dialog never shows.
+  const asks = identity.newProject === "ask";
+  React.useEffect(() => {
+    if (asks || !newProjectOpen) return;
+    useAppShell.getState().setNewProjectOpen(false);
+    const doc = createBlankDocument();
+    const id = createProjectId();
+    void createProject(id, doc);
+    makeResident(store, id, doc);
+  }, [asks, newProjectOpen, store]);
+
   return (
     <>
       {/*
@@ -254,7 +267,7 @@ function AppRoot() {
         </div>
       </div>
       <NewProjectDialog
-        open={newProjectOpen}
+        open={asks && newProjectOpen}
         onOpenChange={setNewProjectOpen}
         onCreate={handleCreate}
       />
@@ -416,7 +429,6 @@ function EditorShell() {
   return (
     <>
       <WorkspaceLayout />
-      <SupportDialog />
       <EasingShortcutOverlay />
       <PickModeLayer />
       <CommandPalette />

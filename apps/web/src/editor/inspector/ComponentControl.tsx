@@ -74,7 +74,7 @@ export function ComponentControl({ frame, clip }: { frame?: Frame; clip?: Clip }
     <PanelSection title="Component" collapsible={false}>
       <PropRow label={ctx.isInstance ? "Instance of" : "Component"}>
         <span className="flex min-w-0 items-center gap-1.5 truncate text-xs">
-          <Component className="size-3.5 shrink-0 text-[#9B7BFF]" />
+          <Component className="size-3.5 shrink-0 text-(--kind-component)" />
           {ctx.current?.name ?? "Component"}
         </span>
       </PropRow>
@@ -89,7 +89,7 @@ export function ComponentControl({ frame, clip }: { frame?: Frame; clip?: Clip }
                 className={cn(
                   "rounded border px-2 py-0.5 text-[11px] transition-colors",
                   active
-                    ? "border-[#9B7BFF] bg-[#9B7BFF]/20 text-foreground"
+                    ? "border-(--kind-component) bg-(--kind-component)/20 text-foreground"
                     : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
                 onClick={() => onVariant(v.id)}

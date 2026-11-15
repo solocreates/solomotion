@@ -84,7 +84,7 @@ export function SoundAnalysisSection({ clip, assetId }: { clip: Clip; assetId: s
       ) : status?.state === "failed" ? (
         <PropRow wide>
           <div className="flex w-full items-center justify-between gap-2">
-            <span className="text-[11px] text-amber-500">{status.message}</span>
+            <span className="text-[11px] text-warning">{status.message}</span>
             <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => void ensureSoundAnalysis(assetId, { force: true })}>
               <RotateCcw /> Retry
             </Button>

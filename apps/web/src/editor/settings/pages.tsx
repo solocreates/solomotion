@@ -103,6 +103,9 @@ const PART_LABELS: Record<PartName, string> = {
   button: "Buttons",
   field: "Fields",
   menu: "Menus",
+  tools: "Tool rail",
+  backdrop: "Stage",
+  heads: "Section heads",
 };
 
 const FONT_SLOTS: ReadonlyArray<{ slot: "ui" | "display" | "num" | "mono"; label: string; kinds: ReadonlyArray<string> }> = [

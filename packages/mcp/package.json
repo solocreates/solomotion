@@ -12,7 +12,7 @@
     "animation",
     "video-editor"
   ],
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "bin": {
     "solomotion-mcp": "src/cli.mjs"
@@ -70,11 +70,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/novincode/solomotion.git",
+    "url": "git+https://github.com/solocreates/solomotion.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/novincode/solomotion/tree/main/packages/mcp#readme",
+  "homepage": "https://github.com/solocreates/solomotion/tree/main/packages/mcp#readme",
   "bugs": {
-    "url": "https://github.com/novincode/solomotion/issues"
+    "url": "https://github.com/solocreates/solomotion/issues"
   }
 }

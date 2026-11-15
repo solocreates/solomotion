@@ -1,34 +1,21 @@
 "use client";
 
 import * as React from "react";
+import { type LibraryItem, type LibraryKind, type LibrarySort } from "@solomotion/core";
 import {
-  LIBRARY_SOURCE_LABELS,
-  type LibraryItem,
-  type LibraryKind,
-  type LibrarySort,
-  type LibrarySource,
-} from "@solomotion/core";
-import {
-  ArrowLeftRight,
   ArrowUpRight,
-  Component,
-  Film,
-  LayoutTemplate,
   ChevronLeft,
   ChevronRight,
   Library as LibraryIcon,
   Loader2,
-  Music,
   RefreshCw,
   SlidersHorizontal,
-  Sparkles,
   Star,
-  Type,
   Upload,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BrowserFilters, BrowserSearch, type FilterGroup } from "../panels/BrowserControls";
+import { BrowserFilters, BrowserSearch } from "../panels/BrowserControls";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { useDocStore } from "../state/document-context";
@@ -39,7 +26,22 @@ import { libraryClient } from "./client";
 import { usePluginWindows } from "../plugins/plugin-windows";
 import { LibraryCard } from "./LibraryCard";
 import { isDraggable, libraryDragFor, applyLibraryItem } from "./library-actions";
-import { TEMPLATES_OFFERED } from "./templates";
+import { identity } from "@/editor/identity";
+import type { BrowserLayoutId } from "../product-types";
+import {
+  LIBRARY_SORTS,
+  SHELF_PLUGIN,
+  SHELVES,
+  useLibraryFilterGroups,
+  useRail,
+  type CardFor,
+  type LibraryDoorProps,
+  type LibraryEmptyProps,
+  type LibraryLayout,
+  type LibrarySectionedProps,
+  type LibraryToolbarProps,
+} from "./library-kit";
+import { StudioDoor, StudioEmpty, StudioSectioned, StudioToolbar } from "./StudioLibrary";
 import { auditionItem } from "./audition";
 import { useLibraryFocus, useLibraryResults, useLibraryUi } from "./use-library";
 import { openPublisher } from "./PublishDialog";
@@ -63,41 +65,13 @@ import { TextLookPrefsBar } from "./TextLookPrefs";
  */
 
 /**
- * Browse order: the vocabulary first — the looks, motion and cuts you reach for
- * on almost every layer — then sounds, then the things that are already YOURS.
- * You do not browse for your own components; you go and get them.
- */
-/**
- * A shelf whose full catalogue lives in a dedicated BROWSER.
- *
- * The Library shows what a project already HAS — every shelf here is yours,
- * and the online catalogue only joins in when you search. Seven hundred sound
- * effects are not something to scroll past on the way to your components, so
- * the shelf does not try to be the place they live; the CATEGORY says where
- * they are. Inside a shelf there is room for a real card; on the home rails
- * there is not, and a growing label crammed into a 6-inch header row wraps
- * onto three lines the moment the panel narrows.
- */
-const SHELF_PLUGIN: Partial<Record<LibraryKind, { pluginId: string; label: string; icon: React.ComponentType<{ className?: string }> }>> = {
-  sound: { pluginId: "sfx", label: "sound effects", icon: Music },
-};
-
-/**
  * The door into a kind's full catalogue, drawn only INSIDE that kind's shelf.
  *
  * A dashed panel rather than a filled one: it is an opening, not an item, and
  * a solid card here would read as one more thing in the grid. Fixed height and
  * a single row, so no label length can make it reflow.
  */
-function CatalogueDoor({
-  kind,
-  query,
-  count,
-}: {
-  kind: LibraryKind;
-  query: string;
-  count: number;
-}) {
+function CatalogueDoor({ kind, query, count }: LibraryDoorProps) {
   const door = SHELF_PLUGIN[kind];
   if (!door) return null;
   const Icon = door.icon;
@@ -123,30 +97,6 @@ function CatalogueDoor({
   );
 }
 
-const SHELVES: Array<{ kind: LibraryKind; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { kind: "text", label: "Text looks", icon: Type },
-  { kind: "animation", label: "Animations", icon: Sparkles },
-  { kind: "transition", label: "Transitions", icon: ArrowLeftRight },
-  { kind: "sound", label: "Sounds", icon: Music },
-  { kind: "component", label: "Components", icon: Component },
-  { kind: "media", label: "Media", icon: Film },
-  ...(TEMPLATES_OFFERED ? [{ kind: "template" as const, label: "Templates", icon: LayoutTemplate }] : []),
-];
-
-const SOURCES: LibrarySource[] = ["user", "project", "builtin", "downloaded", "online"];
-
-/**
- * "Most used" leads, because in a project you have been working in for an hour
- * the thing you want next is overwhelmingly something you already reached for.
- * It promotes rather than reshuffles — see `searchLibrary`.
- */
-const LIBRARY_SORTS = [
-  { value: "used", label: "Most used here" },
-  { value: "relevance", label: "Best match" },
-  { value: "name", label: "Name" },
-  { value: "newest", label: "Newest" },
-] as const;
-
 /** How many cards render before the scroll sentinel asks for more. */
 const PAGE = 60;
 
@@ -160,6 +110,7 @@ const PAGE = 60;
 const TILE_PX = 104;
 
 export function LibraryBrowser() {
+  const layout = LAYOUTS[identity.browsers];
   const store = useDocStore();
   const ui = useLibraryUi();
   const results = useLibraryResults();
@@ -218,11 +169,12 @@ export function LibraryBrowser() {
    */
   const play = (item: LibraryItem) => auditionItem(item);
 
-  const cardFor = (item: LibraryItem) => (
+  const cardFor: CardFor = (item, view = ui.view) => (
     <LibraryCard
       key={item.id}
       item={item}
-      view={ui.view}
+      view={view}
+      tile={layout.tile}
       draggable={isDraggable(item)}
       starred={favorites.includes(item.id)}
       active={focus.activeIds.has(item.id)}
@@ -270,7 +222,7 @@ export function LibraryBrowser() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <Toolbar
+      <layout.Toolbar
         starredOnly={starredOnly}
         onToggleStarred={() => setStarredOnly((v) => !v)}
         loading={results.loadingOnline}
@@ -284,7 +236,7 @@ export function LibraryBrowser() {
             libraryClient()?.invalidate();
             ui.setText(ui.text);
           }}
-          className="flex shrink-0 items-center gap-1.5 border-b bg-amber-500/10 px-2.5 py-1 text-left text-[10px] text-amber-500/90 hover:bg-amber-500/15"
+          className="flex shrink-0 items-center gap-1.5 border-b bg-warning/10 px-2.5 py-1 text-left text-[10px] text-warning/90 hover:bg-warning/15"
         >
           <RefreshCw className="size-3" /> Offline — retry
         </button>
@@ -301,15 +253,15 @@ export function LibraryBrowser() {
       >
         <div className="p-2" style={zoom.style}>
           {visible.length === 0 ? (
-            <Empty loading={results.loadingOnline} query={ui.text} starred={starredOnly} />
+            <layout.Empty loading={results.loadingOnline} query={ui.text} starred={starredOnly} />
           ) : ui.kind === null ? (
             // Across every shelf at once — grouped, never mixed. One flat list
             // of a text look, a whoosh and someone's saved lower-third is not a
             // result set, it is a pile.
-            <Sectioned items={visible} cardFor={cardFor} onOpen={(k) => ui.setKind(k)} />
+            <layout.Sectioned items={visible} cardFor={cardFor} onOpen={(k) => ui.setKind(k)} />
           ) : (
             <>
-              <CatalogueDoor kind={ui.kind} query={ui.text} count={onlineCount} />
+              <layout.Door kind={ui.kind} query={ui.text} count={onlineCount} />
               <Grid items={visible.slice(0, limit)} view={ui.view} cardFor={cardFor} />
               {visible.length > limit && (
                 <More onVisible={() => setLimit((n) => n + PAGE)} remaining={visible.length - limit} />
@@ -325,45 +277,9 @@ export function LibraryBrowser() {
 
 /* -------------------------------------------------------------------------- */
 
-function Toolbar({
-  starredOnly,
-  onToggleStarred,
-  loading,
-  zoom,
-}: {
-  starredOnly: boolean;
-  onToggleStarred: () => void;
-  loading: boolean;
-  zoom: ReturnType<typeof usePanelZoom>;
-}) {
+function Toolbar({ starredOnly, onToggleStarred, loading, zoom }: LibraryToolbarProps) {
   const ui = useLibraryUi();
-  const { facets } = useLibraryResults();
-
-  /**
-   * Tags as a CHECKBOX GROUP, not `#hashtag` chips.
-   *
-   * The hash was decoration: these are the same words the facet rail shows
-   * without one, and a `#` in a filter list reads like syntax you are supposed
-   * to type somewhere. Capped, because a filter list that grows with the
-   * catalogue eventually IS the catalogue — the rail under the shelf bar is
-   * where a shelf's own vocabulary lives, and this is the long tail.
-   */
-  const groups: FilterGroup[] = [
-    {
-      id: "source",
-      label: "Source",
-      options: SOURCES.map((src) => ({ value: src, label: LIBRARY_SOURCE_LABELS[src] })),
-      selected: ui.sources,
-      onToggle: (v) => ui.toggleSource(v as LibrarySource),
-    },
-    {
-      id: "tags",
-      label: "Tags",
-      options: facets.slice(0, 14).map((f) => ({ value: f.tag, label: f.tag, count: f.count })),
-      selected: ui.tags,
-      onToggle: (v) => ui.toggleTag(v),
-    },
-  ];
+  const { groups, clear } = useLibraryFilterGroups();
 
   return (
     <div className="shrink-0 border-b">
@@ -380,7 +296,7 @@ function Toolbar({
               className={cn(
                 "flex size-(--control-h) shrink-0 items-center justify-center rounded-md transition-colors [&_svg]:size-3.5",
                 starredOnly
-                  ? "material-glass-raised text-amber-400"
+                  ? "material-glass-raised text-warning"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
@@ -398,10 +314,7 @@ function Toolbar({
           sorts={LIBRARY_SORTS}
           onSort={(v) => ui.setSort(v as LibrarySort)}
           groups={groups}
-          onClear={() => {
-            ui.clearTags();
-            for (const src of ui.sources) ui.toggleSource(src);
-          }}
+          onClear={clear}
         />
 
         <Tooltip>
@@ -531,7 +444,7 @@ function FacetRail() {
         onClick={() => ui.clearTags()}
         aria-pressed={ui.tags.length === 0}
         className={cn(
-          "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors",
+          "shrink-0 rounded-(--r-xs) px-2.5 py-1 text-[10px] font-medium transition-colors",
           ui.tags.length === 0
             ? "material-glass-raised text-primary"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -546,7 +459,7 @@ function FacetRail() {
           onClick={() => ui.toggleTag(f.tag)}
           aria-pressed={ui.tags.includes(f.tag)}
           className={cn(
-            "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium capitalize transition-colors",
+            "flex shrink-0 items-center gap-1 rounded-(--r-xs) px-2.5 py-1 text-[10px] font-medium capitalize transition-colors",
             ui.tags.includes(f.tag)
               ? "material-glass-raised text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -634,15 +547,15 @@ function Grid({
 }: {
   items: LibraryItem[];
   view: "grid" | "list";
-  cardFor: (item: LibraryItem) => React.ReactNode;
+  cardFor: CardFor;
 }) {
-  if (view === "list") return <div className="flex flex-col gap-0.5">{items.map(cardFor)}</div>;
+  if (view === "list") return <div className="flex flex-col gap-0.5">{items.map((item) => cardFor(item))}</div>;
   return (
     <div
       className="grid gap-2"
       style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_PX}px, 1fr))` }}
     >
-      {items.map(cardFor)}
+      {items.map((item) => cardFor(item))}
     </div>
   );
 }
@@ -671,15 +584,7 @@ const SECTION_CAP = 12;
  */
 const RAIL_PX = 196;
 
-function Sectioned({
-  items,
-  cardFor,
-  onOpen,
-}: {
-  items: LibraryItem[];
-  cardFor: (item: LibraryItem) => React.ReactNode;
-  onOpen: (kind: LibraryKind) => void;
-}) {
+function Sectioned({ items, cardFor, onOpen }: LibrarySectionedProps) {
   const groups = React.useMemo(() => {
     const map = new Map<LibraryKind, LibraryItem[]>();
     for (const item of items) {
@@ -703,7 +608,7 @@ function Sectioned({
             total={list.length}
             onOpen={() => onOpen(kind)}
           >
-            {list.slice(0, SECTION_CAP).map(cardFor)}
+            {list.slice(0, SECTION_CAP).map((item) => cardFor(item))}
           </Shelf>
         );
       })}
@@ -733,25 +638,7 @@ function Shelf({
   onOpen: () => void;
   children: React.ReactNode;
 }) {
-  const railRef = React.useRef<HTMLDivElement>(null);
-  const [overflow, setOverflow] = React.useState(false);
-
-  // Whether the rail can pan at all — re-measured when the panel resizes or the
-  // card size changes, which is exactly when the answer can differ.
-  React.useEffect(() => {
-    const el = railRef.current;
-    if (!el) return;
-    const measure = () => setOverflow(el.scrollWidth > el.clientWidth + 4);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [children]);
-
-  const pan = (dir: 1 | -1) => {
-    const el = railRef.current;
-    if (el) el.scrollBy({ left: dir * Math.max(160, el.clientWidth * 0.8), behavior: "smooth" });
-  };
+  const { railRef, overflow, pan } = useRail(children);
 
   return (
     <section className="group/shelf">
@@ -825,7 +712,7 @@ function More({ onVisible, remaining }: { onVisible: () => void; remaining: numb
   );
 }
 
-function Empty({ loading, query, starred }: { loading: boolean; query: string; starred: boolean }) {
+function Empty({ loading, query, starred }: LibraryEmptyProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-[11px] text-muted-foreground">
@@ -839,3 +726,12 @@ function Empty({ loading, query, starred }: { loading: boolean; query: string; s
     </p>
   );
 }
+
+/**
+ * The compositions, by product data (`ProductIdentity.browsers`). `plates` is
+ * the parts above; `studio` is `StudioLibrary`. Same state, cards, gestures.
+ */
+const LAYOUTS: Record<BrowserLayoutId, LibraryLayout> = {
+  plates: { Toolbar, Sectioned, Door: CatalogueDoor, Empty, tile: "plate" },
+  studio: { Toolbar: StudioToolbar, Sectioned: StudioSectioned, Door: StudioDoor, Empty: StudioEmpty, tile: "frame" },
+};

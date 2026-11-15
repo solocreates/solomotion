@@ -34,7 +34,7 @@ export function PerformChip() {
       {countIn !== null ? (
         <span className="tabular-nums">{countIn === 2 ? "1…" : "1… 2…"}</span>
       ) : (
-        recording && <span className="text-red-500">● Rec</span>
+        recording && <span className="text-destructive">● Rec</span>
       )}
       <X className="size-3" />
     </button>

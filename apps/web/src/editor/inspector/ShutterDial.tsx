@@ -130,8 +130,8 @@ export function ShutterDial({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ff8732" />
-          <stop offset="100%" stopColor="#ff2885" />
+          <stop offset="0%" style={{ stopColor: "var(--primary)" }} />
+          <stop offset="100%" style={{ stopColor: "color-mix(in oklab, var(--primary), #000 22%)" }} />
         </linearGradient>
       </defs>
 

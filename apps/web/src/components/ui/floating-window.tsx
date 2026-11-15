@@ -26,7 +26,8 @@ export type { WindowSize, WindowSizeHint, WindowSizes } from "./window-sizes";
  */
 
 /** Minimise and close: the small control height, the theme's smallest corner. */
-const TITLE_BUTTON =
+/** The window bar's quiet icon button; a panel inside a window reuses it. */
+export const TITLE_BUTTON =
   "grid size-(--control-h-sm) shrink-0 place-items-center rounded-(--r-xs) text-muted-foreground transition-colors hover:bg-hover hover:text-foreground [&_svg]:size-3.5";
 
 export interface WindowBounds {

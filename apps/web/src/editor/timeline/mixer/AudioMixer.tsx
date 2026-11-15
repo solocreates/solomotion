@@ -327,7 +327,7 @@ function Strip({
         <span aria-hidden className="h-2 w-1 shrink-0 rounded-full" style={{ background: color }} />
         <span className="truncate">{name}</span>
       </button>
-      <span ref={light} data-lit="0" aria-label="Clip" className="h-1 w-full rounded-full bg-muted data-[lit=1]:bg-[#ff4d4d]" />
+      <span ref={light} data-lit="0" aria-label="Clip" className="h-1 w-full rounded-full bg-muted data-[lit=1]:bg-destructive" />
       <div className="flex min-h-0 w-full flex-1 justify-center gap-1">
         <canvas ref={canvas} className={cn("h-full", wide ? "w-5" : "w-2.5")} />
         <Range
@@ -355,7 +355,7 @@ function Strip({
             aria-pressed={muted}
             aria-label={muted ? "Unmute" : "Mute"}
             onClick={onMute}
-            className={cn("size-4 rounded text-[9px] font-bold", muted ? "bg-[#ff4d4d] text-white" : "bg-muted text-muted-foreground hover:text-foreground")}
+            className={cn("size-4 rounded text-[9px] font-bold", muted ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}
           >
             M
           </button>
@@ -364,7 +364,7 @@ function Strip({
             aria-pressed={solo}
             aria-label={solo ? "Unsolo" : "Solo"}
             onClick={onSolo}
-            className={cn("size-4 rounded text-[9px] font-bold", solo ? "bg-[#f5c542] text-black" : "bg-muted text-muted-foreground hover:text-foreground")}
+            className={cn("size-4 rounded text-[9px] font-bold", solo ? "bg-warning text-background" : "bg-muted text-muted-foreground hover:text-foreground")}
           >
             S
           </button>

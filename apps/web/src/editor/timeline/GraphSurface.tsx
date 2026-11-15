@@ -8,7 +8,7 @@ import { usePxPerSec } from "./use-time-axes";
 import { GraphPanel } from "./GraphPanel";
 import { useGraphEditor } from "./graph-editor";
 import { useHeaderWidth } from "./header-width";
-import { activeCompId, timeToPx, timelineSpanMs } from "./timeline-utils";
+import { activeCompId, timelineSpanMs } from "./timeline-utils";
 
 /**
  * The graph editor as a STANDALONE surface.
@@ -32,8 +32,7 @@ export function GraphSurface({ fill }: { fill?: boolean }) {
   const setTab = useGraphEditor((s) => s.setTab);
   const compId = activeCompId(doc, useSession((s) => s.activeFrameId));
 
-  // Same formula the lanes use, so the two content widths cannot disagree.
-  const contentWidth = timeToPx(timelineSpanMs(doc, compId), pxPerSec) + 120;
+  const spanMs = timelineSpanMs(doc, compId);
 
   return (
     <div className={cn("min-h-0", fill ? "h-full" : "shrink-0")}>
@@ -41,7 +40,7 @@ export function GraphSurface({ fill }: { fill?: boolean }) {
         tab={tab}
         onTabChange={setTab}
         pxPerSec={pxPerSec}
-        contentWidth={contentWidth}
+        spanMs={spanMs}
         headerW={headerW}
         fill={fill}
       />

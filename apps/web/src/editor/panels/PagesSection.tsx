@@ -201,7 +201,7 @@ export function PagesSection({ doc }: { doc: MotionDocument }) {
             componentsActive ? "bg-selection text-selection-fg" : "text-fg-muted hover:bg-hover hover:text-fg",
           )}
         >
-          <Component className="size-3.5 shrink-0 text-[#B79BFF]" />
+          <Component className="size-3.5 shrink-0 text-(--kind-component)" />
           <span className="min-w-0 flex-1 truncate">{COMPONENTS_PAGE_NAME}</span>
           <span className="text-meta tabular-nums text-fg-faint">{componentCount}</span>
         </div>
@@ -322,7 +322,7 @@ function WorldsRow({ doc }: { doc: MotionDocument }) {
           title="Every 3D world in the project — pick one to step into it"
           className="flex h-(--control-h) w-full cursor-pointer select-none items-center gap-2 rounded-lg px-1.5 text-left text-body text-fg-muted transition-colors hover:bg-hover hover:text-fg"
         >
-          <Box className="size-3.5 shrink-0 text-[#FF9F43]" />
+          <Box className="size-3.5 shrink-0 text-(--kind-world)" />
           <span className="min-w-0 flex-1 truncate">3D worlds</span>
           <span className="text-meta tabular-nums text-fg-faint">{worlds.length}</span>
         </button>
@@ -340,7 +340,7 @@ function WorldsRow({ doc }: { doc: MotionDocument }) {
               }}
               className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left transition-colors hover:bg-hover"
             >
-              <Box className="size-3.5 shrink-0 text-[#FF9F43]" />
+              <Box className="size-3.5 shrink-0 text-(--kind-world)" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body">{frame.name || "World"}</span>
                 <span className="block truncate text-meta text-fg-muted">{parent ? `in ${parent.name || "a comp"}` : "Artboard"}</span>

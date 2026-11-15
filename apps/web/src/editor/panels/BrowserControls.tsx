@@ -62,12 +62,20 @@ export function BrowserSearch({
   loading = false,
   placeholder = "Search",
   className,
+  scope,
+  onLeaveScope,
 }: {
   value: string;
   onChange: (value: string) => void;
   loading?: boolean;
   placeholder?: string;
   className?: string;
+  /**
+   * What the search is narrowed to, drawn as a token in the field (Raycast's
+   * grammar): ⌫ on an empty field or the token's × leaves it.
+   */
+  scope?: string;
+  onLeaveScope?: () => void;
 }) {
   return (
     <div
@@ -81,10 +89,26 @@ export function BrowserSearch({
       ) : (
         <Search className="size-3.5 shrink-0 text-muted-foreground" />
       )}
+      {scope && (
+        <span className="flex h-5 shrink-0 items-center gap-0.5 rounded-(--r-xs) bg-primary/12 pl-1.5 pr-0.5 font-mono text-meta text-primary">
+          {scope}
+          <button
+            type="button"
+            aria-label={`Leave ${scope}`}
+            onClick={onLeaveScope}
+            className="flex size-4 items-center justify-center rounded-(--r-xs) text-primary/70 hover:text-primary"
+          >
+            <X className="size-2.5" />
+          </button>
+        </span>
+      )}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => e.key === "Escape" && onChange("")}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onChange("");
+          else if (e.key === "Backspace" && !value && scope) onLeaveScope?.();
+        }}
         placeholder={placeholder}
         className="w-full min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
       />
@@ -304,5 +328,27 @@ function CheckRow({
         <span className="shrink-0 tabular-nums text-[10px] text-muted-foreground">{count}</span>
       )}
     </button>
+  );
+}
+
+/**
+ * A frame tile's hairline (the `studio` browsers), drawn OVER the picture so a
+ * full-bleed preview cannot cover it: quiet at rest, brighter on hover, the
+ * accent when on (selected, or on the selection), the warning tone when the
+ * bytes are missing. Needs a `group` and a positioned, rounded parent.
+ */
+export function FrameEdge({ tone = "rest" }: { tone?: "rest" | "on" | "warn" }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute inset-0 rounded-[inherit] ring-inset transition-shadow",
+        tone === "on"
+          ? "ring-2 ring-primary"
+          : tone === "warn"
+            ? "ring-1 ring-warning/70"
+            : "ring-1 ring-line group-hover:ring-fg/25 group-focus-visible:ring-2 group-focus-visible:ring-primary",
+      )}
+    />
   );
 }

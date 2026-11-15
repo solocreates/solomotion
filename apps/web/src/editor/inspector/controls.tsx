@@ -13,6 +13,7 @@ import { isTypingTarget } from "../input/typing-target";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { PartLabel } from "@/components/ui/part-label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/lib/toast";
 import { copyProperties, pastePropertiesDomain } from "../state/clip-actions";
 import { useDocStore } from "../state/document-context";
@@ -65,6 +66,7 @@ export function PanelSection({
   hint,
   /** Drops the outer hairline + padding — for a section that IS the tab body. */
   flush,
+  enabled,
 }: {
   /**
    * Stable section id. Giving one turns the section into two things at once:
@@ -95,6 +97,13 @@ export function PanelSection({
   summary?: React.ReactNode;
   hint?: string;
   flush?: boolean;
+  /**
+   * The section's own on/off (Leveler, a shutter, a limiter that IS the
+   * section). A header control, not an `action`: it sits in the header's
+   * control column, on the same right edge as every switch in the body, and
+   * the closed summary says "Off" for free.
+   */
+  enabled?: { on: boolean; onChange: (on: boolean) => void; label?: string };
 }) {
   const stored = useSectionPrefs((s) => (id ? s.open[id] : undefined));
   const [local, setLocal] = React.useState(defaultOpen);
@@ -138,16 +147,20 @@ export function PanelSection({
     <section
       ref={ref}
       data-section={id}
+      data-off={enabled && !enabled.on ? "" : undefined}
       // A section is a HEADING + SPACE (v5 redesign, D6), not a box: the
       // hairline under every section made the inspector a stack of cards.
-      className={cn("pb-2 transition-colors duration-500", flash && "bg-selection")}
+      className={cn("transition-colors duration-500", flash && "bg-selection")}
     >
+      {/* The header is the ROW grid (title · controls · keyframe gutter), so
+          its switch and actions end exactly where the body's controls end —
+          a switch floated after the title text lined up with nothing. */}
       <div
         role={collapsible ? "button" : undefined}
         tabIndex={collapsible ? 0 : undefined}
         aria-expanded={collapsible ? open : undefined}
         className={cn(
-          "group/sec flex h-(--control-h-lg) items-center gap-1 pl-3 pr-1.5 outline-none",
+          "group/sec grid h-(--control-h-lg) grid-cols-[minmax(0,1fr)_auto_var(--key-gutter)] items-center gap-x-1.5 px-(--inset-panel) outline-none",
           collapsible && "cursor-pointer select-none",
         )}
         onClick={() => collapsible && setOpen(!open)}
@@ -159,42 +172,55 @@ export function PanelSection({
           }
         }}
       >
-        {hint ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <PartLabel level="head" text={title} className="truncate text-fg decoration-dotted underline-offset-2 hover:underline" />
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-56">
-              {hint}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <PartLabel level="head" text={title} className="truncate text-fg" />
-        )}
-        {count !== undefined && count > 0 && (
-          <span className="text-meta tabular-nums text-fg-faint">{count}</span>
-        )}
-        {/* The fold affordance trails the title and stays quiet until you reach
-            for the header — a column of chevrons down the left edge was the
-            loudest thing in the panel. A folded section always shows it. */}
-        {collapsible && (
-          <ChevronRight
-            className={cn(
-              "size-3 shrink-0 text-fg-faint transition-[transform,opacity] duration-150",
-              open ? "rotate-90 opacity-0 group-hover/sec:opacity-100" : "opacity-100",
-            )}
-          />
-        )}
-        <div className="flex-1" />
-        {!open && summary !== undefined && (
-          <div className="flex min-w-0 shrink items-center overflow-hidden">{summary}</div>
-        )}
-        {/* Stop clicks on actions (buttons, switches) from bubbling to the header toggle. */}
-        <div className="flex shrink-0 items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-          {actions}
+        <div className="flex min-w-0 items-center gap-1">
+          {hint ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PartLabel level="head" text={title} className="truncate text-fg decoration-dotted underline-offset-2 hover:underline" />
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-56">
+                {hint}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <PartLabel level="head" text={title} className="truncate text-fg" />
+          )}
+          {count !== undefined && count > 0 && (
+            <span className="text-meta tabular-nums text-fg-faint">{count}</span>
+          )}
+          {/* The fold affordance trails the title and stays quiet until you reach
+              for the header — a column of chevrons down the left edge was the
+              loudest thing in the panel. A folded section always shows it. */}
+          {collapsible && (
+            <ChevronRight
+              className={cn(
+                "size-3 shrink-0 text-fg-faint transition-[transform,opacity] duration-150",
+                open ? "rotate-90 opacity-0 group-hover/sec:opacity-100" : "opacity-100",
+              )}
+            />
+          )}
+          <div className="flex-1" />
+          {!open && (enabled && !enabled.on ? true : summary !== undefined) && (
+            <div className="flex min-w-0 shrink items-center overflow-hidden text-meta text-fg-faint">
+              {enabled && !enabled.on ? "Off" : summary}
+            </div>
+          )}
         </div>
+        {/* Stop clicks on actions (buttons, switches) from bubbling to the header toggle. */}
+        <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {actions}
+          {enabled && (
+            <Switch checked={enabled.on} onCheckedChange={enabled.onChange} aria-label={enabled.label ?? title} />
+          )}
+        </div>
+        <span aria-hidden />
       </div>
-      {open && <div className="grid gap-1 px-3 pb-2">{children}</div>}
+      {/* `minmax(0,1fr)`, not the implicit `auto` column: an auto track can't
+          shrink below its widest child's min-content, so one long name in a
+          picker pushed every row in the section past the panel's edge. */}
+      {open && (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-(--gap-row) px-(--inset-panel) pb-(--gap-section) pt-0.5">{children}</div>
+      )}
     </section>
   );
   if (!transfer) return body;
@@ -595,14 +621,50 @@ function bindingKind(value: KeyframeValue): "number" | "color" | "string" {
   return typeof value === "string" && /^#([0-9a-fA-F]{3,8})$/.test(value.trim()) ? "color" : "string";
 }
 
+/**
+ * A ROW'S SHAPE — decided by what the control IS, never by a width at the call
+ * site.
+ *
+ *  • `field`  — a scalar (number, colour, select, short segmented). The 56px
+ *               label column, so every value in a panel starts at the same x.
+ *  • `switch` — on/off. The label takes the row and the switch sits at the
+ *               field column's END, so every switch in a panel (and the section
+ *               header's) shares one right edge instead of trailing its label
+ *               text at a different x per row.
+ *  • `stack`  — a composite (a rule card, a list, chips, a meter with its own
+ *               readouts). The label leads on its own line and the control takes
+ *               the full width under it. Squeezing a composite into the value
+ *               column is what clipped "Duck under Dialogue" to "D".
+ *
+ * Composites DECLARE their shape once, beside their definition
+ * (`declareRowShape(DuckingEditor, "stack")`); every row that holds one is
+ * shaped right with no prop. `Switch` is declared here. The `stack` / `toggle`
+ * props remain for one-off composites built inline.
+ */
+export type RowShape = "field" | "switch" | "stack";
+
+const ROW_SHAPES = new WeakMap<object, RowShape>();
+
+/** Declare what row shape a control component needs. Call once, at its definition. */
+export function declareRowShape(component: object, shape: RowShape) {
+  ROW_SHAPES.set(component, shape);
+}
+declareRowShape(Switch, "switch");
+
+function shapeOfChild(children: React.ReactNode): RowShape | undefined {
+  const kids = React.Children.toArray(children);
+  if (kids.length !== 1 || !React.isValidElement(kids[0])) return undefined;
+  const type = kids[0].type;
+  return typeof type === "object" || typeof type === "function" ? ROW_SHAPES.get(type) : undefined;
+}
+
 export function PropRow({
   label,
   children,
   keyControl,
   /** Hides the label column entirely — for a full-bleed control under a row. */
   wide,
-  /** Top-aligns the label against a multi-row control (a paint stack, a list). */
-  start,
+  stack,
   hint,
   toggle,
 }: {
@@ -610,44 +672,28 @@ export function PropRow({
   children: React.ReactNode;
   keyControl?: React.ReactNode;
   wide?: boolean;
-  start?: boolean;
-  /**
-   * The control is a SWITCH — so the label, not the control, wants the room.
-   *
-   * The 56px label column exists so every value field in a panel starts at the
-   * same x, which is what gives Typography and Transform their vertical
-   * rhythm. A toggle has no value field to line up with: it is 28px of control
-   * against a column sized for numbers, so the only thing 56px achieves is
-   * clipping "Clip content" to "Clip cont…" beside a quarter-inch of switch
-   * and three inches of nothing. This opts the row out of the grid it gains
-   * nothing from, and no row that IS in that grid moves.
-   */
+  /** Force the `stack` shape — for a composite assembled inline at the call site. */
+  stack?: boolean;
+  /** Force the `switch` shape — for a switch wrapped in something else. */
   toggle?: boolean;
   /** Tooltip on the label. Prefer this over a paragraph of explanation. */
   hint?: string;
 }) {
+  const shape: RowShape = stack ? "stack" : toggle ? "switch" : (shapeOfChild(children) ?? "field");
+
+  const labelClass = "truncate text-fg-muted";
   const labelNode = hint ? (
     <Tooltip>
       <TooltipTrigger asChild>
         <PartLabel
           text={label ?? ""}
-          className={cn(
-            "w-fit max-w-full cursor-help text-fg-muted decoration-dotted underline-offset-2 hover:underline",
-            toggle ? "whitespace-nowrap" : "truncate",
-          )}
+          className={cn(labelClass, "w-fit max-w-full cursor-help decoration-dotted underline-offset-2 hover:underline")}
         />
       </TooltipTrigger>
       <TooltipContent side="left">{hint}</TooltipContent>
     </Tooltip>
   ) : (
-    <PartLabel
-      text={label ?? ""}
-      className={cn(
-        "text-fg-muted",
-        toggle ? "whitespace-nowrap" : "truncate",
-        start && "flex h-(--control-h) items-center",
-      )}
-    />
+    <PartLabel text={label ?? ""} className={labelClass} />
   );
 
   // Right-click the CONTROL for the full binding vocabulary. Mounted once, here,
@@ -675,25 +721,38 @@ export function PropRow({
       <div className="min-w-0">{children}</div>
     );
 
+  // The keyframe gutter: one width (`--key-gutter`) shared with the section
+  // header, so header actions end where every row's control ends.
+  const gutter = <div className="flex w-(--key-gutter) shrink-0 items-center justify-end">{keyControl ?? null}</div>;
+
+  if (shape === "stack" && !wide) {
+    return (
+      <div className="group/row grid min-w-0 grid-cols-[minmax(0,1fr)_var(--key-gutter)] items-center gap-x-1.5 gap-y-1.5 pt-1">
+        {labelNode}
+        {gutter}
+        {/* With nothing to key, the gutter is dead space under the label — the
+            composite takes it too. */}
+        <div className={cn("min-w-0", keyControl == null && "col-span-2")}>{control}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "group/row grid min-w-0 gap-x-1.5",
-        start ? "items-start" : "items-center",
+        "group/row grid min-w-0 items-center gap-x-1.5",
         wide
-          ? "grid-cols-[minmax(0,1fr)_20px]"
-          : toggle
-            ? "grid-cols-[auto_minmax(0,1fr)_20px]"
+          ? "grid-cols-[minmax(0,1fr)_var(--key-gutter)]"
+          : shape === "switch"
+            ? "grid-cols-[minmax(0,1fr)_auto_var(--key-gutter)]"
             : // The label column is a theme metric: CAPS and --var labels run
               // wider than sentence case, and truncating them is the failure.
-              "grid-cols-[var(--label-col,3.5rem)_minmax(0,1fr)_20px]",
+              "grid-cols-[var(--label-col,3.5rem)_minmax(0,1fr)_var(--key-gutter)]",
       )}
     >
       {!wide && labelNode}
       {control}
-      <div className={cn("flex w-5 shrink-0 justify-end", start && "h-(--control-h) items-center")}>
-        {keyControl ?? null}
-      </div>
+      {gutter}
     </div>
   );
 }

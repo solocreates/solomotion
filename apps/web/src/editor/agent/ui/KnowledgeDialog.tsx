@@ -255,7 +255,7 @@ function FeedbackTab() {
                   <span
                     className={cn(
                       "flex h-5 min-w-5 items-center justify-center rounded px-1 text-2xs font-semibold tabular-nums",
-                      c.maxSeverity >= 4 ? "bg-destructive/15 text-destructive" : c.maxSeverity >= 3 ? "bg-amber-500/15 text-amber-400" : "bg-muted text-muted-foreground",
+                      c.maxSeverity >= 4 ? "bg-destructive/15 text-destructive" : c.maxSeverity >= 3 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground",
                     )}
                     title="Severity"
                   >

@@ -1,0 +1,6 @@
+# Wrangler skips these when it uploads the assets (OpenNext copies public/
+# into .open-next/assets, this file included). models/ is the local dev copy
+# of the heavy engines: the app downloads them from its models host
+# (identity.hosts.models, `pnpm models:publish`), never from the bundle, and
+# one of them is past the 25 MiB per-file limit.
+models/

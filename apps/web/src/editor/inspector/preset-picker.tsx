@@ -194,7 +194,7 @@ function CategoryChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[10px] transition-colors",
+        "shrink-0 rounded-(--r-xs) px-2 py-0.5 text-[10px] transition-colors",
         active
           ? "bg-primary/15 text-foreground shadow-[inset_0_0_0_1px_var(--primary)]"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",

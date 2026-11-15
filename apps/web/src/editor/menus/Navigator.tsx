@@ -28,9 +28,9 @@ import { goToNode } from "../links/navigate";
 type Kind = Exclude<DocNodeKind, never>;
 
 const GROUPS: Array<{ kind: Kind; heading: string; cap: number; icon?: LucideIcon; tint?: string }> = [
-  { kind: "world", heading: "3D worlds", cap: 6, icon: Box, tint: "text-[#FF9F43]" },
+  { kind: "world", heading: "3D worlds", cap: 6, icon: Box, tint: "text-(--kind-world)" },
   { kind: "frame", heading: "Frames", cap: 8, icon: FrameIcon, tint: "text-(--tool-frame,#B18CFF)" },
-  { kind: "component", heading: "Components", cap: 6, icon: Component, tint: "text-[#B79BFF]" },
+  { kind: "component", heading: "Components", cap: 6, icon: Component, tint: "text-(--kind-component)" },
   { kind: "comp", heading: "Nested comps", cap: 6, icon: Film, tint: "text-muted-foreground" },
   { kind: "layer", heading: "Layers", cap: 12 },
   { kind: "page", heading: "Pages", cap: 4, icon: FileText, tint: "text-muted-foreground" },

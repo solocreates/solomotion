@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   CHROME_ALIGNS,
   axisOfEdge,
+  fitZonedBand,
   flyoutSide,
   slotKey,
   type ChromeAlign,
@@ -306,126 +307,17 @@ function crossAlign(edge: ChromeEdge): string {
 }
 
 /**
- * IS THE PRIMARY OCCUPANT SHOWING AT ALL?
- *
- * The top band's rule is a PRIORITY, not a fit test:
- *
- *     [ tool bar ··· scrolls ··· ] [ zoom · view ]     ← the view cluster OWNS the top-right
- *     [ tabs ]
- *
- * The view cluster never leaves the top-right corner; the armed tool's bar
- * takes whatever is left of that row and scrolls sideways when it needs more.
- * It used to be the other way round — the bar kept its full width and the
- * cluster dropped to the tabs' row whenever the bar was wide — which moved the
- * zoom every time you changed tools. A control you reach for by position must
- * not move.
- *
- * That also retired the fit MEASUREMENT (and its convergence guard): a decision
- * that changes the layout it just measured is a feedback loop, and this rule
- * no longer asks the layout anything but whether the bar rendered. That answer
- * does not depend on which row it sits in, so it cannot oscillate.
- *
- * `offsetParent` is null for a `display:none` occupant — the armed tool has no
- * bar — and then the view cluster joins the tabs on the one remaining line.
- */
-function usePrimaryShown(ref: React.RefObject<HTMLElement | null>, primaryId: string | undefined): boolean {
-  const [shown, setShown] = React.useState(true);
-  React.useLayoutEffect(() => {
-    const host = ref.current;
-    if (!host || !primaryId) return;
-    const primary = host.querySelector<HTMLElement>(`[data-chrome-item="${primaryId}"]`);
-    const next = !!primary && primary.offsetParent !== null;
-    if (next !== shown) setShown(next);
-  });
-  return shown;
-}
-
-/**
- * A horizontal band with a `secondLine` occupant: TWO ROWS, explicitly.
- *
- * Explicit rows rather than one wrapping line, because the two arrangements
- * above need different orders and a row you can re-fill is the honest way to
- * say that. Each row is `empty:hidden`, so a band with nothing on its first
- * line collapses to one visible line and the whole thing costs the canvas
- * nothing when the armed tool brings no bar.
- */
-function SplitBand({
-  edge,
-  items,
-  gap,
-  className,
-}: {
-  edge: ChromeEdge;
-  items: readonly ChromeItem[];
-  gap: number;
-  className?: string;
-}) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const primary = items.find((i) => !i.secondLine);
-  const beside = usePrimaryShown(ref, primary?.id);
-
-  const firstRow = beside ? items.filter((i) => !i.secondLine) : primary ? [primary] : [];
-  const secondRow = beside
-    ? items.filter((i) => i.secondLine)
-    : [...items.filter((i) => i.secondLine), ...items.filter((i) => !i.secondLine && i !== primary)];
-
-  return (
-    <div
-      ref={ref}
-      data-chrome-band={edge}
-      className={cn("pointer-events-none flex shrink-0 min-w-0 flex-col", "[&:not(:has(>*>*>*))]:hidden", className)}
-      style={{ gap: CHROME_ROW_GAP }}
-    >
-      {[firstRow, secondRow].map((row, i) => (
-        <div
-          key={i}
-          className={cn(
-            "pointer-events-none flex min-w-0 flex-row",
-            // The first row NEVER wraps: the bar shrinks (and scrolls) so the
-            // occupants after it keep their place. Only the bar may give way.
-            i === 0 ? "flex-nowrap [&>*+*]:shrink-0" : "flex-wrap",
-            // A ROW IS EMPTY WHEN ITS OCCUPANTS RENDERED NOTHING — not when it
-            // holds no elements.
-            //
-            // This was `empty:hidden`, and it never once fired. A row always
-            // holds its `Item` wrappers; an Item whose node renders null hides
-            // ITSELF, so the row keeps a child element, is not `:empty`, and
-            // stays displayed at zero height — where it still collects the
-            // band's `CHROME_ROW_GAP` and the stage's own margin below it.
-            //
-            // That is the "extra margin above the canvas when the armed tool
-            // has no bar" exactly: a phantom row nobody could see, charging
-            // rent. The height of the capsules was never the problem, and
-            // shrinking them (the top band spent a release in a squeezed
-            // half-height variant of the shared capsule) treated the symptom
-            // while the empty row went on paying for itself.
-            //
-            // A GRANDCHILD is the honest test: some Item rendered a real
-            // element. Same predicate `Band` already uses one level up, for
-            // the same reason.
-            "[&:not(:has(>*>*))]:hidden",
-            crossAlign(edge),
-          )}
-          style={{ gap }}
-        >
-          {row.map((item) => (
-            <Item key={item.id} item={item} gap={gap} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/**
  * A horizontal edge with a centre occupant: three zones of one grid, the
- * `chrome-zones` utility. The rule (sides at their content, centre capped and
- * scrolling, its own row on a narrow STAGE) is written once, in
- * `chrome-layout.ts`; this only says which occupant sits in which zone.
+ * `chrome-zones` utility. The rule (sides at their content, centre centred
+ * while it can be, a row of its own only when the start is there AND the three
+ * do not fit) is written once, in `chrome-layout.ts`; this says which occupant
+ * sits in which zone and publishes the fit as `data-fit`.
  */
 function ZoneBand({ edge, items, gap, className }: { edge: ChromeEdge; items: readonly ChromeItem[]; gap: number; className?: string }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const fit = useZonedBandFit(ref, gap);
   return (
-    <div data-chrome-band={edge} className={cn("chrome-zones pointer-events-none min-w-0 shrink-0", className)} style={{ columnGap: gap }}>
+    <div ref={ref} data-chrome-band={edge} data-fit={fit} className={cn("chrome-zones pointer-events-none min-w-0 shrink-0", className)} style={{ columnGap: gap }}>
       {CHROME_ALIGNS.map((align) => (
         <PlacementContext.Provider key={align} value={{ edge, align }}>
           <div
@@ -444,6 +336,70 @@ function ZoneBand({ edge, items, gap, className }: { edge: ChromeEdge; items: re
       ))}
     </div>
   );
+}
+
+/**
+ * The width an element WANTS: what it draws plus whatever its horizontal
+ * scrollers are hiding. A capsule that scrolls inside itself reports its
+ * squeezed box to `offsetWidth`, and deciding the layout from that would feed
+ * the layout's own answer back into the question.
+ */
+function naturalWidth(el: Element): number {
+  if (!(el instanceof HTMLElement) || el.offsetParent === null) return 0;
+  let w = el.offsetWidth;
+  for (const d of Array.from(el.querySelectorAll<HTMLElement>("*"))) {
+    const hidden = d.scrollWidth - d.clientWidth;
+    if (hidden > 1) {
+      const o = getComputedStyle(d).overflowX;
+      if (o === "auto" || o === "scroll" || o === "hidden") w += hidden;
+    }
+  }
+  return w;
+}
+
+/**
+ * Does the band fit on one row? Asked of the DOM only when something resized
+ * or swapped content (a tool armed, the nav appeared), never per frame.
+ */
+function useZonedBandFit(ref: React.RefObject<HTMLDivElement | null>, gap: number) {
+  const [fit, setFit] = React.useState<ReturnType<typeof fitZonedBand>>("row");
+  React.useEffect(() => {
+    const band = ref.current;
+    if (!band || typeof ResizeObserver === "undefined") return;
+    const zone = (a: ChromeAlign) => band.querySelector(`:scope > [data-zone="${a}"]`);
+    const sum = (a: ChromeAlign) => {
+      const z = zone(a);
+      if (!z) return 0;
+      const kids = Array.from(z.children).map(naturalWidth).filter((n) => n > 0);
+      return kids.length ? kids.reduce((x, y) => x + y, 0) + gap * (kids.length - 1) : 0;
+    };
+    let raf = 0;
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() =>
+        setFit(fitZonedBand({ band: band.clientWidth, start: sum("start"), center: sum("center"), end: sum("end"), gap })),
+      );
+    };
+    const ro = new ResizeObserver(measure);
+    // Every box whose size can change the answer: the band, each capsule, and
+    // each scroller's content (a scroller's own box does not resize when its
+    // content grows — that is what scrolling means).
+    const observe = () => {
+      ro.disconnect();
+      ro.observe(band);
+      for (const el of Array.from(band.querySelectorAll<HTMLElement>(":scope > [data-zone] > *, :scope > [data-zone] .edge-fade > *"))) ro.observe(el);
+      measure();
+    };
+    observe();
+    const mo = new MutationObserver(observe);
+    mo.observe(band, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [ref, gap]);
+  return fit;
 }
 
 /**
@@ -484,7 +440,6 @@ function Band({
   // and line-splitting are different jobs, so this is a fork in the SHAPE, not
   // a flag inside one.
   if (horizontal && mine.some((i) => i.secondLine)) {
-    if (!centred) return <SplitBand edge={edge} items={mine} gap={gap} className={className} />;
     // A CENTRED band with a second line (a 3D world: Blender's header, its
     // tool settings under it). The header keeps its centring — its own band —
     // and the line under it is a band of its own, so neither can shift the
@@ -574,12 +529,8 @@ export interface ChromeItem extends ChromePlacement {
   id: string;
   node: React.ReactNode;
   /**
-   * Never share a line with the band's PRIMARY occupant — take the line below
-   * it. The project tabs ask: the armed tool's bar changes with every tool
-   * while the tabs do not, and a 600px brush section beside a tab strip leaves
-   * both of them scrolled.
-   *
-   * This is what makes a horizontal band a two-row band. See `SplitBand`.
+   * Take the line under a CENTRED band's own (a 3D world's tool settings
+   * under its header): the two rows are two bands, so neither shifts the other.
    */
   secondLine?: boolean;
 }
@@ -636,21 +587,26 @@ export function StageChrome({
  */
 export const CHROME_CAPSULE = [
   // ONE PADDING, one gap, one radius — for the rail, the breadcrumb, the view
+  // (the radius and padding are `--nest-r`/`--nest-pad` in globals.css, so
+  // the chips inside stay concentric with them in every dialect)
   // cluster, the tool options bar and the project tabs alike.
   //
   // There used to be a second, half-padded variant for the top band, added to
   // stop that band looking tall. It was the wrong lever: the height came from
-  // a phantom row in `SplitBand` (see above), and shrinking the capsules to
+  // a phantom row in the old split band, and shrinking the capsules to
   // compensate left every control in the top band pressed against its own
   // edges while the rail below kept room to breathe. Two weights of one object
   // is also exactly the drift this constant exists to prevent.
-  "flex items-center gap-1 rounded-xl p-1",
+  "flex items-center gap-1",
   // The shared liquid-glass material — same object as every popover, menu and
   // floating window, so the canvas chrome belongs to the app rather than being
   // a lookalike maintained separately. Near-solid on purpose: at 75% alpha it
   // sat over a white artboard and turned mid-grey, and the whole rail read as
   // disabled. The blur gives depth; it no longer carries the surface colour.
   "material-glass",
+  // The theme's hook: the `tools` dialect repaints every stage capsule
+  // (globals.css, beside the glass switch), so the chrome reads as one family.
+  "stage-capsule",
   // The capsule itself never scrolls and never clips — that is what cost it its
   // rounded corners and its shadow. It only agrees to be SHORTER than its
   // content (`min-h-0`) so a scroller placed inside it can engage.

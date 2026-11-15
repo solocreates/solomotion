@@ -11,7 +11,7 @@ import { identity } from "./identity";
  * Support — quiet, never a nag.
  */
 
-const REPO_URL = "https://github.com/novincode/solomotion";
+const REPO_URL = "https://github.com/solocreates/solomotion";
 
 export const entitlements: Entitlements = {
   has: () => true,

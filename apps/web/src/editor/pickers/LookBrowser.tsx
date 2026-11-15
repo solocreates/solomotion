@@ -183,7 +183,7 @@ function Card({
             }}
             className={cn(
               "rounded p-0.5 transition-opacity",
-              starred ? "text-[#F5B843]" : "text-muted-foreground opacity-0 group-hover:opacity-100",
+              starred ? "text-warning" : "text-muted-foreground opacity-0 group-hover:opacity-100",
             )}
           >
             <Star className={cn("size-3", starred && "fill-current")} />

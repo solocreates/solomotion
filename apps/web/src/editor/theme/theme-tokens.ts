@@ -13,7 +13,7 @@
  */
 
 import { applyCursorPrefs } from "@solomotion/ui/cursors";
-import { parseHexColor } from "@solomotion/core";
+import { parseHexColor, setBrandFill } from "@solomotion/core";
 import {
   applyCompiled,
   compile,
@@ -140,6 +140,9 @@ export function applyThemeToDom(theme: Theme, prefs: ThemePrefs): void {
   const root = document.documentElement;
   const c = compile(theme, resolveMode(prefs.mode));
   applyCompiled(root, c);
+  // What a new shape is painted in follows the interface's primary.
+  const primary = c.vars["--primary"];
+  if (typeof primary === "string") setBrandFill(primary);
   // Custom properties compute with their var()s substituted, so this is the
   // real family list the next/font classes on <html> define.
   const code = getComputedStyle(root).getPropertyValue("--font-code").trim();

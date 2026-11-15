@@ -4,6 +4,7 @@ import { resizeCursor } from "@solomotion/ui/cursors";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useFieldBinding } from "@/components/ui/field-binding";
+import { FieldUnitSlot, useFieldUnit } from "@/components/ui/field-unit";
 import { dragModifiers, stepFactor } from "./drag-modifiers";
 import { beginHeldDrag, type HeldDrag } from "@/editor/input/hold-to-drag";
 import { useLiveValue } from "./use-live-value";
@@ -86,6 +87,7 @@ export function NumberInput({
   // that value and opens its source on click, instead of scrubbing a number the
   // driver would overwrite on the next frame.
   const dynamic = useDynamicControl();
+  const unitNode = useFieldUnit(unit);
   // …and the way to CREATE one: type `#frame` or `#layer.rotation * 2` straight
   // into the field. Offered before the numeric parse, because what was typed was
   // never a number — see `readTypedValue`.
@@ -259,10 +261,11 @@ export function NumberInput({
   const field = (
     <div
       className={cn(
-        // Tight chrome on purpose: in a 240px inspector the number is the point,
-        // so the affix label and unit give up their padding before the value
-        // starts truncating.
-        "group/num relative flex h-(--control-h) min-w-0 select-none items-center gap-px pl-1 pr-0.5 text-body tabular-nums tracking-[-0.01em]",
+        // The field's min-content is label + a few digits + the unit slot, and
+        // it does NOT drop below that (no `min-w-0` here): a field squeezed
+        // narrower than its own number used to let the value run under its
+        // unit. A row too narrow for its fields must stack, not overlap.
+        "group/num relative flex h-(--control-h) select-none items-center gap-1 px-1.5 text-body tabular-nums tracking-[-0.01em]",
         disabled ? "pointer-events-none opacity-40" : "cursor-ew-resize",
         dynamic?.className,
         className,
@@ -290,7 +293,7 @@ export function NumberInput({
         dynamic.field.source.kind === "variable" ? (
           <VariableToken field={dynamic.field} />
         ) : (
-          <span className="w-full truncate tabular-nums text-fg">{dynamic.field.preview ?? display}</span>
+          <span className="min-w-[3ch] flex-1 truncate tabular-nums text-fg">{dynamic.field.preview ?? display}</span>
         )
       ) : editing ? (
         <input
@@ -301,21 +304,19 @@ export function NumberInput({
           onKeyDown={onKeyDown}
           onPointerDown={(e) => e.stopPropagation()}
           data-num=""
-          className="w-full min-w-0 cursor-text bg-transparent outline-none"
+          className="w-full min-w-[3ch] flex-1 cursor-text bg-transparent outline-none"
           inputMode="decimal"
           spellCheck={false}
         />
       ) : (
         <span
           data-num=""
-          className={cn("w-full truncate", mixed || value === undefined ? "text-fg-faint" : "text-fg")}
+          className={cn("min-w-[3ch] flex-1 truncate", mixed || value === undefined ? "text-fg-faint" : "text-fg")}
         >
           {display}
         </span>
       )}
-      {unit && (
-        <span className="shrink-0 text-meta text-fg-faint">{unit}</span>
-      )}
+      {unitNode !== null && <FieldUnitSlot>{unitNode}</FieldUnitSlot>}
       {varQuery !== null && (
         <VariableSuggestList items={suggestions} active={pick} query={varQuery} onPick={(s) => linkVariable(s.id)} />
       )}

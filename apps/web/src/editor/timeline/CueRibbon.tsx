@@ -263,7 +263,7 @@ export function CueRibbon({ clip, pxPerSec }: { clip: CaptionTextClip; pxPerSec:
           className="pointer-events-none absolute right-0 top-0 flex items-center bg-gradient-to-l from-background/80 to-transparent pl-2 pr-0.5"
           style={{ height }}
         >
-          <ChevronsRight className="size-2.5 text-[#FBBF24]" />
+          <ChevronsRight className="size-2.5 text-warning" />
         </div>
       )}
 

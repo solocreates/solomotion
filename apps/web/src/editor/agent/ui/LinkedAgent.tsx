@@ -53,7 +53,7 @@ function AppMark({ mark, className }: { mark: string | null; className?: string 
 }
 
 function StatusDot({ linked }: { linked: boolean }) {
-  return <span className={cn("size-1.5 shrink-0 rounded-full", linked ? "bg-emerald-400" : "animate-pulse bg-primary")} />;
+  return <span className={cn("size-1.5 shrink-0 rounded-full", linked ? "bg-success" : "animate-pulse bg-primary")} />;
 }
 
 /** A square icon button with a real tooltip — the panel's one recipe for them. */
@@ -159,7 +159,7 @@ function ExamplePrompt() {
       className="group flex h-7 w-full items-center gap-2 rounded-md border bg-background/60 px-2 text-left text-2xs transition-colors hover:bg-accent"
     >
       <span className="min-w-0 flex-1 truncate text-foreground/85">“{EXAMPLE}”</span>
-      {copied ? <Check className="size-3 shrink-0 text-emerald-500" /> : <Copy className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />}
+      {copied ? <Check className="size-3 shrink-0 text-success" /> : <Copy className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />}
     </button>
   );
 }

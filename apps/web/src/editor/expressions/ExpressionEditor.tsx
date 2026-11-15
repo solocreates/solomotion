@@ -508,7 +508,7 @@ function DiagnosticsStrip({
           onClick={() => onGoTo(d.span)}
           className={cn(
             "flex items-start gap-1.5 px-2.5 py-1.5 text-left text-[11px] leading-snug transition-colors hover:bg-muted/60",
-            d.severity === "error" ? "text-destructive" : "text-amber-400",
+            d.severity === "error" ? "text-destructive" : "text-warning",
           )}
         >
           {d.severity === "error" ? (

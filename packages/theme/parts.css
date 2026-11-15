@@ -16,12 +16,29 @@
   initial-value: 0deg;
 }
 
-@keyframes dial-turn {
-  from {
-    transform: rotate(0deg);
+/* ONE TURN OF A DIAL, in four clicks: each quarter snaps past its mark and
+   settles (a dial clicking into a detent, not a spinner sliding), then holds
+   for the rest of its beat. `--o-turn` is where this dial starts, so the
+   wordmark's four o's — up, right, down, left — keep their quarter apart on
+   every beat and the turn reads as walking along the word. */
+@keyframes dial-step {
+  0%, 25%, 50%, 75% {
+    animation-timing-function: cubic-bezier(0.34, 1.5, 0.5, 1);
   }
-  to {
-    transform: rotate(270deg);
+  0% {
+    transform: rotate(var(--o-turn, 0deg));
+  }
+  16%, 25% {
+    transform: rotate(calc(var(--o-turn, 0deg) + 90deg));
+  }
+  41%, 50% {
+    transform: rotate(calc(var(--o-turn, 0deg) + 180deg));
+  }
+  66%, 75% {
+    transform: rotate(calc(var(--o-turn, 0deg) + 270deg));
+  }
+  91%, 100% {
+    transform: rotate(calc(var(--o-turn, 0deg) + 360deg));
   }
 }
 
@@ -31,6 +48,26 @@
        square; cards and menus may go fully square (they read --r-md/--r-lg). */
     --r-control: max(3px, var(--r-sm, calc(var(--radius) / 2)));
     --motion-snap: 110ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+
+  /* ══ CODE ════════════════════════════════════════════════════════════════
+     Shiki's token variables, mapped to the theme's own tones, so code wears
+     the look and mode wherever it shows: the site's docs, the studio's
+     agent chat and script editor. ONE palette. */
+  :root {
+    --code-foreground: var(--foreground);
+    --code-background: transparent;
+    --code-token-keyword: var(--primary);
+    --code-token-constant: color-mix(in oklab, var(--primary) 70%, var(--foreground));
+    --code-token-string: color-mix(in oklab, var(--primary) 45%, var(--foreground));
+    --code-token-string-expression: color-mix(in oklab, var(--primary) 45%, var(--foreground));
+    --code-token-comment: var(--fg-faint);
+    --code-token-function: var(--foreground);
+    --code-token-parameter: var(--muted-foreground);
+    --code-token-punctuation: var(--muted-foreground);
+    --code-token-link: var(--primary);
+    --code-token-inserted: var(--primary);
+    --code-token-deleted: var(--destructive, #ff6b6b);
   }
 
   /* ══ LABELS ══════════════════════════════════════════════════════════════
@@ -57,6 +94,15 @@
   }
   :root[data-labels="upper"] [data-part="label"][data-level="head"] {
     letter-spacing: 0.035em;
+  }
+  /* eyebrow — the site's section eyebrow: the code face, small, tracked caps.
+     A head names its region and steps back; the rows under it carry the weight. */
+  :root[data-heads="eyebrow"] [data-part="label"][data-level="head"] {
+    font-family: var(--font-code);
+    font-size: calc(var(--text-body) - 0.0625rem);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
   :root[data-labels="lower"] [data-part="label"] {
     text-transform: lowercase;
@@ -835,29 +881,51 @@
 
   /* ══ MENU ════════════════════════════════════════════════════════════════
      Context menus, dropdowns, selects, the menubar and the palette share one
-     surface and one item. */
+     surface and one item. `solid`, the default, is a floating plate with a lit
+     top edge (it sits above the chrome, so light catches it), items that light
+     in the theme's ACCENT rather than a grey slab, and icons that wake with
+     them: quiet at rest, the accent under the pointer. Every value is a token,
+     so dark, light and every preset get their own. */
   [data-part="menu"] {
     background-color: var(--popover);
     color: var(--popover-foreground);
     border: 1px solid var(--line);
-    border-radius: var(--r-md);
-    box-shadow: var(--elevation-3);
+    border-radius: var(--r-lg);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--foreground) 7%, transparent),
+      var(--elevation-3);
   }
   [data-part="menu-item"] {
     position: relative;
-    border-radius: var(--r-xs);
+    border-radius: var(--r-sm);
     outline: none;
+    transition: background-color 80ms ease-out, color 80ms ease-out;
+  }
+  [data-part="menu-item"] > svg {
+    color: var(--fg-muted, color-mix(in srgb, var(--foreground) 60%, transparent));
+    transition: color 80ms ease-out;
   }
   [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) {
-    background: var(--hover);
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
     color: var(--foreground);
   }
-  [data-part="menu-item"][data-disabled] {
-    pointer-events: none;
-    opacity: 0.5;
+  [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) > svg {
+    color: var(--primary);
   }
-  [data-part="menu-item"][data-variant="danger"] {
+  /* Disabled is a VALUE, not a presence. Radix writes `data-disabled` only on
+     a disabled item; cmdk writes it on every item, "true" or "false" — so a
+     bare `[data-disabled]` greyed out and froze every palette row in the app
+     (the add-effect list: dimmed, deaf to clicks, only Enter worked). */
+  [data-part="menu-item"]:is([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"]) {
+    pointer-events: none;
+    opacity: 0.45;
+  }
+  [data-part="menu-item"][data-variant="danger"],
+  [data-part="menu-item"][data-variant="danger"] > svg {
     color: var(--destructive);
+  }
+  [data-part="menu-item"][data-variant="danger"]:is([data-highlighted], [aria-selected="true"]) {
+    background: color-mix(in srgb, var(--destructive) 14%, transparent);
   }
   [data-part="menu-shortcut"] {
     margin-left: auto;
@@ -911,6 +979,12 @@
     background: color-mix(in srgb, var(--background) 14%, transparent);
     color: var(--background);
   }
+  /* Paper ink for icons too: the solid dialect's muted/accent icon would be
+     ink on ink here. */
+  :root[data-menu="inverted"] [data-part="menu-item"] > svg,
+  :root[data-menu="inverted"] [data-part="menu-item"]:is([data-highlighted], [data-state="open"], [aria-selected="true"]) > svg {
+    color: inherit;
+  }
   :root[data-menu="inverted"] :is([data-part="menu-shortcut"], [data-part="menu"] [data-el="muted"]) {
     color: color-mix(in srgb, var(--background) 55%, transparent);
   }
@@ -918,11 +992,13 @@
     background: color-mix(in srgb, var(--background) 18%, transparent);
   }
 
-  /* ══ THE DIAL LOADER — the mark's quarter steps round, a beat at a time. */
+  /* ══ THE DIAL LOADER — the mark's quarter clicks round, a beat at a time:
+     the same `dial-step` the turning wordmark uses, so the small loader and
+     the splash are one motion at two sizes. */
   [data-part="dial-loader"] [data-el="wedge"] {
     transform-box: view-box;
     transform-origin: 32px 32px;
-    animation: dial-turn var(--dial-beat, 1.6s) steps(4, jump-none) infinite;
+    animation: dial-step var(--dial-beat, 1.6s) infinite;
   }
   [data-part="wordmark"] {
     font-family: var(--font-display, inherit);
@@ -932,6 +1008,17 @@
   [data-part="wordmark"] [data-el="quarter"] {
     transition: transform 460ms cubic-bezier(0.2, 0.9, 0.25, 1);
   }
+  /* The small lockup (a top bar, a menu): the disc is denser so each o still
+     reads as a round letter, not a lone bright quarter. */
+  [data-part="wordmark"][data-size="small"] {
+    --dial-disc: color-mix(in oklab, var(--primary) 46%, var(--background));
+  }
+  /* The wordmark AS the loader: all four o's click round together, a hair
+     apart left to right (`--o-i`), so the word reads as one mechanism. */
+  [data-part="wordmark"][data-turning] [data-el="quarter"] {
+    animation: dial-step var(--dial-beat, 1.6s) infinite;
+    animation-delay: calc(var(--o-i, 0) * 45ms);
+  }
 
   @media (prefers-reduced-motion: reduce) {
     [data-part="dial-loader"] [data-el="wedge"] {
@@ -939,6 +1026,7 @@
     }
     [data-part="wordmark"] [data-el="quarter"] {
       transition: none;
+      animation: none;
     }
     [data-part="switch-thumb"],
     [data-part="tabs"] > [data-el="indicator"],

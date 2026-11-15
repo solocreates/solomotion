@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { FrameEdge } from "../panels/BrowserControls";
 import { LibraryArt } from "./LibraryArt";
 import { useSoundShape } from "./item-peaks";
 import { DRAG_OUT_PROPS } from "../panels/drag-out";
@@ -55,6 +56,13 @@ export interface LibraryCardProps {
   onDragStart: (e: React.PointerEvent, press: () => void) => void;
   onDelete?: () => void;
   onRename?: () => void;
+  /**
+   * How the card draws (the layout's call, `ProductIdentity.browsers`).
+   * `plate`: a card with a footer rule. `frame`: the preview is a small stage —
+   * a hairline frame on the theme's backdrop — with the name under it and the
+   * metadata in the code face. Same gestures either way.
+   */
+  tile?: "plate" | "frame";
 }
 
 const bytesLabel = (n: number) =>
@@ -89,6 +97,7 @@ function meta(item: LibraryItem): string {
 
 export function LibraryCard(props: LibraryCardProps) {
   const { item, view, starred, active, busy, draggable, onUse, onPlay, onToggleStar, onDragStart } = props;
+  const frame = props.tile === "frame";
   const [hover, setHover] = React.useState(false);
   const [auditioning, setAuditioning] = React.useState(false);
   const isSound = item.kind === "sound";
@@ -155,7 +164,7 @@ export function LibraryCard(props: LibraryCardProps) {
   const heavyBadge = heavy ? (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-background/85 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground backdrop-blur">
+        <span className={cn("absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-background/85 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground backdrop-blur", frame && "font-mono font-normal")}>
           <Gauge className="size-2.5" />
           Heavy
         </span>
@@ -165,7 +174,7 @@ export function LibraryCard(props: LibraryCardProps) {
   ) : null;
 
   const badge = !owned ? (
-    <span className="pointer-events-none absolute right-1.5 top-1.5 rounded bg-background/85 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground backdrop-blur">
+    <span className={cn("pointer-events-none absolute right-1.5 top-1.5 rounded bg-background/85 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground backdrop-blur", frame && "font-mono font-normal")}>
       {busy ? "…" : bytesLabel(downloadBytes(item))}
     </span>
   ) : item.source === "downloaded" ? (
@@ -190,8 +199,9 @@ export function LibraryCard(props: LibraryCardProps) {
       }}
       disabled={busy}
       className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition",
-        "hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-60",
+        frame
+          ? "flex size-6 shrink-0 items-center justify-center rounded-md bg-popover text-fg shadow-sm ring-1 ring-line transition hover:bg-primary hover:text-primary-foreground hover:ring-primary disabled:opacity-60"
+          : "flex size-6 shrink-0 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-60",
         "[&_svg]:size-3",
       )}
     >
@@ -211,12 +221,16 @@ export function LibraryCard(props: LibraryCardProps) {
       }}
       className={cn(
         "flex size-6 shrink-0 items-center justify-center rounded transition-opacity [&_svg]:size-3.5",
-        starred ? "text-amber-400" : "text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100",
+        starred ? "text-warning" : "text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100",
       )}
     >
       <Star className={cn(starred && "fill-current")} />
     </button>
   );
+
+  const metaClass = frame
+    ? "truncate font-mono text-meta text-fg-faint"
+    : "truncate text-[9px] text-muted-foreground";
 
   const body =
     view === "list" ? (
@@ -237,12 +251,19 @@ export function LibraryCard(props: LibraryCardProps) {
         // `material-glass-raised` is the app's ONE armed state — a brighter pane
         // of the same glass, with the accent carried by the label rather than a
         // saturated slab. Same object as the armed tool and the open panel.
-        className={cn(
-          "group flex w-full cursor-grab select-none items-center gap-2 rounded-md border border-transparent px-1.5 py-1 text-left outline-none transition-colors focus-visible:border-primary active:cursor-grabbing",
-          active
-            ? "material-glass-raised border-primary/40 text-primary"
-            : "hover:border-border hover:bg-accent/40",
-        )}
+        className={
+          frame
+            ? cn(
+                "group flex w-full cursor-grab select-none items-center gap-2 rounded-md px-1 py-1 text-left outline-none transition-colors focus-visible:bg-hover active:cursor-grabbing",
+                active ? "bg-primary/8 text-fg" : "hover:bg-hover",
+              )
+            : cn(
+                "group flex w-full cursor-grab select-none items-center gap-2 rounded-md border border-transparent px-1.5 py-1 text-left outline-none transition-colors focus-visible:border-primary active:cursor-grabbing",
+                active
+                  ? "material-glass-raised border-primary/40 text-primary"
+                  : "hover:border-border hover:bg-accent/40",
+              )
+        }
       >
         {/* A sound IS its waveform, so in a list it gets the whole line: the
             name sits left at a fixed share and the wave takes the rest. Every
@@ -252,21 +273,32 @@ export function LibraryCard(props: LibraryCardProps) {
           <>
             <div className="w-[38%] min-w-0 shrink-0 leading-tight">
               <div className="truncate text-[11px] font-medium">{item.name}</div>
-              {meta(item) && <div className="truncate text-[9px] text-muted-foreground">{meta(item)}</div>}
+              {meta(item) && <div className={metaClass}>{meta(item)}</div>}
             </div>
             <div className="relative h-6 min-w-0 flex-1 overflow-hidden rounded-sm">{art}</div>
           </>
         ) : (
           <>
-            <div className="relative h-6 w-11 shrink-0 overflow-hidden rounded-sm bg-stage/60">{art}</div>
+            <div className={cn("relative h-6 w-11 shrink-0 overflow-hidden rounded-sm", frame ? "stage-backdrop bg-stage" : "bg-stage/60")}>
+              {art}
+              {frame && <FrameEdge tone={active ? "on" : "rest"} />}
+            </div>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-[11px] font-medium">{item.name}</div>
-              {meta(item) && <div className="truncate text-[9px] text-muted-foreground">{meta(item)}</div>}
+              {meta(item) && <div className={metaClass}>{meta(item)}</div>}
             </div>
           </>
         )}
         {star}
-        {actionButton}
+        {frame ? (
+          // Quiet until the row is under the pointer; on touch there is no
+          // hover, so it stays. The row itself is the primary action either way.
+          <div className="transition-opacity [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
+            {actionButton}
+          </div>
+        ) : (
+          actionButton
+        )}
       </div>
     ) : (
       <div
@@ -284,23 +316,41 @@ export function LibraryCard(props: LibraryCardProps) {
         onMouseLeave={() => setHover(false)}
         title={item.blurb ?? item.name}
         className={cn(
-          "group relative flex cursor-grab select-none flex-col overflow-hidden rounded-lg border text-left outline-none transition-colors focus-visible:border-primary active:cursor-grabbing",
-          active ? "material-glass-raised border-primary/50" : "bg-card hover:border-primary/50",
+          "group relative flex cursor-grab select-none flex-col text-left outline-none transition-colors active:cursor-grabbing",
+          frame
+            ? "gap-1.5"
+            : cn(
+                "overflow-hidden rounded-lg border focus-visible:border-primary",
+                active ? "material-glass-raised border-primary/50" : "bg-card hover:border-primary/50",
+              ),
         )}
       >
-        <div className="relative aspect-4/3 w-full overflow-hidden bg-stage/60">
+        <div
+          className={cn(
+            "relative aspect-4/3 w-full overflow-hidden",
+            frame ? "stage-backdrop rounded-md bg-stage" : "bg-stage/60",
+          )}
+        >
           {art}
           {heavyBadge}
           {badge}
-          <div className="absolute bottom-1.5 left-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <div
+            className={cn(
+              "absolute bottom-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+              frame ? "right-1.5" : "left-1.5",
+            )}
+          >
             {actionButton}
           </div>
+          {frame && <FrameEdge tone={active ? "on" : "rest"} />}
         </div>
-        <div className="flex items-center gap-1 border-t px-1.5 py-1">
+        <div className={cn("flex items-center gap-1", frame ? "px-0.5" : "border-t px-1.5 py-1")}>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[11px] font-medium leading-4">{item.name}</div>
+            <div className={cn("truncate", frame ? "text-body leading-snug text-fg" : "text-[11px] font-medium leading-4")}>
+              {item.name}
+            </div>
             {meta(item) && (
-              <div className="truncate text-[9px] leading-3 text-muted-foreground">{meta(item)}</div>
+              <div className={frame ? metaClass : "truncate text-[9px] leading-3 text-muted-foreground"}>{meta(item)}</div>
             )}
           </div>
           {star}

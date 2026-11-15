@@ -3,9 +3,9 @@
 <p align="center">The open-source motion studio.</p>
 
 <p align="center">
-  <a href="https://github.com/novincode/solomotion/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/novincode/solomotion/ci.yml?branch=main&label=CI&style=flat&labelColor=24292f"></a>
-  <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-0b8a57?style=flat&labelColor=24292f"></a>
-  <a href="https://github.com/novincode/solomotion/releases"><img alt="Latest version" src="https://img.shields.io/github/v/release/novincode/solomotion?include_prereleases&sort=semver&label=version&style=flat&labelColor=24292f&color=0b8a57"></a>
+  <a href="https://github.com/solocreates/solomotion/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/solocreates/solomotion/ci.yml?branch=main&label=CI&style=flat&labelColor=24292f"></a>
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-0b8a57?style=flat&labelColor=24292f"></a>
+  <a href="https://github.com/solocreates/solomotion/releases"><img alt="Latest version" src="https://img.shields.io/github/v/release/solocreates/solomotion?include_prereleases&sort=semver&label=version&style=flat&labelColor=24292f&color=0b8a57"></a>
   <a href="https://github.com/sponsors/novincode"><img alt="Sponsors" src="https://img.shields.io/github/sponsors/novincode?label=sponsors&style=flat&labelColor=24292f&color=0b8a57"></a>
 </p>
 
@@ -49,7 +49,7 @@ hours that build it.
 
 **Spread it.** Without a budget, you are how people find out. Post about it,
 make a video or a tutorial, write about it, or show it to one person who makes
-videos. Then [tell us what you made](https://github.com/novincode/solomotion/issues/new?template=3-made-something.yml)
+videos. Then [tell us what you made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml)
 and you go on the wall below. Starring the repository helps more people find it.
 
 ## Supporters
@@ -60,7 +60,7 @@ Everyone who funds SoloMotion or makes something about it is listed here, in thr
 - **Sponsors.** Monthly supporters.
 - **Creators.** People who made a video, a tutorial, an article or a post.
 
-The wall is empty today. [Sponsor](https://github.com/sponsors/novincode) or [tell us what you made](https://github.com/novincode/solomotion/issues/new?template=3-made-something.yml) to be the first name on it.
+The wall is empty today. [Sponsor](https://github.com/sponsors/novincode) or [tell us what you made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml) to be the first name on it.
 
 ## Run it locally
 
@@ -68,7 +68,7 @@ You need [Node.js](https://nodejs.org) 22 or later and pnpm, which Node
 provides through Corepack.
 
 ```sh
-git clone https://github.com/novincode/solomotion.git
+git clone https://github.com/solocreates/solomotion.git
 cd solomotion
 corepack enable
 pnpm install
@@ -107,11 +107,11 @@ The studio opens at http://localhost:3000.
 Bug reports, fixes and ideas are welcome. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) for how a change goes from your machine to a
 release, and the [Code of Conduct](CODE_OF_CONDUCT.md). Questions go to
-[Discussions](https://github.com/novincode/solomotion/discussions). Report security
+[Discussions](https://github.com/solocreates/solomotion/discussions). Report security
 problems privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## License
 
-SoloMotion is free software under the [GNU General Public License v3.0](LICENSE).
+SoloMotion is free software under the [GNU Affero General Public License v3.0](LICENSE).
 You can use, study, change and share it. If you distribute a changed version,
-it stays open under the same license.
+or run one as a service for others, its source stays open under the same license.

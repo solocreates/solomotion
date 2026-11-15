@@ -20,6 +20,7 @@ import type { ImagePart, Message, Part, ToolCallPart, ToolOutput, ToolResultPart
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Markdown } from "./Markdown";
+import { HighlightedCode } from "../../scripts/HighlightedCode";
 import { toolLabel } from "./tool-labels";
 import { useDocStore } from "../../state/document-context";
 import type { LiveRun, LiveToolCall } from "../store";
@@ -38,6 +39,31 @@ import { useNow } from "../../runtime/use-now";
 
 export const fmtTokens = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n));
 export const fmtSecs = (ms: number) => (ms < 1000 ? `${Math.round(ms)}ms` : ms < 60_000 ? `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s` : `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`);
+
+/**
+ * A transcript row in the theme's MENU part: the same quiet item a dropdown
+ * draws, lit the way the theme's menu dialect lights a highlighted item
+ * (a tint, a caret, an inverted slab). Lit on hover, focus and while open.
+ */
+function QuietRow({ open, className, children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { open?: boolean }) {
+  const [hot, setHot] = React.useState(false);
+  return (
+    <button
+      type="button"
+      data-part="menu-item"
+      data-highlighted={hot || open ? "" : undefined}
+      aria-expanded={open}
+      onPointerEnter={() => setHot(true)}
+      onPointerLeave={() => setHot(false)}
+      onFocus={() => setHot(true)}
+      onBlur={() => setHot(false)}
+      className={cn("flex w-full min-w-0 items-center gap-2 px-2 py-1 text-left text-xs", className)}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
 
 // ── Thinking ─────────────────────────────────────────────────────────────────
 
@@ -65,7 +91,7 @@ export function ThinkingBlock({ text, live, ms }: { text: string; live?: boolean
         <div
           ref={bodyRef}
           className={cn(
-            "mt-1 whitespace-pre-wrap border-l-2 border-border pl-3 text-xs leading-relaxed text-muted-foreground/90",
+            "mt-1 whitespace-pre-wrap border-l border-line pl-3 text-xs leading-relaxed text-muted-foreground/90",
             live ? "max-h-28 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_24px)]" : "max-h-72 overflow-y-auto",
           )}
         >
@@ -91,11 +117,11 @@ function OutputView({ output }: { output: ToolOutput }) {
     <div className="space-y-1.5">
       {images.map((img, i) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={i} src={`data:${img.mediaType};base64,${img.data}`} alt="What the agent saw" className="max-h-64 w-auto rounded-md border" />
+        <img key={i} src={`data:${img.mediaType};base64,${img.data}`} alt="What the agent saw" className="max-h-64 w-auto rounded-(--r-sm) border border-line" />
       ))}
       {pretty && (
-        <pre className={cn("max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-background/70 p-2 font-mono text-2xs leading-snug", output.isError ? "text-destructive" : "text-muted-foreground")}>
-          {pretty.length > 6000 ? `${pretty.slice(0, 6000)}…` : pretty}
+        <pre className={cn("max-h-56 overflow-auto whitespace-pre-wrap rounded-(--r-sm) border border-line px-2.5 py-2 font-mono text-2xs leading-relaxed", output.isError ? "text-destructive" : "text-(--code-foreground)")}>
+          {output.isError || pretty.length > 6000 ? (pretty.length > 6000 ? `${pretty.slice(0, 6000)}…` : pretty) : <HighlightedCode code={pretty} lang={pretty === text ? "text" : "json"} />}
         </pre>
       )}
     </div>
@@ -128,33 +154,28 @@ export function ToolRow({
   const thumb = output?.content.find((c): c is ImagePart => c.type === "image");
   return (
     <div className="agent-rise">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="group flex w-full min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-xs transition-colors hover:bg-accent/60"
-        aria-expanded={open}
-      >
+      <QuietRow open={open} onClick={() => setOpen((v) => !v)} className="group">
         <span
           className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded-md border bg-background/60 [&_svg]:size-3",
-            status === "error" ? "border-destructive/40 text-destructive" : busy ? "text-primary" : "text-muted-foreground",
+            "flex size-4 shrink-0 items-center justify-center [&_svg]:size-3.5",
+            status === "error" ? "text-destructive" : busy ? "text-primary" : "text-fg-faint",
           )}
         >
           {busy ? <Loader2 className="animate-spin" /> : status === "error" ? <CircleAlert /> : <Icon />}
         </span>
-        <span className={cn("min-w-0 flex-1 truncate", busy ? "agent-shimmer" : status === "error" ? "text-destructive" : "text-foreground/85")}>
+        <span className={cn("min-w-0 flex-1 truncate", busy ? "agent-shimmer" : status === "error" ? "text-destructive" : "text-fg-muted group-data-[highlighted]:text-current")}>
           {busy ? label.running : label.done}
           {progress && busy ? ` · ${progress}` : ""}
         </span>
         {thumb && !open && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`data:${thumb.mediaType};base64,${thumb.data}`} alt="" className="h-5 w-auto shrink-0 rounded-sm border" />
+          <img src={`data:${thumb.mediaType};base64,${thumb.data}`} alt="" className="h-5 w-auto shrink-0 rounded-(--r-xs) border border-line" />
         )}
-        {ms !== undefined && !busy && <span className="shrink-0 tabular-nums text-2xs text-muted-foreground">{fmtSecs(ms)}</span>}
-        <ChevronRight className={cn("size-3 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100", open && "rotate-90 opacity-100")} />
-      </button>
+        {ms !== undefined && !busy && <span className="shrink-0 font-mono tabular-nums text-2xs text-fg-faint">{fmtSecs(ms)}</span>}
+        <ChevronRight className={cn("size-3 shrink-0 text-fg-faint opacity-0 transition group-data-[highlighted]:opacity-100", open && "rotate-90")} />
+      </QuietRow>
       {sub && (
-        <div className="ml-3.5 space-y-0.5 border-l border-border py-0.5 pl-3">
+        <div className="ml-4 space-y-0.5 border-l border-line py-0.5 pl-3">
           {sub.tools.slice(-6).map((t) => {
             const l = toolLabel(t.name, undefined);
             return (
@@ -168,9 +189,9 @@ export function ToolRow({
         </div>
       )}
       {open && (
-        <div className="ml-7 mt-1 space-y-1.5 pb-1">
-          <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-background/70 p-2 font-mono text-2xs leading-snug text-muted-foreground">
-            {name}({input !== undefined ? JSON.stringify(input, null, 2) : partialJson || ""})
+        <div className="ml-8 mt-1 space-y-1.5 pb-1">
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-(--r-sm) border border-line px-2.5 py-2 font-mono text-2xs leading-relaxed text-(--code-foreground)">
+            <HighlightedCode code={`${name}(${input !== undefined ? JSON.stringify(input, null, 2) : partialJson || ""})`} />
           </pre>
           {output && <OutputView output={output} />}
         </div>
@@ -209,16 +230,13 @@ function StepGroup({ calls, results }: { calls: ToolCallPart[]; results: Map<str
   if (calls.length <= 3) return <div className="space-y-0.5">{rows}</div>;
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-        aria-expanded={open}
-      >
-        <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
-        {calls.length} steps
-        {failed > 0 && <span className="text-destructive">· {failed} failed</span>}
-      </button>
+      <QuietRow open={open} onClick={() => setOpen((v) => !v)} className="text-fg-muted">
+        <ChevronRight className={cn("size-3.5 shrink-0 text-fg-faint transition-transform", open && "rotate-90")} />
+        <span className="flex-1">
+          {calls.length} steps
+          {failed > 0 && <span className="text-destructive"> · {failed} failed</span>}
+        </span>
+      </QuietRow>
       {open && <div className="space-y-0.5">{rows}</div>}
     </div>
   );
@@ -234,9 +252,9 @@ function Attachments({ parts }: { parts: Part[] }) {
       {items.map((p, i) =>
         p.type === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={i} src={`data:${p.mediaType};base64,${p.data}`} alt={p.name ?? "Attached image"} className="h-16 w-auto rounded-md border object-cover" />
+          <img key={i} src={`data:${p.mediaType};base64,${p.data}`} alt={p.name ?? "Attached image"} className="h-16 w-auto rounded-(--r-sm) border border-line object-cover" />
         ) : (
-          <span key={i} className="flex max-w-[12rem] items-center gap-1.5 rounded-md border bg-background/60 px-2 py-1 text-2xs text-muted-foreground">
+          <span key={i} className="flex max-w-[12rem] items-center gap-1.5 rounded-(--r-sm) bg-raised px-2 py-1 text-2xs text-fg-muted">
             {p.type === "file" ? <FileText className="size-3 shrink-0" /> : <Paperclip className="size-3 shrink-0" />}
             <span className="truncate">{p.type === "file" || p.type === "attachment" ? p.name : ""}</span>
           </span>
@@ -251,7 +269,7 @@ export function UserMessage({ message }: { message: Message }) {
   return (
     <div className="agent-rise flex flex-col items-end gap-1.5 pl-6">
       <Attachments parts={message.parts} />
-      {text && <div className="max-w-full whitespace-pre-wrap rounded-2xl rounded-br-md bg-secondary px-3 py-2 text-sm text-foreground [overflow-wrap:anywhere]">{text}</div>}
+      {text && <div className="max-w-full whitespace-pre-wrap rounded-(--r-md) bg-raised px-3 py-2 text-sm text-fg shadow-(--elevation-1) [overflow-wrap:anywhere]">{text}</div>}
     </div>
   );
 }
@@ -328,9 +346,9 @@ export function TurnRewind({ checkpoint, actor = "AI", iconOnly }: { checkpoint:
   const later = undo && ownTop !== "1" ? depth - 1 : 0;
   const tip = undo
     ? later > 0
-      ? `Undo this request — and the ${later} step${later === 1 ? "" : "s"} after it. ⌘⇧Z brings everything back.`
-      : "Undo everything this request changed (one step)."
-    : "Bring this request's changes back.";
+      ? `Undo this request and the ${later} step${later === 1 ? "" : "s"} after it. ⌘⇧Z brings them back.`
+      : "Undo everything this request changed"
+    : "Bring this request's changes back";
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -341,7 +359,7 @@ export function TurnRewind({ checkpoint, actor = "AI", iconOnly }: { checkpoint:
           }}
           aria-label={undo ? "Undo this request" : "Redo this request"}
           className={cn(
-            "flex h-6 items-center gap-1 rounded-md text-2xs transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-3.5",
+            "flex h-6 items-center gap-1 rounded-(--r-xs) text-2xs transition-colors hover:bg-hover hover:text-fg [&_svg]:size-3.5",
             iconOnly ? "w-6 justify-center" : "px-1.5",
           )}
         >
@@ -364,12 +382,12 @@ function RateButton({ up, active, onClick }: { up: boolean; active: boolean; onC
           onClick={onClick}
           aria-label={up ? "Good response" : "Bad response"}
           aria-pressed={active}
-          className={cn("flex size-6 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-3.5", active && "text-primary")}
+          className={cn("flex size-6 items-center justify-center rounded-(--r-xs) transition-colors hover:bg-hover hover:text-fg [&_svg]:size-3.5", active && "text-primary")}
         >
           <Icon />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom">{up ? "Good" : "Not good — tell us why"}</TooltipContent>
+      <TooltipContent side="bottom">{up ? "Good answer" : "Not good"}</TooltipContent>
     </Tooltip>
   );
 }
@@ -418,11 +436,11 @@ export function StatusLine({ live }: { live: LiveRun }) {
             : "Starting";
   return (
     <div className="flex items-center gap-2 text-2xs text-muted-foreground" aria-live="polite">
-      {live.retry ? <RotateCw className="size-3 animate-spin text-amber-500" /> : <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" /><span className="relative inline-flex size-2 rounded-full bg-primary" /></span>}
+      {live.retry ? <RotateCw className="size-3 animate-spin text-warning" /> : <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" /><span className="relative inline-flex size-2 rounded-full bg-primary" /></span>}
       <span className={cn("font-medium", !live.retry && "agent-shimmer")}>{doing}</span>
       <span className="tabular-nums">· {fmtSecs(elapsed)}</span>
       <span className="tabular-nums">· ↑ {fmtTokens(live.inputTokens)} ↓ {fmtTokens(out)}</span>
-      {live.queued.length > 0 && <span className="rounded bg-primary/15 px-1 text-primary">{live.queued.length} queued</span>}
+      {live.queued.length > 0 && <span className="rounded-(--r-xs) bg-primary/15 px-1 text-primary">{live.queued.length} queued</span>}
     </div>
   );
 }
@@ -431,8 +449,8 @@ export function Notice({ level, text }: { level: "info" | "warning" | "error"; t
   return (
     <div
       className={cn(
-        "agent-rise flex items-start gap-2 rounded-lg border px-2.5 py-2 text-xs",
-        level === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : level === "warning" ? "border-amber-500/40 bg-amber-500/10 text-amber-200" : "bg-muted/40 text-muted-foreground",
+        "agent-rise flex items-start gap-2 rounded-(--r-md) border px-2.5 py-2 text-xs",
+        level === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : level === "warning" ? "border-warning/40 bg-warning/10 text-warning" : "border-line bg-raised text-fg-muted",
       )}
       role={level === "error" ? "alert" : undefined}
     >

@@ -163,7 +163,7 @@ function HighlightBox({ box, candidate, quiet = false }: { box: PickBox; candida
       </div>
       <div
         aria-hidden
-        className="material-glass pointer-events-none fixed z-[98] flex h-5 max-w-64 items-center gap-1.5 rounded-full px-2 text-xs"
+        className="material-glass pointer-events-none fixed z-[98] flex h-5 max-w-64 items-center gap-1.5 rounded-(--r-xs) px-2 text-xs"
         style={{ left: Math.max(8, Math.min(left, window.innerWidth - 120)), top: tagTop }}
       >
         <PickGlyph candidate={candidate} className="size-3 shrink-0 text-primary" />

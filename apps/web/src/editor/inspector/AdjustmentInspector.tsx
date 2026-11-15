@@ -170,9 +170,9 @@ export function AdjustmentInspector({ clip }: { clip: AdjustmentClip }) {
                     className={cn(
                       "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border",
                       picked
-                        ? "border-[#A78BFA] bg-[#A78BFA] text-background"
+                        ? "border-(--kind-adjust) bg-(--kind-adjust) text-background"
                         : inherited
-                          ? "border-[#A78BFA]/50 bg-[#A78BFA]/20"
+                          ? "border-(--kind-adjust)/50 bg-(--kind-adjust)/20"
                           : "border-border",
                     )}
                   >

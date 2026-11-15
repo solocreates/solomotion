@@ -385,7 +385,7 @@ export function useDragOut() {
           {ghost.preview && <DragPreviewArt preview={ghost.preview} className="size-12" />}
           <span className="max-w-40 truncate">{ghost.label}</span>
           {ghost.count > 1 && (
-            <span className="absolute -right-2 -top-2 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+            <span className="absolute -right-2 -top-2 flex min-w-4 items-center justify-center rounded-(--r-xs) bg-primary px-1 text-[10px] font-bold text-primary-foreground">
               {ghost.count}
             </span>
           )}

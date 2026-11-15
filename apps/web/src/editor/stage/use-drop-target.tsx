@@ -149,7 +149,7 @@ function DropHighlight({
         className="pointer-events-none fixed z-90 flex items-end justify-center pb-6"
         style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
       >
-        <span className="rounded-full bg-background/90 px-2.5 py-1 text-[11px] text-muted-foreground shadow-lg backdrop-blur">
+        <span className="rounded-(--r-xs) bg-background/90 px-2.5 py-1 text-[11px] text-muted-foreground shadow-lg backdrop-blur">
           Drop on a layer
         </span>
       </div>,

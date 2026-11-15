@@ -2,10 +2,10 @@
   "name": "solomotion-workspace",
   "version": "1.0.0-beta.1",
   "private": true,
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/novincode/solomotion.git"
+    "url": "git+https://github.com/solocreates/solomotion.git"
   },
   "packageManager": "pnpm@10.15.0",
   "engines": {

@@ -38,7 +38,7 @@ export function PickGlyph({ candidate, className }: { candidate: GlyphSource; cl
   if (candidate.kind === "layer" && candidate.clip) return <ClipKindIcon clip={candidate.clip} className={className} />;
   if (candidate.kind === "frame" || candidate.kind === "page") {
     const Icon = FRAME_ICON[candidate.node ?? candidate.kind] ?? FrameIcon;
-    return <Icon className={cn(className, candidate.node === "component" && "text-[#B79BFF]")} />;
+    return <Icon className={cn(className, candidate.node === "component" && "text-(--kind-component)")} />;
   }
   if (candidate.glyph?.startsWith("variable:")) {
     const t = candidate.glyph.slice("variable:".length);

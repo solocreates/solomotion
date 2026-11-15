@@ -37,7 +37,7 @@ export function ComponentSection({ clips }: { clips: Clip[] }) {
       <PanelSection title="Component" collapsible={false}>
         <PropRow label="Main">
           <span className="flex min-w-0 items-center gap-1.5 truncate text-xs">
-            <Component className="size-3.5 shrink-0 text-[#9B7BFF]" />
+            <Component className="size-3.5 shrink-0 text-(--kind-component)" />
             {singleInstance.name}
           </span>
         </PropRow>

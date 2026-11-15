@@ -470,7 +470,7 @@ export function EdgeChip({
           </span>
           <div className="text-muted-foreground">{durationLabel(decor.durationMs, fps)}</div>
           {decor.tagline && <div className="text-muted-foreground">{decor.tagline}</div>}
-          {decor.warning && <div className="text-amber-400">{decor.warning}</div>}
+          {decor.warning && <div className="text-warning">{decor.warning}</div>}
           <div className="mt-1 text-[10px] text-muted-foreground">
             Drag the edge to retime · ⌫ removes it
           </div>
@@ -523,7 +523,7 @@ export function EdgeChip({
         {decor.warning && (
           <>
             <ContextMenuSeparator />
-            <ContextMenuItem disabled className="text-amber-400">
+            <ContextMenuItem disabled className="text-warning">
               {decor.warning}
             </ContextMenuItem>
           </>

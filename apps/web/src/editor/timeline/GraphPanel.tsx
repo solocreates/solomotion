@@ -14,7 +14,7 @@ import { timeToPx } from "./timeline-utils";
 import { HeaderGroup, HeaderSegment } from "./header-controls";
 import { useTimeSurface } from "./use-time-surface";
 import { useGraphEditor } from "./graph-editor";
-import { timelineView } from "./timeline-view";
+import { drawnTimeWidth, timelineView, useClientWidth } from "./timeline-view";
 import { beginPlayheadScrub, SCRUB_SURFACE } from "./scrub";
 import { CurvesSurface } from "./CurvesPanel";
 import { buildDopeRows, DopeSurface, DOPE_ROW_H, type DopeRow } from "./DopeSheetPanel";
@@ -67,14 +67,14 @@ export function GraphPanel({
   tab,
   onTabChange,
   pxPerSec,
-  contentWidth,
+  spanMs,
   headerW,
   fill,
 }: {
   tab: GraphTab;
   onTabChange: (tab: GraphTab) => void;
   pxPerSec: number;
-  contentWidth: number;
+  spanMs: number;
   /** Width of the timeline's track-header column — ours matches exactly. */
   headerW: number;
   /** True when this is the ONLY surface in the bottom slot (the lanes are
@@ -91,6 +91,8 @@ export function GraphPanel({
   const [valueZoom, setValueZoom] = React.useState(1);
   const leftRef = React.useRef<HTMLDivElement>(null);
   const viewRef = React.useRef<HTMLDivElement>(null);
+  // Same rule as the lanes (`drawnTimeWidth`), against this viewport.
+  const contentWidth = drawnTimeWidth(spanMs, pxPerSec, useClientWidth(viewRef));
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const bandRef = React.useRef<HTMLDivElement>(null);

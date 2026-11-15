@@ -8,11 +8,18 @@ import type { ProductIdentity } from "@/editor/product-types";
 export const identity: ProductIdentity = {
   name: "SoloMotion",
   ns: "solomotion",
-  webOrigin: "https://app.solomotion.app",
+  webOrigin: "https://open.solomotion.app",
   // One file format: a slice IS a .motion bundle, and the reader merges either.
   sliceExt: ".motion",
   siteUrl: "https://solomotion.app",
   defaultThemeId: "solomotion",
+  // Home is a single column under one band, closer to the site than to a file manager.
+  home: "studio",
+  browsers: "studio",
+  // The shared catalogue's examples are another product's work: no Explore, no example shelf.
+  examples: false,
+  // A freeform canvas asks nothing: New is a blank canvas, and you draw the frame.
+  newProject: "canvas",
   // A second custom domain on the same library bucket: one library, no copies.
   // Nothing may depend on these resolving before the domain exists.
   hosts: {

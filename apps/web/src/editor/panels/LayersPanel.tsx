@@ -1322,7 +1322,7 @@ function LayerNodeRow({
           className={cn(
             "shrink-0 rounded-sm px-1 py-px text-[8px] font-semibold uppercase tracking-wide transition-colors",
             stencil
-              ? "bg-[#8AB4FF]/20 text-[#8AB4FF] hover:bg-[#8AB4FF]/30"
+              ? "bg-(--kind-composite)/20 text-(--kind-composite) hover:bg-(--kind-composite)/30"
               : "text-muted-foreground/70 opacity-0 hover:text-foreground group-hover/row:opacity-100",
           )}
           onPointerDown={(e) => e.stopPropagation()}
@@ -1469,10 +1469,10 @@ function RowIcon({ row }: { row: Row }) {
   // Component definitions and instances read as a purple ◈ (Figma
   // recognizability) — distinct from a plain frame / nested comp.
   if (row.type === "frame") {
-    if (row.frame.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-[#FFB86C]" />;
-    if (row.frame.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-[#FFB86C]" />;
+    if (row.frame.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-(--kind-drawing)" />;
+    if (row.frame.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-(--kind-drawing)" />;
     return isComponentFrame(row.frame) ? (
-      <Component className="size-3.5 shrink-0 text-[#B79BFF]" />
+      <Component className="size-3.5 shrink-0 text-(--kind-component)" />
     ) : (
       <FrameIcon className="size-3.5 shrink-0 text-(--tool-frame,#B18CFF)" />
     );
@@ -1482,12 +1482,12 @@ function RowIcon({ row }: { row: Row }) {
     const g = locateClip(doc, row.groupId)?.clip;
     if (g?.kind === "group" && (g.rig || g.switch)) {
       const Own = clipIcon(g);
-      return <Own className="size-3.5 shrink-0 text-[#ff8732]" />;
+      return <Own className="size-3.5 shrink-0 text-(--kind-rig)" />;
     }
     const Icon = COMPOSITE_ICONS[row.mode];
     return (
       <Icon
-        className={cn("size-3.5 shrink-0", row.mode === "pass" ? "text-muted-foreground" : "text-[#8AB4FF]")}
+        className={cn("size-3.5 shrink-0", row.mode === "pass" ? "text-muted-foreground" : "text-(--kind-composite)")}
       />
     );
   }
@@ -1496,10 +1496,10 @@ function RowIcon({ row }: { row: Row }) {
     // A nested clip WEARS its source's mode: flipbooks and stills read as
     // themselves everywhere, not as anonymous "nested" films.
     const source = doc.frames.find((f) => f.id === (row.clip as { sourceFrameId: string }).sourceFrameId);
-    if (source?.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-[#FFB86C]" />;
-    if (source?.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-[#FFB86C]" />;
+    if (source?.mode === "flipbook") return <Layers2 className="size-3.5 shrink-0 text-(--kind-drawing)" />;
+    if (source?.mode === "static") return <ImageIcon className="size-3.5 shrink-0 text-(--kind-drawing)" />;
     if (componentFrameOfClip(doc, row.clip)) {
-      return <Component className="size-3.5 shrink-0 text-[#B79BFF]" />;
+      return <Component className="size-3.5 shrink-0 text-(--kind-component)" />;
     }
   }
   const Icon = clipIcon(row.clip);

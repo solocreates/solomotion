@@ -168,7 +168,7 @@ export function EyedropperOverlay({
         {/* Hex chip below the lens. */}
         <div
           ref={chipRef}
-          className="absolute left-1/2 top-full mt-2 -translate-x-1/2 rounded-md border border-white/10 bg-[#131316]/95 px-2 py-0.5 font-mono text-[11px] tabular-nums text-white shadow-lg backdrop-blur"
+          className="absolute left-1/2 top-full mt-2 -translate-x-1/2 rounded-(--r-xs) border border-line bg-popover/95 px-2 py-0.5 font-mono text-[11px] tabular-nums text-popover-foreground shadow-lg backdrop-blur"
         />
       </div>
     </div>

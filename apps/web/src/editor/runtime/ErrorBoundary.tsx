@@ -116,7 +116,7 @@ function PanelFallback({ name, error, retry }: { name: string; error: EngineErro
     <div className="flex h-full min-h-0 items-center justify-center p-4">
       <div className="flex w-full max-w-72 flex-col gap-3 rounded-lg border bg-card/60 p-4">
         <div className="flex items-start gap-2.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-400" />
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
           <div className="min-w-0">
             <div className="text-[12px] font-semibold text-foreground">{name} couldn’t draw</div>
             <div className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-muted-foreground">
@@ -176,7 +176,7 @@ export function CrashScreen({
     <div className={cn("flex min-h-dvh flex-col items-center justify-center overflow-y-auto bg-background p-6 text-foreground", className)}>
       <div className="flex w-full max-w-md flex-col gap-5">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-400" />
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
           <div className="min-w-0">
             <h1 className="text-base font-semibold tracking-tight">{identity.name} hit a problem it couldn’t recover from</h1>
             <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">

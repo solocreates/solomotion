@@ -1707,6 +1707,8 @@ export const useSession = create<SessionState>((set, get) => ({
       workRange: null,
       workRangeEnabled: false,
       brushEngineByFrame: {},
+      // A canvas with no frame has one thing to do first: draw one.
+      ...(firstFrameId === null ? { tool: "frame" as const } : {}),
     }),
   setSelectedKeyframes: (ids) => set({ selectedKeyframeIds: ids }),
   setSelectedMarkers: (ids) => set({ selectedMarkerIds: ids }),

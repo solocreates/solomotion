@@ -84,9 +84,22 @@ import { createMediaAdapter } from "./media-adapter";
 import { useMediaReviewUi } from "./MediaReviewDialog";
 import { useMediaDrag } from "./use-media-drag";
 import { DRAG_OUT_SURFACE } from "./drag-out";
-import { BrowserFilters, BrowserSearch } from "./BrowserControls";
+import { BrowserFilters, BrowserSearch, FrameEdge } from "./BrowserControls";
 import { DRAG_OUT_PROPS } from "./drag-out";
 import { isTypingFocused } from "../input/typing-target";
+import { identity } from "@/editor/identity";
+import { MediaDropZone, MediaSelectionFloat, StudioMediaHead, assetMeta } from "./MediaStudio";
+
+/**
+ * The composition, by product data (`ProductIdentity.browsers`): `plates`
+ * keeps the footer bar and card plates; `studio` puts Import in the head,
+ * floats the selection's actions and draws items as frames (`MediaStudio`).
+ */
+const STUDIO = identity.browsers === "studio";
+/** Items draw as frames (`FrameEdge`, mono facts) rather than plates. */
+const FRAME = STUDIO;
+/** A frame carries no plate or footer, so two fit a narrow panel, as in a media pool. */
+const FRAME_TILE_PX = 84;
 
 /**
  * The media library — a full file manager over the project's imported media,
@@ -280,8 +293,28 @@ export function MediaLibrary() {
   // timeline, so it wins and the slider is gone. This is only where it starts.
   const gridStyle = {
     ...zoom.style,
-    gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_PX}px, 1fr))`,
+    gridTemplateColumns: `repeat(auto-fill, minmax(${FRAME ? FRAME_TILE_PX : TILE_PX}px, 1fr))`,
   } as React.CSSProperties;
+
+  // The SAME search field and filter popover the library uses, in either head.
+  const searchControls = (
+    <>
+      <BrowserSearch value={search.query} onChange={(v) => fm.getState().setSearch(v)} />
+      <BrowserFilters
+        view={view}
+        onView={setView}
+        zoom={zoom}
+        sort={sort.key}
+        sorts={SORTS}
+        onSort={(key) =>
+          fm.getState().setSort({
+            key: key as SortKey,
+            dir: sort.key === key && sort.dir === "desc" ? "asc" : "desc",
+          })
+        }
+      />
+    </>
+  );
 
   return (
     <div
@@ -310,7 +343,14 @@ export function MediaLibrary() {
       }}
     >
       {dropActive && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-primary/5 text-xs font-medium text-primary">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 z-20 flex items-center justify-center",
+            STUDIO
+              ? "stage-backdrop bg-background/85 font-mono text-meta uppercase tracking-[0.12em] text-primary"
+              : "bg-primary/5 text-xs font-medium text-primary",
+          )}
+        >
           Drop to import
         </div>
       )}
@@ -320,33 +360,29 @@ export function MediaLibrary() {
           different heights with different clear buttons, two popovers at
           different widths, a sort dropdown here and a sort toggle group there.
           Nothing about narrowing a list differs between files and presets. */}
-      <div className="flex shrink-0 flex-col gap-1.5 border-b p-2">
-        <Breadcrumb fm={fm} compact maxDepth={2} />
-        <div className="flex items-center gap-1">
-          <BrowserSearch value={search.query} onChange={(v) => fm.getState().setSearch(v)} />
-          <BrowserFilters
-            view={view}
-            onView={setView}
-            zoom={zoom}
-            sort={sort.key}
-            sorts={SORTS}
-            onSort={(key) =>
-              fm.getState().setSort({
-                key: key as SortKey,
-                dir: sort.key === key && sort.dir === "desc" ? "asc" : "desc",
-              })
-            }
-          />
+      {STUDIO ? (
+        <StudioMediaHead
+          path={<Breadcrumb fm={fm} compact maxDepth={2} />}
+          search={searchControls}
+          onImport={pickFiles}
+          onNewFolder={() => setFolderDialog({ open: true, moveIds: null })}
+          onImportFolder={pickFolderInto}
+          onLinkFolder={canLink ? linkFolderHere : null}
+        />
+      ) : (
+        <div className="flex shrink-0 flex-col gap-1.5 border-b p-2">
+          <Breadcrumb fm={fm} compact maxDepth={2} />
+          <div className="flex items-center gap-1">{searchControls}</div>
         </div>
-      </div>
+      )}
 
       {orphans.length > 0 && (
         <button
           type="button"
           onClick={() => useMediaReviewUi.getState().openReview()}
-          className="flex shrink-0 items-center gap-2 border-b bg-amber-500/10 px-2 py-1.5 text-left text-[11px] text-amber-700 transition-colors hover:bg-amber-500/15 dark:text-amber-300"
+          className="flex shrink-0 items-center gap-2 border-b bg-warning/10 px-2 py-1.5 text-left text-[11px] text-warning transition-colors hover:bg-warning/15"
         >
-          <AlertTriangle className="size-3.5 shrink-0 text-amber-500" />
+          <AlertTriangle className="size-3.5 shrink-0 text-warning" />
           <span className="min-w-0 flex-1 truncate">
             {orphans.length} clip{orphans.length > 1 ? "s" : ""} not in library — review
           </span>
@@ -365,7 +401,9 @@ export function MediaLibrary() {
             viewportClassName={DRAG_OUT_SURFACE}
           >
             <div ref={scrollRef} onPointerDown={onMarqueeDown} className="relative flex flex-col p-2">
-              {nodes.length === 0 ? (
+              {nodes.length === 0 && STUDIO ? (
+                <MediaDropZone searching={view$.searching} onImport={pickFiles} />
+              ) : nodes.length === 0 ? (
                 <div className="px-4 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
                   <ImageIcon className="mx-auto mb-2 size-6 opacity-40" />
                   {view$.searching ? "No matches." : "No media here. Import files, or drop them onto the canvas."}
@@ -388,7 +426,7 @@ export function MediaLibrary() {
                   ))}
                 </div>
               ) : (
-                <div ref={gridRef} style={gridStyle} className="grid gap-2">
+                <div ref={gridRef} style={gridStyle} className={cn("grid", FRAME ? "gap-x-2 gap-y-3" : "gap-2")}>
                   {nodes.map((node) => (
                     <MediaCard
                       key={node.id}
@@ -431,57 +469,70 @@ export function MediaLibrary() {
         </ContextMenuContent>
       </ContextMenu>
 
-      {/* Sticky action bar */}
-      <div className="flex shrink-0 items-center gap-1 border-t p-2">
-        {selected.size > 0 ? (
-          <>
-            <span className="px-1 text-xs text-muted-foreground">{selected.size} selected</span>
-            <div className="flex-1" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => setFolderDialog({ open: true, moveIds: [...selected] })}
-            >
-              <FolderInput className="size-3.5" /> Move
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-destructive hover:text-destructive"
-              onClick={() => setDeleteIds([...selected])}
-            >
-              <Trash2 className="size-3.5" /> Delete
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="outline" size="sm" className="h-8 flex-1 gap-1.5" onClick={pickFiles}>
-              <Upload className="size-3.5" /> Import media
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="size-8 shrink-0" title="Folders">
-                  <FolderPlus className="size-3.5" />
+      {STUDIO ? (
+        selected.size > 0 && (
+          <MediaSelectionFloat
+            count={selected.size}
+            onMove={() => setFolderDialog({ open: true, moveIds: [...selected] })}
+            onDelete={() => setDeleteIds([...selected])}
+            onClear={() => fm.getState().clearSelection()}
+          />
+        )
+      ) : (
+        <>
+          {/* Sticky action bar */}
+          <div className="flex shrink-0 items-center gap-1 border-t p-2">
+            {selected.size > 0 ? (
+              <>
+                <span className="px-1 text-xs text-muted-foreground">{selected.size} selected</span>
+                <div className="flex-1" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={() => setFolderDialog({ open: true, moveIds: [...selected] })}
+                >
+                  <FolderInput className="size-3.5" /> Move
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setFolderDialog({ open: true, moveIds: null })}>
-                  <FolderPlus /> New folder
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={pickFolderInto}>
-                  <FolderInput /> Import folder…
-                </DropdownMenuItem>
-                {canLink && (
-                  <DropdownMenuItem onClick={linkFolderHere}>
-                    <Link2 /> Link folder…
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
-      </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-destructive hover:text-destructive"
+                  onClick={() => setDeleteIds([...selected])}
+                >
+                  <Trash2 className="size-3.5" /> Delete
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" className="h-8 flex-1 gap-1.5" onClick={pickFiles}>
+                  <Upload className="size-3.5" /> Import media
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="size-8 shrink-0" title="Folders">
+                      <FolderPlus className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setFolderDialog({ open: true, moveIds: null })}>
+                      <FolderPlus /> New folder
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={pickFolderInto}>
+                      <FolderInput /> Import folder…
+                    </DropdownMenuItem>
+                    {canLink && (
+                      <DropdownMenuItem onClick={linkFolderHere}>
+                        <Link2 /> Link folder…
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       <NewFolderDialog
         open={folderDialog.open}
@@ -661,32 +712,49 @@ function MediaCard(props: NodeProps) {
           {...DRAG_OUT_PROPS}
           onContextMenu={menu.normalize}
           className={cn(
-            "group relative flex select-none flex-col overflow-hidden rounded-lg border bg-card text-left transition",
-            "data-[drop-over=true]:border-primary data-[drop-over=true]:ring-2 data-[drop-over=true]:ring-primary/60",
-            selected ? "border-primary/70 ring-2 ring-primary/50" : "border-border hover:border-primary/50",
+            FRAME
+              ? "group relative flex select-none flex-col gap-1.5 rounded-lg text-left transition data-[drop-over=true]:ring-2 data-[drop-over=true]:ring-primary/60"
+              : cn(
+                  "group relative flex select-none flex-col overflow-hidden rounded-lg border bg-card text-left transition",
+                  "data-[drop-over=true]:border-primary data-[drop-over=true]:ring-2 data-[drop-over=true]:ring-primary/60",
+                  selected ? "border-primary/70 ring-2 ring-primary/50" : "border-border hover:border-primary/50",
+                  missing && !selected && "border-warning/50",
+                ),
             cut && "opacity-45",
-            missing && !selected && "border-amber-500/50",
           )}
         >
-          <div className="relative flex aspect-4/3 items-center justify-center overflow-hidden border-b bg-stage">
+          <div
+            className={cn(
+              "relative flex aspect-4/3 items-center justify-center overflow-hidden bg-stage",
+              FRAME ? "stage-backdrop rounded-md p-2" : "border-b",
+            )}
+          >
             {isFolder ? <Folder className="size-6 text-muted-foreground/70" /> : <AssetThumb asset={node.data as Asset} missing={missing} />}
             {missing && !isFolder && (
-              <span className="absolute left-1 top-1 rounded bg-amber-500/90 px-1 py-0.5 text-[9px] font-semibold text-white">
+              <span className={cn("absolute left-1 top-1 rounded bg-warning/90 px-1 py-0.5 text-[9px] font-semibold text-white", FRAME && "font-mono font-medium")}>
                 Missing
               </span>
             )}
             {linked && (
               <span
-                className="absolute left-1 top-1 flex items-center gap-0.5 rounded bg-primary/90 px-1 py-0.5 text-[9px] font-semibold text-primary-foreground"
+                className={cn("absolute left-1 top-1 flex items-center gap-0.5 rounded bg-primary/90 px-1 py-0.5 text-[9px] font-semibold text-primary-foreground", FRAME && "font-mono font-medium")}
                 title={linked.syncedAt ? `Synced ${new Date(linked.syncedAt).toLocaleString()}` : "Linked folder"}
               >
                 {syncing ? <RefreshCw className="size-2.5 animate-spin" /> : <Link2 className="size-2.5" />}
                 Linked
               </span>
             )}
+            {FRAME && <FrameEdge tone={selected ? "on" : missing ? "warn" : "rest"} />}
           </div>
           {renaming ? (
             <RenameInput fm={fm} id={node.id} initial={node.name} />
+          ) : FRAME ? (
+            <div className="min-w-0 px-0.5">
+              <div className="truncate text-body leading-snug text-fg">{node.name}</div>
+              <div className="truncate font-mono text-meta text-fg-faint">
+                {isFolder ? `${count} item${count === 1 ? "" : "s"}` : assetMeta(node.data as Asset) || "\u00a0"}
+              </div>
+            </div>
           ) : (
             <div className="flex items-baseline gap-1 px-1.5 py-1">
               <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{node.name}</span>
@@ -725,11 +793,21 @@ function MediaRow(props: NodeProps) {
           className={cn(
             "group flex select-none items-center gap-2 rounded-md border px-1.5 py-1 transition",
             "data-[drop-over=true]:border-primary data-[drop-over=true]:ring-1 data-[drop-over=true]:ring-primary/60",
-            selected ? "border-primary/60 bg-primary/5" : "border-transparent hover:bg-muted/50",
+            FRAME
+              ? cn("border-transparent px-1", selected ? "bg-primary/8" : "hover:bg-hover")
+              : selected
+                ? "border-primary/60 bg-primary/5"
+                : "border-transparent hover:bg-muted/50",
             cut && "opacity-45",
           )}
         >
-          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded border bg-stage">
+          <div
+            className={cn(
+              "relative flex size-8 shrink-0 items-center justify-center overflow-hidden bg-stage",
+              FRAME ? "stage-backdrop rounded-sm" : "rounded border",
+            )}
+          >
+            {FRAME && <FrameEdge tone={selected ? "on" : missing ? "warn" : "rest"} />}
             {isFolder ? <Folder className="size-4 text-muted-foreground/70" /> : <AssetThumb asset={node.data as Asset} missing={missing} small />}
             {linked &&
               (syncing ? (
@@ -741,10 +819,17 @@ function MediaRow(props: NodeProps) {
           {renaming ? (
             <RenameInput fm={fm} id={node.id} initial={node.name} />
           ) : (
-            <span className="min-w-0 flex-1 truncate text-xs">{node.name}</span>
+            <span className={cn("min-w-0 flex-1 truncate", FRAME ? "text-body text-fg" : "text-xs")}>{node.name}</span>
           )}
-          {isFolder && <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{count} item{count === 1 ? "" : "s"}</span>}
-          {missing && !isFolder && <span className="text-[9px] font-semibold text-amber-500">Missing</span>}
+          {FRAME && !isFolder && !missing && (
+            <span className="shrink-0 font-mono text-meta tabular-nums text-fg-faint">{assetMeta(node.data as Asset)}</span>
+          )}
+          {isFolder && (
+            <span className={cn("shrink-0 tabular-nums", FRAME ? "font-mono text-meta text-fg-faint" : "text-[10px] text-muted-foreground")}>
+              {count} item{count === 1 ? "" : "s"}
+            </span>
+          )}
+          {missing && !isFolder && <span className="text-[9px] font-semibold text-warning">Missing</span>}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-48">

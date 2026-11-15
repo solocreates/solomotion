@@ -252,7 +252,7 @@ function PerformPad({
     >
       <div className="flex items-center gap-2 px-1">
         <span className="min-w-0 truncate font-medium">{title ?? "Perform"}</span>
-        {recording && <span className="text-red-500">● Rec</span>}
+        {recording && <span className="text-destructive">● Rec</span>}
         <span className="ml-auto flex items-center gap-1">
           <button
             type="button"

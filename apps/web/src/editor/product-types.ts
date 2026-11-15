@@ -31,7 +31,13 @@ export interface Entitlements {
   refusal(feature: FeatureId, doing: string): string;
 }
 
-export type FeedbackTopic = "bug" | "feedback" | "contact";
+/** A Home composition a product may open in (see `ProductIdentity.home`). */
+export type HomeLayoutId = "browser" | "studio";
+
+/** How the Library and Media panels compose (see `ProductIdentity.browsers`). */
+export type BrowserLayoutId = "plates" | "studio";
+
+export type FeedbackTopic ="bug" | "feedback" | "contact";
 
 /** How people tell the product something broke or could be better. */
 export interface ProductFeedback {
@@ -74,6 +80,36 @@ export interface ProductIdentity {
   siteUrl: string;
   /** The look a fresh install opens in (a registered preset id). */
   defaultThemeId: string;
+  /**
+   * How Home is laid out (`editor/home/layouts`): `browser` is a file manager
+   * (a sidebar of places, the New row as tiles); `studio` is a single column
+   * under one top band (places as tabs, the New row as a shelf of frames drawn
+   * at their true shape, on the theme's backdrop). Same data, same filer
+   * engine, same actions; only the composition differs.
+   */
+  home: HomeLayoutId;
+  /**
+   * How the Library and Media panels compose. `plates`: shelves as icon tabs
+   * on glass plates, cards as plates, Media's actions in a footer bar.
+   * `studio`: shelves as a typographic index with the scope in the search
+   * field, previews as hairline frames on the theme's backdrop with mono
+   * metadata, Import in Media's head and selection actions in a float. Same
+   * data, controllers and gestures; only the composition differs.
+   */
+  browsers: BrowserLayoutId;
+  /**
+   * Home offers the library's community examples: the Explore place, and the
+   * examples a first run starts from. False: neither exists, and an empty
+   * Home is the New row alone.
+   */
+  examples: boolean;
+  /**
+   * What New does with no size picked. `ask`: the New project dialog (name,
+   * size, mode). `canvas`: no questions, a blank canvas with no frame, which
+   * opens on the Frame tool (a document with no frame always does), so the
+   * first gesture draws the board.
+   */
+  newProject: "ask" | "canvas";
   /** Where the app fetches what it never bundles. Env overrides (NEXT_PUBLIC_*) still win. */
   hosts: {
     /** The library catalogue root (templates, sounds, art styles), no trailing slash. */
@@ -128,10 +164,22 @@ export interface BrandAssets {
 export interface Product extends ProductIdentity {
   /** The small mark: rails, menus, favicons. */
   Mark: React.ComponentType<{ className?: string; size?: number }>;
-  /** The name as it is drawn (the top bar): set in the product's own letterforms. */
-  Wordmark: React.ComponentType<{ className?: string }>;
+  /**
+   * The logo as the top bar and Home draw it at full width — the product's
+   * real lockup, never its name in UI type. `busy`: the app is working (an
+   * agent, an export), and the lockup says so in its own motion. Narrow
+   * widths draw `Mark` (or `Loader`) alone.
+   */
+  Lockup: React.ComponentType<{ className?: string; busy?: boolean }>;
   /** Where Support sends money and what the share text says (an open product); null: none. */
-  support: { githubSponsors: string; buyMeACoffee: string | null; shareText: string } | null;
+  support: {
+    githubSponsors: string;
+    buyMeACoffee: string | null;
+    shareText: string;
+    /** The GitHub thing a person can back for free: the public repo (a star)
+     *  once there is one, until then the maintainer (a follow). */
+    github: { kind: "repo" | "user"; slug: string };
+  } | null;
   /** Waiting: loading, rendering, exporting. */
   Loader: React.ComponentType<{ className?: string; size?: number }>;
   /** The full-screen boot splash. */

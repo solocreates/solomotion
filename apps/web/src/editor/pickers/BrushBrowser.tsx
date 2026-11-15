@@ -458,7 +458,7 @@ function BrushRow({
         {customised && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="shrink-0 rounded-full bg-primary/15 px-1.5 text-[9px] leading-4 text-primary">
+              <span className="shrink-0 rounded-(--r-xs) bg-primary/15 px-1.5 text-[9px] leading-4 text-primary">
                 Edited
               </span>
             </TooltipTrigger>
@@ -466,7 +466,7 @@ function BrushRow({
           </Tooltip>
         )}
         {!brush.builtIn && (
-          <span className="shrink-0 rounded-full bg-foreground/10 px-1.5 text-[9px] leading-4 text-muted-foreground">
+          <span className="shrink-0 rounded-(--r-xs) bg-foreground/10 px-1.5 text-[9px] leading-4 text-muted-foreground">
             Custom
           </span>
         )}
@@ -483,7 +483,7 @@ function BrushRow({
           }}
           className={cn(
             "shrink-0 rounded p-0.5 transition-opacity",
-            starred ? "text-[#F5B843]" : "text-muted-foreground opacity-0 group-hover:opacity-100",
+            starred ? "text-warning" : "text-muted-foreground opacity-0 group-hover:opacity-100",
           )}
         >
           <Star className={cn("size-3", starred && "fill-current")} />

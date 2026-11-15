@@ -190,19 +190,19 @@ export function Composer({ panelHeight }: { panelHeight: number }) {
     >
       <div
         className={cn(
-          "rounded-xl border bg-card/80 shadow-sm transition-[border-color,box-shadow] focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_15%,transparent)]",
+          "rounded-(--r-lg) border border-line bg-raised shadow-(--elevation-2) transition-[border-color,box-shadow] focus-within:border-(--ring)",
           dragging && "border-dashed border-primary",
         )}
       >
         {drafts.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-2 pt-2">
             {drafts.map((d) => (
-              <span key={d.key} className="group relative flex items-center gap-1.5 rounded-lg border bg-background/70 py-1 pl-1 pr-6 text-2xs">
+              <span key={d.key} className="group relative flex items-center gap-1.5 rounded-(--r-sm) border border-line py-1 pl-1 pr-6 text-2xs">
                 {d.preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={d.preview} alt="" className="size-7 rounded object-cover" />
+                  <img src={d.preview} alt="" className="size-7 rounded-(--r-xs) object-cover" />
                 ) : (
-                  <span className="flex size-7 items-center justify-center rounded bg-muted text-muted-foreground">
+                  <span className="flex size-7 items-center justify-center rounded-(--r-xs) bg-hover text-fg-muted">
                     <FileText className="size-3.5" />
                   </span>
                 )}
@@ -214,7 +214,7 @@ export function Composer({ panelHeight }: { panelHeight: number }) {
                   type="button"
                   aria-label={`Remove ${d.file.name}`}
                   onClick={() => removeDraft(d.key)}
-                  className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-(--r-xs) text-fg-faint hover:bg-hover hover:text-fg"
                 >
                   <X className="size-3" />
                 </button>
@@ -229,7 +229,7 @@ export function Composer({ panelHeight }: { panelHeight: number }) {
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           rows={1}
-          placeholder={running ? "Add to what it's doing…" : "Ask for anything — design, animate, edit, generate"}
+          placeholder={running ? "Add to what it's doing…" : "Design, animate, edit, generate…"}
           aria-label="Message the agent"
           className="block w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
           style={{ maxHeight }}
@@ -265,7 +265,9 @@ export function Composer({ panelHeight }: { panelHeight: number }) {
                   type="button"
                   onClick={stopRun}
                   aria-label="Stop"
-                  className="ml-1 flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/90 text-background transition-[filter,transform] hover:brightness-90 active:translate-y-px"
+                  data-part="button"
+                  data-variant="secondary"
+                  className="ml-1 flex size-7 shrink-0 items-center justify-center rounded-(--r-control)"
                 >
                   <Square className="size-2.5 fill-current" />
                 </button>
@@ -280,15 +282,14 @@ export function Composer({ panelHeight }: { panelHeight: number }) {
                   onClick={() => void submit()}
                   disabled={!canSend}
                   aria-label={running ? "Queue message" : "Send"}
-                  className={cn(
-                    "ml-1 flex size-7 shrink-0 items-center justify-center rounded-lg transition-[background,opacity,transform] active:translate-y-px [&_svg]:size-4",
-                    canSend ? "material-action text-primary hover:brightness-110" : "bg-muted text-muted-foreground opacity-60",
-                  )}
+                  data-part="button"
+                  data-variant={canSend ? "primary" : "ghost"}
+                  className={cn("ml-1 flex size-7 shrink-0 items-center justify-center rounded-(--r-control) [&_svg]:size-4", !canSend && "text-fg-faint")}
                 >
                   {busy ? <Loader2 className="animate-spin" /> : <ArrowUp />}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">{running ? "Queue — it joins at the next step" : "Send  ↵"}</TooltipContent>
+              <TooltipContent side="top">{running ? "Queue: it joins at the next step" : "Send  ↵"}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -379,7 +380,7 @@ function Dictation({ onText }: { onText: (text: string) => void }) {
     const Ctor = (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike })
       .SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
     if (!Ctor) {
-      toast("Dictation needs a transcription connection in this browser", { description: "Add OpenAI, Groq or ElevenLabs in Agents → Connections." });
+      toast("Dictation needs a transcription connection in this browser", { description: "Add OpenAI, Groq or ElevenLabs in Agents › Connections." });
       return;
     }
     const rec = new Ctor();

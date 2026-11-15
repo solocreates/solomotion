@@ -29,14 +29,14 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/novincode/solomotion.git",
+    "url": "git+https://github.com/solocreates/solomotion.git",
     "directory": "products/solomotion/cli"
   },
-  "homepage": "https://github.com/novincode/solomotion/tree/main/products/solomotion/cli#readme",
+  "homepage": "https://github.com/solocreates/solomotion/tree/main/products/solomotion/cli#readme",
   "bugs": {
-    "url": "https://github.com/novincode/solomotion/issues"
+    "url": "https://github.com/solocreates/solomotion/issues"
   }
 }

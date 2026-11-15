@@ -14,6 +14,8 @@ import { commitProperty, useEffectiveValue } from "../inspector/animatable";
 import { KeyControl } from "../inspector/keyframe-controls";
 import { PropertyBindingMenu } from "../inspector/property-binding";
 import { useBoardStore } from "./board-store";
+import { FieldUnitProvider } from "@/components/ui/field-unit";
+import { fieldUnitFor } from "../inspector/unit-control";
 
 /**
  * A projection-node row's editor — the SIDEBAR field for a layer property, in
@@ -66,7 +68,7 @@ export function NodePropertyField({ clip, path }: { clip: Clip; path: string }) 
     // use, now in the node tree (drivable + keyframable like any other field).
     if (isFontFamily) {
       return (
-        <div className="w-28">
+        <div className="w-full min-w-0">
           <FontPicker value={typeof value === "string" ? value : undefined} onChange={(f) => commit(f)} />
         </div>
       );
@@ -74,7 +76,7 @@ export function NodePropertyField({ clip, path }: { clip: Clip; path: string }) 
     if (isFontWeight) {
       return (
         <Select value={String(typeof value === "number" ? value : 400)} onValueChange={(w) => commit(parseInt(w, 10))}>
-          <SelectTrigger className="h-6 w-24 text-[11px]">
+          <SelectTrigger className="h-(--node-field-h) w-full text-meta">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -98,7 +100,7 @@ export function NodePropertyField({ clip, path }: { clip: Clip; path: string }) 
         <Input
           value={typeof value === "string" ? value : ""}
           onChange={(e) => commit(e.target.value)}
-          className="h-6 w-24 text-[11px]"
+          className="h-(--node-field-h) w-full text-meta"
         />
       );
     }
@@ -109,13 +111,16 @@ export function NodePropertyField({ clip, path }: { clip: Clip; path: string }) 
         min={def.min}
         max={def.max}
         step={def.step}
-        className="h-6 w-16 text-[11px]"
+        className="h-(--node-field-h) w-full text-meta"
       />
     );
   };
 
   return (
-    <div className="ml-auto flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+    // The row's field column: the control fills it, the diamond trails it, and a
+    // length's unit sits INSIDE the field (the same chip the sidebar shows).
+    <div className="flex min-w-0 items-center justify-end gap-1" onPointerDown={(e) => e.stopPropagation()}>
+      <FieldUnitProvider unit={fieldUnitFor(clip, path)}>
       {drivenElsewhere ? (
         <PropertyBindingMenu
           clip={clip}
@@ -124,11 +129,12 @@ export function NodePropertyField({ clip, path }: { clip: Clip; path: string }) 
           label={def.label ?? path}
           literal={base as string | number}
         >
-          <div className="min-w-0">{control()}</div>
+          <div className="flex min-w-0 flex-1 justify-end">{control()}</div>
         </PropertyBindingMenu>
       ) : (
-        control()
+        <div className="flex min-w-0 flex-1 justify-end">{control()}</div>
       )}
+      </FieldUnitProvider>
       {/* A property driven by a wire on THIS board is shown as the wire — keep the
           keyframe cluster here so node rows still key like the sidebar does. */}
       <KeyControl clip={clip} property={path} currentValue={() => (value ?? base) as never} driverBadge={drivenElsewhere} />

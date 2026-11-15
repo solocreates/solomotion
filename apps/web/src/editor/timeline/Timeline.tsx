@@ -118,7 +118,7 @@ import { lookIcon } from "../physics/emitter-icons";
 import { EMITTER_LOOKS } from "@solomotion/core";
 import { useTimeSurface } from "./use-time-surface";
 import { laneZoomNow, pxPerSecNow, useLaneZoom, usePxPerSec } from "./use-time-axes";
-import { timelineView } from "./timeline-view";
+import { drawnTimeWidth, timelineView, useClientWidth } from "./timeline-view";
 import { useHeaderWidth, MIN_HEADER_W, MAX_HEADER_W } from "./header-width";
 import { TrackListTools } from "./TrackListTools";
 import { beginPlayheadScrub, SCRUB_SURFACE } from "./scrub";
@@ -412,7 +412,10 @@ export function Timeline() {
     }
     return { xMarkers: x, yMarkers: y };
   }, [rows, selectedClipIds, laneZoom]);
-  const contentWidth = timeToPx(spanMs, pxPerSec) + 120;
+  // The scroller less the compact header column: the time the lanes show.
+  const scrollerW = useClientWidth(scrollRef);
+  const contentWidth = drawnTimeWidth(spanMs, pxPerSec, scrollerW - (compact ? headerW : 0));
+  const drawnMs = pxToTime(contentWidth, pxPerSec);
 
   // Every gesture this surface has — ⌘/pinch zooms time, ⌥ zooms rows, two
   // fingers pinch and pan — through the ONE hook the flipbook sheet also uses.
@@ -889,7 +892,7 @@ export function Timeline() {
                   </div>
                 )}
                 <div className="relative flex min-h-full flex-col" style={{ width: contentWidth }}>
-                  <Ruler spanMs={spanMs} pxPerSec={pxPerSec} compId={compId} />
+                  <Ruler spanMs={spanMs} drawnMs={drawnMs} pxPerSec={pxPerSec} compId={compId} />
                   {/*
                    * flex-1: the lanes column fills whatever's left of the panel
                    * below the ruler (min-h-full on the row above makes that a
@@ -1789,7 +1792,7 @@ function RecordControl({ recording }: { recording: boolean }) {
           className={cn(
             "flex size-7 items-center justify-center rounded-md transition-colors [&_svg]:size-3.5",
             recording
-              ? "bg-red-500/15 text-red-500"
+              ? "bg-destructive/15 text-destructive"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -2516,11 +2519,13 @@ const TrackHeader = React.memo(function TrackHeader({ track, depth, inGroup }: {
   );
 });
 
-const Ruler = React.memo(function Ruler({ spanMs, pxPerSec, compId }: { spanMs: number; pxPerSec: number; compId: string }) {
+const Ruler = React.memo(function Ruler({ spanMs, drawnMs, pxPerSec, compId }: { spanMs: number; drawnMs: number; pxPerSec: number; compId: string }) {
   const store = useDocStore();
   const interval = niceTickIntervalMs(pxPerSec);
   const ticks: number[] = [];
-  for (let t = 0; t <= spanMs; t += interval) ticks.push(t);
+  // Counted across everything drawn, runway included: time past the last clip
+  // is still time you can scrub to and drop into.
+  for (let t = 0; t <= drawnMs; t += interval) ticks.push(t);
 
   return (
     <div

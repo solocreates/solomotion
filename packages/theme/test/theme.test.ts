@@ -51,7 +51,7 @@ describe("compile", () => {
     expect(c.vars["--control-h"]).toBe("1.75rem");
     expect(c.vars["--control-h-sm"]).toBe("1.5rem");
     expect(c.vars["--radius"]).toBe("0.75rem");
-    expect(c.vars["--font-num"]).toBe("var(--font-doto), ui-monospace, 'SF Mono', monospace");
+    expect(c.vars["--font-num"]).toBe("var(--font-geist-mono), ui-monospace, 'SF Mono', monospace");
     // Doto has a floor; small numbers take the code face.
     expect(c.vars["--font-num-small"]).toBe("var(--font-geist-mono), ui-monospace, 'SF Mono', monospace");
     expect(c.vars["--label-col"]).toBe("4.75rem");
@@ -65,7 +65,17 @@ describe("compile", () => {
       button: "solid",
       field: "well",
       menu: "solid",
+      tools: "float",
+      backdrop: "dots",
+      heads: "eyebrow",
     });
+  });
+  it("reads a file written before the stage parts as the look it had", () => {
+    const { tools: _t, backdrop: _b, heads: _h, ...older } = SOLOMOTION.parts;
+    const r = parseTheme({ ...SOLOMOTION, parts: older });
+    expect(r.ok && r.theme.parts.tools).toBe("capsule");
+    expect(r.ok && r.theme.parts.backdrop).toBe("plain");
+    expect(r.ok && r.theme.parts.heads).toBe("display");
   });
   it("gives each mode its own tones", () => {
     const dark = compile(SOLOMOTION, "dark");

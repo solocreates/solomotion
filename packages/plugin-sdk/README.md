@@ -1,6 +1,6 @@
 # @solomotion/plugin-sdk
 
-Types and validation for [SoloMotion](https://github.com/novincode/solomotion)
+Types and validation for [SoloMotion](https://github.com/solocreates/solomotion)
 plugins. The editor validates every plugin with this same package, so what
 type-checks here is what the host accepts.
 
@@ -76,4 +76,4 @@ more), so an unstyled plugin already looks at home. Your own CSS wins.
 
 ## License
 
-GPL-3.0-only
+AGPL-3.0-only

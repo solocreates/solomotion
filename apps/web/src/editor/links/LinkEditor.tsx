@@ -56,8 +56,8 @@ function LinkTarget({ doc, link }: { doc: MotionDocument; link: Link }) {
   const { label, where } = describeLink(doc, link, identity.name);
   return (
     <span className="flex min-w-0 flex-1 items-center gap-1.5">
-      <TargetGlyph doc={doc} link={link} className={cn("size-3.5 shrink-0", broken ? "text-amber-500" : "text-muted-foreground")} />
-      <span className={cn("min-w-0 truncate text-[12px]", broken && "text-amber-500")}>{label}</span>
+      <TargetGlyph doc={doc} link={link} className={cn("size-3.5 shrink-0", broken ? "text-warning" : "text-muted-foreground")} />
+      <span className={cn("min-w-0 truncate text-[12px]", broken && "text-warning")}>{label}</span>
       {where && <span className="min-w-0 shrink truncate text-2xs text-muted-foreground">{where}</span>}
     </span>
   );

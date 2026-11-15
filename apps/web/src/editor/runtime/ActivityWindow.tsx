@@ -49,10 +49,10 @@ function secs(ms: number): string {
 }
 
 const OUTCOME = {
-  done: { icon: Check, tone: "text-emerald-400", word: "Finished" },
-  failed: { icon: CircleX, tone: "text-red-400", word: "Failed" },
+  done: { icon: Check, tone: "text-success", word: "Finished" },
+  failed: { icon: CircleX, tone: "text-destructive", word: "Failed" },
   cancelled: { icon: Ban, tone: "text-muted-foreground", word: "Stopped" },
-  expired: { icon: TriangleAlert, tone: "text-amber-400", word: "Timed out" },
+  expired: { icon: TriangleAlert, tone: "text-warning", word: "Timed out" },
 } as const;
 
 function RunningRow({ task, now }: { task: TaskRecord; now: number }) {
@@ -72,7 +72,7 @@ function RunningRow({ task, now }: { task: TaskRecord; now: number }) {
         <div className="flex items-baseline gap-2">
           <span className="truncate text-xs font-medium">{task.label}</span>
           {task.overdue && (
-            <span className="shrink-0 text-[10px] font-medium text-amber-400">over time</span>
+            <span className="shrink-0 text-[10px] font-medium text-warning">over time</span>
           )}
         </div>
         <div className="mt-1 flex items-center gap-2">
@@ -80,7 +80,7 @@ function RunningRow({ task, now }: { task: TaskRecord; now: number }) {
             <div
               className={cn(
                 "h-full rounded-full transition-[width] duration-200",
-                task.overdue ? "bg-amber-400" : "bg-primary",
+                task.overdue ? "bg-warning" : "bg-primary",
                 // Nothing to measure: a moving stripe rather than a fake number.
                 share === null && "w-1/3 animate-pulse",
               )}
@@ -133,7 +133,7 @@ function FinishedRow({ task }: { task: TaskRecord }) {
       <Icon className={cn("size-3.5 shrink-0", o.tone)} />
       <span className="min-w-0 flex-1 truncate text-xs text-foreground/80">{task.label}</span>
       {(task.failure || task.error) && (
-        <span className="max-w-[40%] truncate text-[10px] text-red-400/80" title={task.error}>
+        <span className="max-w-[40%] truncate text-[10px] text-destructive/80" title={task.error}>
           {task.failure ? FAILURE_META[task.failure].label : task.error}
         </span>
       )}
@@ -247,11 +247,11 @@ export function ActivityWindow() {
               <div className="divide-y divide-border/40">
                 {freezes.map((f, i) => (
                   <div key={`${f.at}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
-                    <Snowflake className="size-3.5 shrink-0 text-sky-400" />
+                    <Snowflake className="size-3.5 shrink-0 text-primary" />
                     <span className="min-w-0 flex-1 truncate text-xs text-foreground/80">
                       {f.tasks[0]?.label ?? "Nothing was running"}
                     </span>
-                    <span className="shrink-0 tabular-nums text-[10px] text-amber-400">
+                    <span className="shrink-0 tabular-nums text-[10px] text-warning">
                       {secs(f.durationMs)}
                     </span>
                   </div>

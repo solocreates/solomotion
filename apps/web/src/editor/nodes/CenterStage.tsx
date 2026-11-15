@@ -17,7 +17,7 @@ export function CenterStage() {
   const worldId = useWorldViewportFrame();
   if (worldId) {
     return (
-      <React.Suspense fallback={<div className="flex h-full w-full items-center justify-center bg-[#2f3035] text-[12px] text-white/50">Opening 3D…</div>}>
+      <React.Suspense fallback={<div className="flex h-full w-full items-center justify-center bg-stage text-[12px] text-fg-muted">Opening 3D…</div>}>
         <WorldStage key={worldId} frameId={worldId} />
       </React.Suspense>
     );

@@ -935,7 +935,7 @@ function StyleLinkBar({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="flex h-5 items-center gap-1 rounded-full bg-primary/15 px-1.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/25 [&_svg]:size-2.5"
+            className="flex h-5 items-center gap-1 rounded-(--r-xs) bg-primary/15 px-1.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/25 [&_svg]:size-2.5"
           >
             <ChevronRight className={cn("transition-transform", open && "rotate-90")} />
             {overrides.length} changed

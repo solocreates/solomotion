@@ -149,8 +149,8 @@ export function ObjectField({
               </>
             ) : broken ? (
               <>
-                <Unlink2 className={cn("shrink-0 text-amber-500", small ? "size-3" : "size-3.5")} />
-                <span className="min-w-0 flex-1 truncate text-amber-500">{missing ?? "Missing"}</span>
+                <Unlink2 className={cn("shrink-0 text-warning", small ? "size-3" : "size-3.5")} />
+                <span className="min-w-0 flex-1 truncate text-warning">{missing ?? "Missing"}</span>
               </>
             ) : (
               <span className={cn("min-w-0 flex-1 truncate", !currentExtra && "text-muted-foreground")}>{currentExtra?.label ?? placeholder}</span>
@@ -174,7 +174,7 @@ export function ObjectField({
                     type="button"
                     onClick={() => setScopeId(s.id)}
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-2xs transition-colors",
+                      "rounded-(--r-sm) px-2 py-0.5 text-2xs transition-colors",
                       s.id === scope?.id ? "material-glass-raised text-foreground" : "text-muted-foreground hover:text-foreground",
                     )}
                   >

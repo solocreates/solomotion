@@ -28,7 +28,9 @@ import { useSession } from "../state/session";
  * rail, the app menu and the command palette without a third copy.
  *
  * The first item is the common case (the whole composition); the rest are the
- * shortcuts that skip the dialog because their scope is unambiguous.
+ * shortcuts that skip the dialog because their scope is unambiguous. Each one
+ * says what it hands you on the right (the format), so the list reads as a set
+ * of outputs, not a list of verbs. The look is the theme's menu part.
  */
 export function ExportMenu({ children, side = "left", align = "start" }: { children: React.ReactNode; side?: "left" | "bottom"; align?: "start" | "end" }) {
   const store = useDocStore();
@@ -36,9 +38,9 @@ export function ExportMenu({ children, side = "left", align = "start" }: { child
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align} side={side} sideOffset={6} className="w-56">
+      <DropdownMenuContent align={align} side={side} sideOffset={6} className="w-60">
         <DropdownMenuItem onClick={() => useSession.getState().setExportDialogOpen(true)}>
-          <Film /> Composition…
+          <Film /> Composition… <Format>video · image</Format>
         </DropdownMenuItem>
         <SelectedLayerExportItem />
         <DropdownMenuItem
@@ -46,12 +48,12 @@ export function ExportMenu({ children, side = "left", align = "start" }: { child
             useSession.getState().setExportDialogOpen(true, { scope: "frame", medium: "lottie" })
           }
         >
-          <Braces /> Lottie animation…
+          <Braces /> Lottie… <Format>.json</Format>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => useSession.getState().setExportDialogOpen(true, { scope: "frame", medium: "pdf" })}
         >
-          <FileText /> PDF…
+          <FileText /> PDF… <Format>.pdf</Format>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
@@ -67,7 +69,7 @@ export function ExportMenu({ children, side = "left", align = "start" }: { child
             );
           }}
         >
-          <ImageIcon /> Current frame (PNG)
+          <ImageIcon /> This frame <Format>.png</Format>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <SliceFileItem />
@@ -76,7 +78,7 @@ export function ExportMenu({ children, side = "left", align = "start" }: { child
   );
 }
 
-/** "<product> file — <scope>": the label follows the selection it will export. */
+/** The product's own file of what is selected; the row's end says what that is. */
 function SliceFileItem() {
   const store = useDocStore();
   const selectedFrameIds = useSession((s) => s.selectedFrameIds);
@@ -86,7 +88,7 @@ function SliceFileItem() {
   const scope = exportScopeOf({ selectedFrameIds, selectedClipIds, activeFrameId }, firstFrameId);
   return (
     <DropdownMenuItem onClick={() => void exportSelectionAsFile(store, scope.selection)}>
-      <PackageOpen /> {identity.name} file — {scope.label}
+      <PackageOpen /> <span className="truncate">{identity.name} file</span> <Format>{scope.label}</Format>
     </DropdownMenuItem>
   );
 }
@@ -104,5 +106,14 @@ function SelectedLayerExportItem() {
     >
       <Layers /> {target.kind === "layer" ? `Layer “${target.name}”` : target.name}…
     </DropdownMenuItem>
+  );
+}
+
+/** What an item hands you, set quietly at the row's end. */
+function Format({ children }: { children: React.ReactNode }) {
+  return (
+    <span data-part="menu-shortcut" className="text-meta tabular-nums">
+      {children}
+    </span>
   );
 }

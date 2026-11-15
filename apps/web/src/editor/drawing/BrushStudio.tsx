@@ -216,7 +216,7 @@ function StudioBody({ brush }: { brush: BrushPreset }) {
           onClick={() => toggleFavorite(brush.id)}
           className={cn(
             "flex size-(--control-h) shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted/50",
-            isFavorite(brush.id) ? "text-[#F5B843]" : "text-muted-foreground hover:text-foreground",
+            isFavorite(brush.id) ? "text-warning" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <Star className={cn("size-4", isFavorite(brush.id) && "fill-current")} />

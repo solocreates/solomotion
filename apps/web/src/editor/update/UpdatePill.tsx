@@ -19,7 +19,7 @@ export function UpdatePill() {
       type="button"
       onClick={() => setDialogOpen(true)}
       title={`Update to v${latest}`}
-      className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+      className="ml-1 inline-flex items-center gap-1.5 rounded-(--r-sm) border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
     >
       <span className="relative flex size-1.5">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />

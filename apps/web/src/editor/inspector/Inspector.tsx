@@ -341,7 +341,7 @@ function ComponentHeaderAction({ frame, clips }: { frame?: Frame; clips?: Clip[]
       <Tooltip>
         <TooltipTrigger asChild>
           <span
-            className="flex size-6 shrink-0 items-center justify-center text-[#B79BFF] [&_svg]:size-3.5"
+            className="flex size-6 shrink-0 items-center justify-center text-(--kind-component) [&_svg]:size-3.5"
             aria-label={mark}
           >
             <Component />
@@ -378,7 +378,7 @@ function World3dHeaderAction({ frame, clips }: { frame?: Frame; clips?: Clip[] }
     if (frame.world) {
       return (
         <HeaderAction label="Open in 3D" onClick={() => openWorldFrame(store, frame.id)}>
-          <Box className="text-[#FF9F43]" />
+          <Box className="text-(--kind-world)" />
         </HeaderAction>
       );
     }
@@ -395,7 +395,7 @@ function World3dHeaderAction({ frame, clips }: { frame?: Frame; clips?: Clip[] }
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="flex size-6 shrink-0 items-center justify-center text-[#FF9F43] [&_svg]:size-3.5" aria-label="In a 3D world">
+          <span className="flex size-6 shrink-0 items-center justify-center text-(--kind-world) [&_svg]:size-3.5" aria-label="In a 3D world">
             <Box />
           </span>
         </TooltipTrigger>
@@ -408,7 +408,7 @@ function World3dHeaderAction({ frame, clips }: { frame?: Frame; clips?: Clip[] }
   if (world) {
     return (
       <HeaderAction label="Open in 3D" onClick={() => openWorldFrame(store, world.id)}>
-        <Box className="text-[#FF9F43]" />
+        <Box className="text-(--kind-world)" />
       </HeaderAction>
     );
   }
@@ -573,7 +573,7 @@ function FramePanel({ frame }: { frame: Frame }) {
   return (
     <>
       <div className="flex h-10 items-center gap-1 border-b px-2">
-        <FrameIcon className="size-3.5 shrink-0 text-[#B18CFF]" />
+        <FrameIcon className="size-3.5 shrink-0 text-(--kind-component)" />
         <input
           value={frame.name}
           onChange={(e) => updateFrame("Rename frame", (f) => void (f.name = e.target.value), "rename-frame")}

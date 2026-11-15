@@ -166,7 +166,7 @@ function CueList({ clip, cues }: { clip: TextClip; cues: CaptionCue[] }) {
             type="button"
             title="Stretch the cues to fill the clip, keeping their rhythm"
             className={cn(
-              "flex h-5 items-center gap-1 rounded-full px-2 font-mono text-[10px] transition-colors",
+              "flex h-5 items-center gap-1 rounded-(--r-xs) px-2 font-mono text-[10px] transition-colors",
               stranded
                 ? "bg-primary/15 text-primary hover:bg-primary/25"
                 : "bg-secondary text-muted-foreground hover:text-foreground",
@@ -178,7 +178,7 @@ function CueList({ clip, cues }: { clip: TextClip; cues: CaptionCue[] }) {
           <button
             type="button"
             title="Spread every cue evenly across the clip"
-            className="flex h-5 items-center gap-1 rounded-full bg-secondary px-2 font-mono text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+            className="flex h-5 items-center gap-1 rounded-(--r-xs) bg-secondary px-2 font-mono text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             onClick={() => writeCues("Even cues", (cs, c) => distributeCues(cs, c.durationMs))}
           >
             <Redo2 className="size-2.5" /> even

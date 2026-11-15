@@ -120,7 +120,7 @@ function ClipRow({
         dropping
           ? "border-primary bg-primary/10 ring-2 ring-primary/50"
           : done
-            ? "border-emerald-500/40 bg-emerald-500/5"
+            ? "border-success/40 bg-success/5"
             : "border-border bg-card hover:border-primary/40 hover:bg-muted/40",
       )}
     >
@@ -157,7 +157,7 @@ function ClipRow({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {done && <Check className="size-4 shrink-0 text-emerald-500" />}
+      {done && <Check className="size-4 shrink-0 text-success" />}
     </div>
   );
 
@@ -190,7 +190,7 @@ function ClipRow({
 function KindIcon({ kind, done }: { kind: ClipRef["kind"]; done: boolean }) {
   const Icon = kind === "video" ? FileVideo : kind === "audio" ? Music : ImageIcon;
   return (
-    <div className={cn("flex size-7 shrink-0 items-center justify-center rounded border bg-stage", done && "border-emerald-500/40")}>
+    <div className={cn("flex size-7 shrink-0 items-center justify-center rounded border bg-stage", done && "border-success/40")}>
       <Icon className="size-3.5 text-muted-foreground" />
     </div>
   );

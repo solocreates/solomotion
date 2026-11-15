@@ -50,6 +50,8 @@ export function surfaces(n: Neutral, mode: Mode) {
     subtle: n.subtle ?? ink(n.fg, 3),
     wash: n.wash ?? ink(n.fg, dark ? 8 : 6),
     danger: n.danger ?? (dark ? "#f2555a" : "#d93a3f"),
+    success: n.success ?? (dark ? "#46d39a" : "#13895a"),
+    warning: n.warning ?? (dark ? "#f2b13c" : "#a86a07"),
   };
 }
 
@@ -83,6 +85,8 @@ export function compile(theme: Theme, mode: Mode = theme.mode): Compiled {
   set("--stage", s.stage);
   set("--track-lane", s.lane);
   set("--destructive", s.danger);
+  set("--success", s.success);
+  set("--warning", s.warning);
   set("--fg-faint", n.faint);
   // Where a value comes from. Left to the host's own language when unset.
   if (theme.tones?.variable) set("--bind-variable", theme.tones.variable[mode]);

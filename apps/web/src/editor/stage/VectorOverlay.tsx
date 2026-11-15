@@ -95,7 +95,7 @@ import { nudgeTargets } from "./nudge-target";
 import { stageHitRects } from "./stage-geometry";
 import { frameSpace, layerPlacement, layerSpace, standingFrameId } from "./edit-space";
 import { copyContours, placeAboveSelection } from "../state/clip-actions";
-import { placeClip } from "@solomotion/core";
+import { brandFillColor, placeClip } from "@solomotion/core";
 import { useSession, useStageView, type UndoScope } from "../state/session";
 import { consumeRegionDraw } from "./region-draw";
 import "../color/window-draw";
@@ -1948,7 +1948,7 @@ export function VectorOverlay() {
         x: Math.round(cx),
         y: Math.round(cy),
         // Closed pen paths get a fill to feel solid; open ones stay a stroke.
-        fill: closed ? pd.fill : null,
+        fill: closed ? (pd.fill ?? brandFillColor()) : null,
         stroke: strokeStyle(solidPaint(pd.stroke), { width: pd.strokeWidth, cap: "round", join: "round" }),
       });
       // THE SAME RULE EVERY OTHER CREATOR OBEYS. A new layer lands above the

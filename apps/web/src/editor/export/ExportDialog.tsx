@@ -106,16 +106,14 @@ export function ExportDialog({
       }}
     >
       <DialogContent className="flex max-h-[88vh] max-w-lg flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-5 py-4">
-          <DialogTitle className="flex items-center gap-2">
-            <FileImage className="size-4 text-primary" /> Export
-          </DialogTitle>
-          <DialogDescription className="text-[11px]">
+        <DialogHeader className="border-b border-line px-5 py-4">
+          <DialogTitle>Export</DialogTitle>
+          <DialogDescription className="text-meta">
             {subject === "selection" && selTarget
-              ? `Exporting ${selTarget.kind === "layer" ? "layer" : selTarget.kind} “${selTarget.name}”`
+              ? selTarget.name
               : subject === "frames" && pickedFrames.length > 1
                 ? `${pickedFrames.length} frames, in the order you picked them`
-                : `Exporting composition “${frame.name}” · ${frame.width}×${frame.height}`}
+                : `${frame.name} · ${frame.width}×${frame.height}`}
           </DialogDescription>
         </DialogHeader>
 

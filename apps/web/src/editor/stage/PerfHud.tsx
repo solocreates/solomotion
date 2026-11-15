@@ -113,7 +113,7 @@ export function PerfHud() {
                       className={cn("h-full rounded-full")}
                       style={{
                         width: `${blurShare * 100}%`,
-                        background: "linear-gradient(90deg, #ff8732, #ff2885)",
+                        background: "var(--primary)",
                       }}
                     />
                   </div>

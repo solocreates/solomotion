@@ -86,7 +86,7 @@ export function LipSyncRow({ clip }: { clip: AudioClip }) {
       )}
       {status?.state === "failed" && (
         <PropRow label=" ">
-          <span className="text-[11px] text-amber-500">Couldn&apos;t hear a voice in this clip</span>
+          <span className="text-[11px] text-warning">Couldn&apos;t hear a voice in this clip</span>
         </PropRow>
       )}
     </PanelSection>

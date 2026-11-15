@@ -142,7 +142,7 @@ export function EffectPaletteItem({
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[12px] leading-tight">{label}</span>
           {badge && (
-            <span className="shrink-0 rounded-full bg-muted px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+            <span className="shrink-0 rounded-(--r-xs) bg-muted px-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
               {badge}
             </span>
           )}

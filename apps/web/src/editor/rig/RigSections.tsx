@@ -726,7 +726,7 @@ export function SwitchSection({ clip }: { clip: GroupClip }) {
         </Button>
       }
     >
-      <PropRow label="Show" start keyControl={<KeyControl clip={clip} property="switch" currentValue={() => shown?.name ?? ""} />}>
+      <PropRow label="Show" stack keyControl={<KeyControl clip={clip} property="switch" currentValue={() => shown?.name ?? ""} />}>
         <div className={cn("flex flex-wrap gap-1", driven && "pointer-events-none opacity-50")}>
           {options.map((c) => (
             <button

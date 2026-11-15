@@ -915,7 +915,7 @@ function Chip({
       onClick={onClick}
       disabled={!on && count === 0}
       className={cn(
-        "flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs transition-colors disabled:opacity-35",
+        "flex h-6 shrink-0 items-center gap-1 rounded-(--r-sm) px-2.5 text-xs transition-colors disabled:opacity-35",
         on ? "material-glass-raised text-primary" : "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",
       )}
     >
@@ -957,7 +957,7 @@ function FilterBar({
         value={filters.styles[0] ?? "__any"}
         onValueChange={(v) => onChange({ ...filters, styles: v === "__any" ? [] : [v] })}
       >
-        <SelectTrigger className={cn("h-6 w-auto shrink-0 gap-1 rounded-full px-2.5 text-xs", filters.styles.length && "text-primary")} aria-label="Style">
+        <SelectTrigger className={cn("h-6 w-auto shrink-0 gap-1 rounded-(--r-sm) px-2.5 text-xs", filters.styles.length && "text-primary")} aria-label="Style">
           <SelectValue placeholder="Style" />
         </SelectTrigger>
         <SelectContent className="max-h-80">
@@ -973,7 +973,7 @@ function FilterBar({
         value={filters.script ?? "__any"}
         onValueChange={(v) => onChange({ ...filters, script: v === "__any" ? null : v })}
       >
-        <SelectTrigger className={cn("h-6 w-auto shrink-0 gap-1 rounded-full px-2.5 text-xs", filters.script && "text-primary")} aria-label="Language">
+        <SelectTrigger className={cn("h-6 w-auto shrink-0 gap-1 rounded-(--r-sm) px-2.5 text-xs", filters.script && "text-primary")} aria-label="Language">
           <SelectValue placeholder="Language" />
         </SelectTrigger>
         <SelectContent className="max-h-80">

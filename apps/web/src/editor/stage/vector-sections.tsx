@@ -47,6 +47,7 @@ import { FontPicker } from "../inspector/FontPicker";
 import { fontPickPatch } from "../fonts/library";
 import { StyleFields } from "../inspector/StyleFields";
 import { isShapeTool, useSession, type ShapeTool, type Tool } from "../state/session";
+import { brandFillColor } from "@solomotion/core";
 import { useToolDefaults } from "../state/tool-defaults";
 import { G, IconSeg, ModeSeg, MoreRow, Opt, ToolMore, pod } from "./tool-bar-kit";
 import { usePenBar, type PenAction } from "./pen-bar";
@@ -146,7 +147,7 @@ export function PenSection() {
           onChange={(strokeWidth) => setPen({ strokeWidth })}
         />
         <Opt label="Fill">
-          <DocColorInput variant="badge" value={pen.fill} onChange={(fill) => setPen({ fill })} />
+          <DocColorInput variant="badge" value={pen.fill ?? brandFillColor()} onChange={(fill) => setPen({ fill })} />
         </Opt>
       </G>
 
@@ -378,7 +379,7 @@ export function ShapeSection() {
     <>
       <G>
         <Opt label="Fill">
-          <DocColorInput variant="badge" value={shape.fill} onChange={(fill) => set({ fill })} />
+          <DocColorInput variant="badge" value={shape.fill ?? brandFillColor()} onChange={(fill) => set({ fill })} />
         </Opt>
       </G>
 

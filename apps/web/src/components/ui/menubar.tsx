@@ -4,6 +4,7 @@ import * as React from "react";
 import * as MenubarPrimitive from "@radix-ui/react-menubar";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MENU_SEPARATOR, MENU_SURFACE } from "@/components/ui/menu-kit";
 import { Kbd } from "@/components/ui/kbd";
 
 const MenubarMenu = MenubarPrimitive.Menu;
@@ -61,7 +62,7 @@ function MenubarSubContent({ className, ...props }: React.ComponentProps<typeof 
       <MenubarPrimitive.SubContent
         data-part="menu"
         className={cn(
-          "group/menu [&:has([role=menuitemcheckbox])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 [&:has([role=menuitemradio])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 z-50 min-w-[8rem] overflow-hidden p-1 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          MENU_SURFACE, "min-w-[8rem] p-1",
           className,
         )}
         {...props}
@@ -85,7 +86,7 @@ function MenubarContent({
         sideOffset={sideOffset}
         data-part="menu"
         className={cn(
-          "group/menu [&:has([role=menuitemcheckbox])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 [&:has([role=menuitemradio])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 z-50 min-w-[12rem] overflow-hidden p-1 data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          MENU_SURFACE, "min-w-[12rem] p-1",
           className,
         )}
         {...props}
@@ -182,7 +183,7 @@ function MenubarLabel({
 }
 
 function MenubarSeparator({ className, ...props }: React.ComponentProps<typeof MenubarPrimitive.Separator>) {
-  return <MenubarPrimitive.Separator data-part="menu-separator" className={cn("-mx-1 my-1 h-px", className)} {...props} />;
+  return <MenubarPrimitive.Separator data-part="menu-separator" className={cn(MENU_SEPARATOR, className)} {...props} />;
 }
 
 function MenubarShortcut(props: React.ComponentProps<"span">) {

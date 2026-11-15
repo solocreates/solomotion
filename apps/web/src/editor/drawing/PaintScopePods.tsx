@@ -232,7 +232,7 @@ export function ReferencePod() {
             >
               <ReferenceIcon />
               {refs.length > 1 && (
-                <span className="absolute -right-0.5 -top-0.5 rounded-full bg-primary px-1 font-mono text-[9px] leading-[13px] text-primary-foreground">
+                <span className="absolute -right-0.5 -top-0.5 rounded-(--r-xs) bg-primary px-1 font-mono text-[9px] leading-[13px] text-primary-foreground">
                   {refs.length}
                 </span>
               )}

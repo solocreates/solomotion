@@ -7928,7 +7928,7 @@ export function Stage() {
           y: at.y,
           width: w,
           height: h,
-          fill: sd.fill,
+          fill: sd.fill ?? undefined,
           stroke: sd.strokeOn ? strokeStyle(solidPaint(sd.stroke), { width: sd.strokeWidth }) : null,
         });
         if (sd.cornerRadius > 0) {
@@ -8873,7 +8873,7 @@ export function Stage() {
       // z-40, drawing z-30) in their OWN stacking context, so body-portalled
       // floating windows always paint above the whole stage — the sticky
       // toolbar never covers a window any more.
-      className="relative isolate h-full w-full touch-none select-none overflow-hidden bg-stage"
+      className="stage-backdrop relative isolate h-full w-full touch-none select-none overflow-hidden bg-stage"
       // `bg-stage` is the THEME's surround and it stays on the element. A
       // document that named its own colour paints over it; one that asked to
       // follow the theme (the default) paints nothing at all, so the surround
@@ -8963,7 +8963,7 @@ export function Stage() {
               {motionMenu.smooth ? "Make corner (straight)" : "Make smooth (curved)"}
             </button>
             <button
-              className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-red-400 hover:bg-accent"
+              className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-destructive hover:bg-accent"
               onClick={() => {
                 store.update("Delete motion point", (d) => {
                   const loc = locateClip(d, motionMenu.clipId);

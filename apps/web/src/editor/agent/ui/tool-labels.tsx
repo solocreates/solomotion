@@ -159,13 +159,17 @@ const TABLE: Record<string, (i: Input) => ToolLabel> = {
 export function toolLabel(name: string, input: unknown): ToolLabel {
   const f = TABLE[name];
   const i = (input && typeof input === "object" ? input : {}) as Input;
+  const words = name.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   if (f) {
     try {
-      return f(i);
+      // A field the input lacks (a streaming prefix, a model that left it out)
+      // must never print as "Keyed undefined": that half falls back to the name.
+      const l = f(i);
+      const missing = (s: string) => /\bundefined\b|\bnull\b|“”/.test(s);
+      return { ...l, running: missing(l.running) ? words : l.running, done: missing(l.done) ? words : l.done };
     } catch {
       /* fall through to the generic label */
     }
   }
-  const words = name.replace(/_/g, " ");
   return { icon: name.startsWith("plugin") ? Brush : Wand2, running: words, done: words };
 }

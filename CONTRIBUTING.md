@@ -8,7 +8,7 @@ to sign.
 
 - **Small fixes** (a bug, a typo, a missing test): open a pull request directly.
 - **Anything larger** (a new feature, a new kind of layer, a change to the file
-  format): open a [Discussion](https://github.com/novincode/solomotion/discussions) or an
+  format): open a [Discussion](https://github.com/solocreates/solomotion/discussions) or an
   issue first. A short conversation saves a long review.
 - **Security problems** never go in a public issue. See [SECURITY.md](SECURITY.md).
 
@@ -54,7 +54,7 @@ request.
 
 ## The Contributor License Agreement
 
-SoloMotion is GPL-3.0. The maintainer also builds products on the same engine
+SoloMotion is AGPL-3.0. The maintainer also builds products on the same engine
 under other licenses, which is how the project pays for its time. The
 [CLA](CLA.md) lets your contribution be used in both. You keep your copyright,
 and we promise in the agreement that everything we accept stays available under
@@ -73,5 +73,5 @@ an open-source license.
 
 Making something with SoloMotion and showing it is one of the most useful things
 you can do for a project with no marketing budget. [Tell us what you
-made](https://github.com/novincode/solomotion/issues/new?template=3-made-something.yml) and
+made](https://github.com/solocreates/solomotion/issues/new?template=3-made-something.yml) and
 you go on the Creators wall.

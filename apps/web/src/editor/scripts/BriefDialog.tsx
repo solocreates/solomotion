@@ -190,7 +190,7 @@ export function BriefDialog({ open, onOpenChange, script, lastRun }: { open: boo
                     onClick={() => update({ focus: f.id, chosen: [] })}
                     title={focusTokens.has(f.id) ? `≈ ${formatTokens(focusTokens.get(f.id)!)} tokens` : undefined}
                     className={cn(
-                      "flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px] transition-colors [@media(pointer:coarse)]:h-10",
+                      "flex h-8 shrink-0 items-center gap-1.5 rounded-(--r-sm) border px-3 text-[12.5px] transition-colors [@media(pointer:coarse)]:h-10",
                       active ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
                     )}
                   >
@@ -237,7 +237,7 @@ export function BriefDialog({ open, onOpenChange, script, lastRun }: { open: boo
           </div>
 
           <div className="flex shrink-0 items-center gap-2 border-t border-border px-4 py-3">
-            <span className={cn("flex-1 text-[12.5px] tabular-nums", tokens > HEAVY_TOKENS ? "text-amber-400" : "text-muted-foreground")} title="Rough count — about 4 characters a token">
+            <span className={cn("flex-1 text-[12.5px] tabular-nums", tokens > HEAVY_TOKENS ? "text-warning" : "text-muted-foreground")} title="Rough count — about 4 characters a token">
               ≈ {formatTokens(tokens)} tokens{tokens > HEAVY_TOKENS ? " — heavy for most chats" : ""}
             </span>
             <Button variant="secondary" size="sm" onClick={download} className="[@media(pointer:coarse)]:h-10">

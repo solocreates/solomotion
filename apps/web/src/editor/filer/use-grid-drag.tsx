@@ -171,7 +171,7 @@ export function useGridDrag<T>(fm: FilerStore<T>) {
             {ghost.label}
           </div>
           {ghost.count > 1 && (
-            <span className="absolute -right-2 -top-2 flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow">
+            <span className="absolute -right-2 -top-2 flex min-w-5 items-center justify-center rounded-(--r-xs) bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow">
               {ghost.count}
             </span>
           )}

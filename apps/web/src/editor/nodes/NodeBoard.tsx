@@ -1096,7 +1096,7 @@ export function NodeBoard({
                     <path
                       d={wirePath(ends.a, ends.b)}
                       fill="none"
-                      stroke={splice ? "#ff8732" : selected ? "hsl(var(--primary))" : color}
+                      stroke={splice || selected ? "var(--primary)" : color}
                       strokeWidth={splice || selected ? 2.75 : 2}
                       strokeOpacity={selected || splice ? 1 : 0.9}
                       vectorEffect="non-scaling-stroke"
@@ -1175,7 +1175,7 @@ export function NodeBoard({
               const from = liveWire.anchorDir === "out" ? anchorS : cursorS;
               const to = liveWire.anchorDir === "out" ? cursorS : anchorS;
               // Tint the drag wire by its source (output) node when we know it.
-              const color = liveWire.anchorDir === "out" ? wireColor(liveWire.anchor.node) : "hsl(var(--primary))";
+              const color = liveWire.anchorDir === "out" ? wireColor(liveWire.anchor.node) : "var(--primary)";
               return (
                 <svg className="pointer-events-none absolute inset-0 h-full w-full">
                   <path d={wirePath(from, to)} fill="none" stroke={color} strokeWidth={2.75} strokeDasharray="7 4" />
@@ -1195,7 +1195,7 @@ export function NodeBoard({
 
           {/* Scope chip — which layer/frame this node tree belongs to. */}
           <div className="pointer-events-none absolute left-3 top-3">
-            <div className="material-glass pointer-events-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium">
+            <div className="material-glass pointer-events-auto flex items-center gap-2 rounded-(--r-sm) px-3 py-1.5 text-xs font-medium">
               <span className="size-2 rounded-full bg-primary" />
               <span className="text-muted-foreground">{scope === "global" ? "Document" : scope === "frame" ? "Frame" : "Layer"}</span>
               <span className="max-w-45 truncate">{ownerLabel}</span>

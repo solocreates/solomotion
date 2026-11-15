@@ -61,6 +61,10 @@ export const neutralSchema = z.object({
   wash: color.optional(),
   /** Delete and destructive confirms. */
   danger: color.optional(),
+  /** Done, saved, connected. */
+  success: color.optional(),
+  /** Needs attention, not broken. */
+  warning: color.optional(),
 });
 export type Neutral = z.infer<typeof neutralSchema>;
 
@@ -74,6 +78,11 @@ const partsSchema = z.object({
   button: z.enum(PART_DIALECTS.button),
   field: z.enum(PART_DIALECTS.field),
   menu: z.enum(PART_DIALECTS.menu),
+  // Added after schema 1 shipped: a file written before them reads as the
+  // look it had (capsule, plain, display), so no stored theme fails to load.
+  tools: z.enum(PART_DIALECTS.tools).default("capsule"),
+  backdrop: z.enum(PART_DIALECTS.backdrop).default("plain"),
+  heads: z.enum(PART_DIALECTS.heads).default("display"),
 });
 
 /** A font is a family id from `fonts.ts`, or a raw CSS stack for anything else. */

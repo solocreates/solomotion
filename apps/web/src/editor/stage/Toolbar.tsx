@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   Circle,
+  Ellipsis,
   Eraser,
   Frame,
   Hand,
@@ -29,16 +30,16 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatCombo, useCombo } from "../state/shortcut-registry";
 import { isShapeTool, useSession, type Tool } from "../state/session";
 import { useHoldMenu } from "../state/use-hold-menu";
 import { useDrawing } from "../drawing/drawing-store";
 import { useChromeFlyoutSide } from "./StageChrome";
-import { RailCapsule, RailDivider, railButton } from "./tool-bar-kit";
+import { RailCapsule, RailDivider, ToolTip, railButton } from "./tool-bar-kit";
 import { CHROME_EDGES, type ChromeEdge } from "./chrome-layout";
-import { TOOL_SLOTS, type ToolMeta } from "./tool-registry";
+import { TOOL_SLOTS, armTool, isArmed, toolKey, type ToolMeta } from "./tool-registry";
 
 /**
  * The tool rail.
@@ -199,11 +200,65 @@ function ToolButton({
           </PopoverContent>
         )}
       </Popover>
-      <TooltipContent side={side} sideOffset={10} className="flex items-center gap-1.5">
-        {meta.label}
-        {shortcut && <kbd className="rounded bg-secondary px-1 font-mono text-2xs">{formatCombo(shortcut)}</kbd>}
-      </TooltipContent>
+      <ToolTip side={side} label={meta.label} keys={shortcut ? formatCombo(shortcut) : null} detail={meta.detail} />
     </Tooltip>
+  );
+}
+
+/**
+ * THE RAIL'S MORE — the tools most people don't reach for every minute
+ * (registry `more: true`), one button away and still on their shortcuts.
+ * While one of them is armed, More wears that tool's glyph and is lit, so the
+ * rail never hides what you are holding. Opens toward the canvas, and Radix
+ * flips it when that side has no room.
+ */
+function MoreTools({ tools, side }: { tools: readonly ToolMeta[]; side: "top" | "right" | "bottom" | "left" }) {
+  const tool = useSession((s) => s.tool);
+  const engine = useDrawing((s) => s.brush.engine);
+  const [open, setOpen] = React.useState(false);
+  const armed = tools.find((t) => isArmed(t, tool, engine));
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <PopoverAnchor asChild>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              data-tool={armed?.tool}
+              aria-label={armed ? `${armed.label} (more tools)` : "More tools"}
+              aria-pressed={!!armed}
+              aria-haspopup="menu"
+              aria-expanded={open}
+              onClick={() => setOpen((o) => !o)}
+              className={railButton(!!armed)}
+            >
+              {armed ? armed.icon : <Ellipsis />}
+            </button>
+          </TooltipTrigger>
+        </PopoverAnchor>
+        {!open && <ToolTip side={side} label={armed ? armed.label : "More tools"} detail={armed ? armed.detail : "Bones, eraser, paint bucket."} />}
+      </Tooltip>
+      <PopoverContent
+        side={side}
+        align="center"
+        sideOffset={10}
+        collisionPadding={8}
+        className="w-auto min-w-44 space-y-0.5 p-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {tools.map((t) => (
+          <FlyoutRow
+            key={toolKey(t)}
+            opt={{ key: toolKey(t), label: t.label, icon: t.icon, shortcutId: t.shortcutId }}
+            active={isArmed(t, tool, engine)}
+            onSelect={() => {
+              armTool(t);
+              setOpen(false);
+            }}
+          />
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -226,9 +281,10 @@ export function StageToolbar() {
 
   // Each slot remembers the last tool picked from it (Figma behaviour), so
   // re-arming the shape slot gives you the ellipse you were using, not a rect.
-  const [lastPick, setLastPick] = React.useState<Record<string, Tool>>({});
+  const [lastPick, setLastPick] = React.useState<Record<string, string>>({});
 
-  const slots = TOOL_SLOTS;
+  const slots = TOOL_SLOTS.filter((s) => !s.more);
+  const moreTools = TOOL_SLOTS.filter((s) => s.more).flatMap((s) => s.tools);
 
   // Arming a tool by SHORTCUT can select something scrolled out of the rail.
   // Nudge it back into view — `block/inline: nearest` so it never yanks the
@@ -249,41 +305,35 @@ export function StageToolbar() {
       <ContextMenuTrigger asChild>
         <RailCapsule ref={scrollerRef}>
           {slots.map((slot) => {
-            const armed = slot.tools.find(
-              (t) => t.tool === tool && (!slot.engine || slot.engine === brushEngine),
-            );
-            const remembered = lastPick[slot.id];
-            const meta = armed ?? slot.tools.find((t) => t.tool === remembered) ?? slot.tools[0]!;
+            const armed = slot.tools.find((t) => isArmed(t, tool, brushEngine));
+            const meta = armed ?? slot.tools.find((t) => toolKey(t) === lastPick[slot.id]) ?? slot.tools[0]!;
             const options: FlyoutOption[] = slot.tools.map((t) => ({
-              key: t.tool,
+              key: toolKey(t),
               label: t.label,
               icon: t.icon,
               shortcutId: t.shortcutId,
             }));
-            const activeOptionKey = meta.tool;
-            const icon = meta.icon;
-
             return (
               <React.Fragment key={slot.id}>
                 {slot.groupStart && <RailDivider />}
                 <ToolButton
-                  meta={{ ...meta, icon }}
+                  meta={meta}
                   active={slot.id === "shape" ? isShapeTool(tool) : !!armed}
                   side={side}
                   options={options}
-                  activeOptionKey={activeOptionKey}
-                  onClick={() => {
-                    if (slot.engine) useDrawing.getState().setBrushOptions({ engine: slot.engine });
-                    useSession.getState().setTool(meta.tool);
-                  }}
+                  activeOptionKey={toolKey(meta)}
+                  onClick={() => armTool(meta)}
                   onPick={(key) => {
-                    setLastPick((m) => ({ ...m, [slot.id]: key as Tool }));
-                    useSession.getState().setTool(key as Tool);
+                    const picked = slot.tools.find((t) => toolKey(t) === key);
+                    if (!picked) return;
+                    setLastPick((m) => ({ ...m, [slot.id]: key }));
+                    armTool(picked);
                   }}
                 />
               </React.Fragment>
             );
           })}
+          {moreTools.length > 0 && <MoreTools tools={moreTools} side={side} />}
         </RailCapsule>
       </ContextMenuTrigger>
       <ContextMenuContent>

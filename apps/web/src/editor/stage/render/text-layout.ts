@@ -108,6 +108,27 @@ export interface TextLayout {
    * text box was given a fixed height. Derived here, read there.
    */
   blockOffsetY: number;
+  /**
+   * THE LINE SLOTS — each line's band ACROSS the flow, in frame px: its top and
+   * height for horizontal text, its left edge and width for a vertical column.
+   * The slots tile the block exactly, so they are the box the stage outlines.
+   *
+   * Anything that draws a band over a line (the editor's text selection) reads
+   * these instead of asking the browser where its own line box is: the DOM lays
+   * a line out with CSS's half-leading and the font's real ascent, this engine
+   * with {@link LINE_ASCENT_RATIO}, and a highlight from the DOM sat a fifth of
+   * the font size above the box it was meant to fill.
+   */
+  lines: LineSlot[];
+  /** Which way the lines run — what `lines[n].at` measures along. */
+  axis: "horizontal" | "vertical";
+}
+
+/** One line's band across the flow. `em` is the largest font size on it. */
+export interface LineSlot {
+  at: number;
+  size: number;
+  em: number;
 }
 
 export function fontString(style: TextStyle, fontSizeOverride?: number): string {
@@ -405,7 +426,7 @@ function layoutMeasured(
     for (const g of line) maxSize = Math.max(maxSize, g.style.fontSize);
     if (maxSize === 0) maxSize = lineHeightFactorSource.fontSize;
     const height = maxSize * lineHeightFactorSource.lineHeight;
-    return { height, ascent: maxSize * LINE_ASCENT_RATIO };
+    return { height, ascent: maxSize * LINE_ASCENT_RATIO, em: maxSize };
   });
 
   const blockHeight = lineMetrics.reduce((a, m) => a + m.height, 0);
@@ -435,6 +456,7 @@ function layoutMeasured(
           ? boxHeight / 2 - blockHeight
           : -blockHeight / 2;
   const blockTop = top; // `top` walks down the lines below; keep where it began.
+  const slots: LineSlot[] = [];
   lines.forEach((line, li) => {
     const metric = lineMetrics[li]!;
     const lw = lineWidths[li]!;
@@ -443,6 +465,7 @@ function layoutMeasured(
     let x =
       spread ? spread.x : lineAlign === "left" ? -alignWidth / 2 : lineAlign === "right" ? alignWidth / 2 - lw : -lw / 2;
     const baseline = top + metric.ascent;
+    slots.push({ at: top, size: metric.height, em: metric.em });
     for (const [gi, g] of line.entries()) {
       glyphs.push({
         char: g.char,
@@ -471,6 +494,8 @@ function layoutMeasured(
     // glyph loop above consumed, exported so the DOM editor stacks its lines
     // from the same place instead of always hugging the top.
     blockOffsetY: blockTop + boxHeight / 2,
+    lines: slots,
+    axis: "horizontal",
     clipBox: { width: maxWidth ?? blockWidth, height: maxHeight ?? blockHeight },
   };
 }
@@ -521,7 +546,7 @@ function layoutVertical(
     let maxSize = 0;
     for (const g of col) maxSize = Math.max(maxSize, g.style.fontSize);
     if (maxSize === 0) maxSize = style.fontSize;
-    return { pitch: maxSize * style.lineHeight, height: col.reduce((a, g) => a + pitchOf(g), 0) };
+    return { pitch: maxSize * style.lineHeight, em: maxSize, height: col.reduce((a, g) => a + pitchOf(g), 0) };
   });
   const blockWidth = colMetrics.reduce((a, m) => a + m.pitch, 0);
   const blockHeight = Math.max(0, ...colMetrics.map((m) => m.height));
@@ -538,8 +563,10 @@ function layoutVertical(
           ? -boxWidth / 2 + blockWidth
           : blockWidth / 2;
   const glyphs: LaidGlyph[] = [];
+  const slots: LineSlot[] = [];
   columns.forEach((col, ci) => {
     const m = colMetrics[ci]!;
+    slots.push({ at: right - m.pitch, size: m.pitch, em: m.em });
     const cx = right - m.pitch / 2;
     // Along the flow: `align` is top / middle / bottom of the box.
     let y = align === "left" || align === "justify" ? -boxHeight / 2 : align === "right" ? boxHeight / 2 - m.height : -m.height / 2;
@@ -567,6 +594,8 @@ function layoutVertical(
     width: boxWidth,
     height: boxHeight,
     blockOffsetY: 0,
+    lines: slots,
+    axis: "vertical",
     clipBox: { width: boxWidth, height: boxHeight },
   };
 }
@@ -1167,6 +1196,76 @@ function lineInkBands(layout: TextLayout): Map<number, InkBand> {
     }
   }
   return bands;
+}
+
+/** A selection rect in layout px (box centre at 0,0). */
+export interface SelectionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * THE TEXT SELECTION of a laid-out block: one rect per visual run of selected
+ * glyphs (graphemes `start` ≤ i < `end`), spanning its line's slot across the
+ * flow and the glyphs' own advance along it.
+ *
+ * Read from the same {@link TextLayout.lines} the stage outlines, so a selected
+ * line fills the box exactly — never the browser's line box, which disagrees
+ * with this engine about where a line sits. Runs break wherever the visual
+ * order does (a bidi line, a wrap), so a mixed-direction selection is drawn as
+ * the separate pieces it is.
+ */
+export function selectionRects(layout: TextLayout, start: number, end: number): SelectionRect[] {
+  const rects: SelectionRect[] = [];
+  if (end <= start) return rects;
+  const vertical = layout.axis === "vertical";
+  let run: SelectionRect | null = null;
+  let runLine = -1;
+  let prevIndex = -1;
+  for (let i = 0; i < layout.glyphs.length; i++) {
+    const g = layout.glyphs[i]!;
+    const slot = layout.lines[g.line];
+    const selected = g.graphemeIndex >= start && g.graphemeIndex < end && g.char !== "\n" && !!slot;
+    // Adjacent in visual order AND in the text — otherwise it is a new piece.
+    const continues = run && runLine === g.line && Math.abs(g.graphemeIndex - prevIndex) === 1;
+    if (!selected || !continues) {
+      if (run) rects.push(run);
+      run = null;
+    }
+    prevIndex = g.graphemeIndex;
+    if (!selected) continue;
+    // Along the flow: the glyph's own cell. Across: the line's slot.
+    let a0: number;
+    let a1: number;
+    if (vertical) {
+      // A column cell is `fontSize × lineHeight` tall, the glyph centred in it
+      // (see `layoutVertical`); `size / em` is that line-height factor.
+      const pitch = (g.style.fontSize * slot!.size) / slot!.em;
+      a0 = g.y - g.style.fontSize * LINE_ASCENT_RATIO - (pitch - g.style.fontSize) / 2;
+      a1 = a0 + pitch;
+    } else {
+      a0 = g.x;
+      a1 = g.x + g.width;
+    }
+    if (!run) {
+      run = vertical
+        ? { x: slot!.at, y: a0, width: slot!.size, height: a1 - a0 }
+        : { x: a0, y: slot!.at, width: a1 - a0, height: slot!.size };
+      runLine = g.line;
+    } else if (vertical) {
+      const y0 = Math.min(run.y, a0);
+      run.height = Math.max(run.y + run.height, a1) - y0;
+      run.y = y0;
+    } else {
+      const x0 = Math.min(run.x, a0);
+      run.width = Math.max(run.x + run.width, a1) - x0;
+      run.x = x0;
+    }
+  }
+  if (run) rects.push(run);
+  return rects;
 }
 
 /**

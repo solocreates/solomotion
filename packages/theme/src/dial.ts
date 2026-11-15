@@ -56,10 +56,12 @@ export function oMetricsFrom(m: GlyphMetrics): OMetrics {
 
 /**
  * The wordmark's o's for one family, measured once per family and weight.
- * Space Grotesk 600 at 100px, as measured in Chrome, ships as the default so
- * the first paint is right before any measurement runs (and on a server).
+ * Space Grotesk 600 at 100px (the face next/font serves), as measured in
+ * Chrome, ships as the default so the first paint is already right and the
+ * client's one measurement changes nothing. Re-measure if the face changes:
+ * a stale default is a visible jump on every boot.
  */
-export const DEFAULT_O: OMetrics = { adv: 58.6, base: 77.6, cx: 29.3, cy: 52.9, rx: 25.4, ry: 26.1 };
+export const DEFAULT_O: OMetrics = { adv: 61.34, base: 84.5, cx: 30.67, cy: 59.79, rx: 25.75, ry: 26.11 };
 
 /** "solomotion" split around its four o's, with the dial each one wears. */
 export const WORDMARK_PARTS: ReadonlyArray<{ text: string } | { o: 0 | 1 | 2 | 3 }> = [

@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import {
-  ATOM_DEFAULT_FILL,
   DRAW_PLACEMENTS,
   FALLOFFS,
   isSculptBrush,
@@ -45,7 +44,8 @@ import type { ShapeTool } from "./session";
  * so one count would make arming Star change what Polygon draws.
  */
 export interface ShapeDefaults {
-  fill: string;
+  /** null = the brand fill (`brandFillColor`), read when the shape is drawn. */
+  fill: string | null;
   strokeOn: boolean;
   stroke: string;
   strokeWidth: number;
@@ -136,8 +136,8 @@ export function shapeCreation(tool: ShapeTool, d: ShapeDefaults): ShapeCreation 
 export interface PenDefaults {
   stroke: string;
   strokeWidth: number;
-  /** Fill applied to CLOSED paths (open paths stay stroke-only). */
-  fill: string;
+  /** Fill applied to CLOSED paths (open paths stay stroke-only); null = the brand fill. */
+  fill: string | null;
 }
 
 /**
@@ -208,10 +208,10 @@ const INITIAL = {
   // Matches createTextClip's built-in default, so nothing changes until edited.
   text: defaultTextStyle(),
   shape: {
-    // Read from the palette, never restated. This used to be its own hex and
-    // it had already drifted from the factory's default, so what colour "a new
-    // rectangle" was depended on which of the two code paths drew it.
-    fill: ATOM_DEFAULT_FILL,
+    // null, never a hex: the brand fill is the app's primary, read when the
+    // shape is drawn (core `brandFillColor`), so it follows the product and
+    // the theme instead of being frozen here.
+    fill: null,
     strokeOn: false,
     stroke: "#131316",
     strokeWidth: 4,
@@ -224,7 +224,7 @@ const INITIAL = {
     arcStartDeg: 0,
     arcRatio: 0,
   } as ShapeDefaults,
-  pen: { stroke: "#F4F2ED", strokeWidth: 4, fill: ATOM_DEFAULT_FILL } as PenDefaults,
+  pen: { stroke: "#F4F2ED", strokeWidth: 4, fill: null } as PenDefaults,
   // Connect by default (the hover preview promises it), and ask the first few
   // times so the choice is discoverable rather than a setting nobody finds.
   penJunction: { connect: true, ask: true } as PenJunction,
@@ -272,6 +272,16 @@ function loadWorld(saved: Partial<WorldToolDefaults> | undefined): WorldToolDefa
   };
 }
 
+/**
+ * Fills older builds wrote while they were still the DEFAULT. The store used
+ * to persist every field on any edit, so changing a text size froze the
+ * shape colour of that day forever and no later default could reach it.
+ * Those values read back as "not chosen".
+ */
+const LEGACY_DEFAULT_FILLS = new Set(["#FF4E6A", "#F5B843"]);
+const unfrozen = <T extends { fill?: string | null }>(v: T | undefined): T | undefined =>
+  v && typeof v.fill === "string" && LEGACY_DEFAULT_FILLS.has(v.fill.toUpperCase()) ? { ...v, fill: null } : v;
+
 function load(): Persisted {
   if (typeof window === "undefined") return INITIAL;
   try {
@@ -281,8 +291,8 @@ function load(): Persisted {
     // Merge field-by-field so an older saved blob gains any new keys.
     return {
       text: { ...INITIAL.text, ...saved.text },
-      shape: { ...INITIAL.shape, ...saved.shape },
-      pen: { ...INITIAL.pen, ...saved.pen },
+      shape: { ...INITIAL.shape, ...unfrozen(saved.shape) },
+      pen: { ...INITIAL.pen, ...unfrozen(saved.pen) },
       penJunction: { ...INITIAL.penJunction, ...saved.penJunction },
       frameMode:
         saved.frameMode === "flipbook" || saved.frameMode === "static" ? saved.frameMode : INITIAL.frameMode,
@@ -293,11 +303,27 @@ function load(): Persisted {
   }
 }
 
+/** The fields of `v` the user actually changed — a default is never written down. */
+function changed<T extends object>(v: T, base: T): Partial<T> {
+  const out: Partial<T> = {};
+  for (const k of Object.keys(v) as Array<keyof T>) {
+    if (JSON.stringify(v[k]) !== JSON.stringify(base[k])) out[k] = v[k];
+  }
+  return out;
+}
+
 function persist(s: Persisted) {
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ text: s.text, shape: s.shape, pen: s.pen, penJunction: s.penJunction, frameMode: s.frameMode, world: s.world }),
+      JSON.stringify({
+        text: changed(s.text, INITIAL.text),
+        shape: changed(s.shape, INITIAL.shape),
+        pen: changed(s.pen, INITIAL.pen),
+        penJunction: changed(s.penJunction, INITIAL.penJunction),
+        frameMode: s.frameMode,
+        world: s.world,
+      }),
     );
   } catch {
     /* storage full / unavailable — defaults just don't persist */

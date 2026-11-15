@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { HighlightedCode } from "./HighlightedCode";
 import { Check, ChevronRight, CircleCheck, CircleSlash, CircleX, Clock, Copy, LoaderCircle, Square, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCopied } from "../console/console-report";
@@ -17,8 +18,8 @@ const LEVEL_TONE: Record<RunLog["level"], string> = {
   log: "",
   info: "",
   debug: "text-muted-foreground",
-  warn: "text-amber-400 bg-amber-400/5",
-  error: "text-red-400 bg-red-400/5",
+  warn: "text-warning bg-warning/5",
+  error: "text-destructive bg-destructive/5",
 };
 
 /** What each copy button puts on the clipboard — the panel knows the source; the row only shows it. */
@@ -33,7 +34,7 @@ export function RunEntry({ run, onJump, onStop, copyAs }: { run: RunRecord; onJu
       {run.repl ? (
         <div className="flex gap-2 px-3 text-muted-foreground">
           <span className="select-none text-primary">›</span>
-          <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words">{run.code}</pre>
+          <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words text-(--code-foreground)"><HighlightedCode code={run.code} /></pre>
           <CopyButton label="Copy for AI" text={() => copyAs.run(run)} />
         </div>
       ) : (
@@ -67,7 +68,7 @@ export function RunEntry({ run, onJump, onStop, copyAs }: { run: RunRecord; onJu
         </div>
       )}
       {run.unawaited > 0 && (
-        <div className="flex items-center gap-1.5 px-3 pl-7 text-amber-400">
+        <div className="flex items-center gap-1.5 px-3 pl-7 text-warning">
           <TriangleAlert className="size-3.5 shrink-0" />
           {run.unawaited} call{run.unawaited === 1 ? "" : "s"} not awaited
         </div>
@@ -81,7 +82,7 @@ const STATUS_ICON = { queued: Clock, running: LoaderCircle, ok: CircleCheck, sto
 function RunHeader({ run, copyAs, onStop }: { run: RunRecord; copyAs: RunCopy; onStop?: (id: string) => void }) {
   const Icon = STATUS_ICON[run.status];
   const live = run.status === "running" || run.status === "queued";
-  const tone = run.status === "ok" ? "text-emerald-400" : run.status === "error" ? "text-red-400" : "text-muted-foreground";
+  const tone = run.status === "ok" ? "text-success" : run.status === "error" ? "text-destructive" : "text-muted-foreground";
   return (
     <div className="flex items-center gap-2 px-3">
       <Icon className={cn("size-3.5 shrink-0", tone, run.status === "running" && "animate-spin")} />
@@ -117,25 +118,25 @@ function RunHeader({ run, copyAs, onStop }: { run: RunRecord; copyAs: RunCopy; o
 function ErrorBlock({ run, onJump, copy }: { run: RunRecord; onJump?: (line: number) => void; copy: () => string }) {
   const e = run.error!;
   return (
-    <div className="mx-2 mt-1 rounded-md bg-red-500/8 px-2.5 py-1.5 text-red-300">
+    <div className="mx-2 mt-1 rounded-md bg-destructive/8 px-2.5 py-1.5 text-destructive">
       <div className="flex items-start gap-2">
         <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">
-          <span className="text-red-400">{e.name}</span> {e.message}
+          <span className="text-destructive">{e.name}</span> {e.message}
         </span>
         {e.line && !run.repl && (
-          <button type="button" onClick={() => onJump?.(e.line!)} className="shrink-0 rounded px-1 text-red-300/70 hover:bg-red-500/15 hover:text-red-200">
+          <button type="button" onClick={() => onJump?.(e.line!)} className="shrink-0 rounded px-1 text-destructive/70 hover:bg-destructive/15 hover:text-destructive">
             line {e.line}
           </button>
         )}
-        <CopyButton label="Copy error" text={copy} className="text-red-300/70 hover:bg-red-500/15 hover:text-red-200" />
+        <CopyButton label="Copy error" text={copy} className="text-destructive/70 hover:bg-destructive/15 hover:text-destructive" />
       </div>
-      {e.hint && <div className="mt-0.5 text-red-200/70">→ {e.hint}</div>}
+      {e.hint && <div className="mt-0.5 text-destructive/70">→ {e.hint}</div>}
     </div>
   );
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="rounded bg-muted px-1.5 text-[11px] leading-4 text-muted-foreground">{children}</span>;
+  return <span className="rounded-(--r-xs) bg-raised px-1.5 text-[11px] leading-4 text-muted-foreground">{children}</span>;
 }
 
 /** Copies, then shows a check where the person is looking — no toast needed. */
@@ -152,7 +153,7 @@ function CopyButton({ label, text, className }: { label: string; text: () => str
         className ?? "text-muted-foreground/60 hover:bg-accent hover:text-foreground group-hover/run:text-muted-foreground",
       )}
     >
-      {copied ? <Check className="size-3.5 text-emerald-400 animate-in zoom-in-50 duration-150" /> : <Copy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-success animate-in zoom-in-50 duration-150" /> : <Copy className="size-3.5" />}
     </button>
   );
 }
@@ -168,7 +169,7 @@ const PREVIEW_KEYS = 4;
 /** A returned or logged value: primitives coloured, objects folded, images shown. */
 export function Value({ value, name }: { value: unknown; name?: string }) {
   const [open, setOpen] = React.useState(false);
-  const label = name !== undefined ? <span className="text-[var(--syntax-local)]">{name}: </span> : null;
+  const label = name !== undefined ? <span className="text-(--code-token-parameter)">{name}: </span> : null;
   if (value === null || value === undefined || typeof value !== "object") {
     return (
       <span>
@@ -187,10 +188,10 @@ export function Value({ value, name }: { value: unknown; name?: string }) {
       </span>
     );
   }
-  if ("$fn" in rec) return <span className="text-[var(--syntax-function)]">{label}ƒ {String(rec.$fn)}</span>;
+  if ("$fn" in rec) return <span className="text-(--code-token-function)">{label}ƒ {String(rec.$fn)}</span>;
   if ("$error" in rec) {
     const e = rec.$error as { name: string; message: string };
-    return <span className="text-red-400">{label}{e.name}: {e.message}</span>;
+    return <span className="text-destructive">{label}{e.name}: {e.message}</span>;
   }
   const isArr = Array.isArray(value);
   const entries: Array<[string, unknown]> = isArr ? (value as unknown[]).map((v, i) => [String(i), v]) : Object.entries(rec);
@@ -227,9 +228,9 @@ function short(v: unknown): string {
 }
 
 function Primitive({ value }: { value: unknown }) {
-  if (typeof value === "string") return <span className="text-[var(--syntax-text)]">{JSON.stringify(value)}</span>;
-  if (typeof value === "number") return <span className="text-[var(--syntax-number)]">{value}</span>;
-  if (typeof value === "boolean") return <span className="text-[var(--syntax-function)]">{String(value)}</span>;
+  if (typeof value === "string") return <span className="text-(--code-token-string)">{JSON.stringify(value)}</span>;
+  if (typeof value === "number") return <span className="text-(--code-token-constant)">{value}</span>;
+  if (typeof value === "boolean") return <span className="text-(--code-token-keyword)">{String(value)}</span>;
   return <span className="text-muted-foreground">{String(value)}</span>;
 }
 

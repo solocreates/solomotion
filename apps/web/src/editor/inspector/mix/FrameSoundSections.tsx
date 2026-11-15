@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useDoc, useDocStore } from "../../state/document-context";
 import { useSession } from "../../state/session";
 import { useLoudnessVersion } from "../../audio/loudness-cache";
-import { IconToggle, IconTrack, PanelSection, PropRow } from "../controls";
+import { IconToggle, IconTrack, Note, PanelSection, PropRow } from "../controls";
 import { BusDot } from "./CategoryPicker";
 import { useBusMembers, useBusUpdater } from "./use-mix";
 
@@ -57,20 +57,15 @@ export function LevelerSection({ frame }: { frame: Frame }) {
       id="frame-leveler"
       title="Leveler"
       hint="Keeps every sound where its kind should sit, and nothing too loud. Measures each sound once, in the background."
-      summary={lv.enabled ? `${Math.round(lv.strength * 100)}%` : "Off"}
-      actions={
-        <Switch
-          checked={lv.enabled}
-          onCheckedChange={(on) => set(on ? "Leveler on" : "Leveler off", (l) => void (l.enabled = on))}
-          aria-label="Leveler"
-        />
-      }
+      summary={`${Math.round(lv.strength * 100)}%`}
+      enabled={{ on: lv.enabled, onChange: (on) => set(on ? "Leveler on" : "Leveler off", (l) => void (l.enabled = on)) }}
     >
-      <PropRow label="Level">
+      {/* A segmented control with WORD labels is a composite: it takes the width. */}
+      <PropRow label="Level" stack>
         <IconTrack
           items={[
-            { id: "category", label: "Each category to its own target", icon: <span className="text-[11px]">By category</span> },
-            { id: "all", label: "Everything to one target", icon: <span className="text-[11px]">All</span> },
+            { id: "category", label: "Each category to its own target", icon: <span className="text-meta">By category</span> },
+            { id: "all", label: "Everything to one target", icon: <span className="text-meta">All</span> },
           ]}
           value={lv.mode}
           onPick={(mode) => set("Leveler mode", (l) => void (l.mode = mode))}
@@ -89,17 +84,17 @@ export function LevelerSection({ frame }: { frame: Frame }) {
           onChange={(v) => set("Leveler strength", (l) => void (l.strength = v / 100), "lv-strength")}
         />
       </PropRow>
-      <PropRow toggle label="Tame loud sounds">
+      <PropRow label="Tame loud sounds">
         <Switch checked={lv.tameLoud} onCheckedChange={(on) => set("Tame loud sounds", (l) => void (l.tameLoud = on))} disabled={!lv.enabled} />
       </PropRow>
-      <PropRow toggle label="Lift quiet sounds" hint="Off by default — lifting a quiet take lifts its noise too.">
+      <PropRow label="Lift quiet sounds" hint="Off by default — lifting a quiet take lifts its noise too.">
         <Switch checked={lv.liftQuiet} onCheckedChange={(on) => set("Lift quiet sounds", (l) => void (l.liftQuiet = on))} disabled={!lv.enabled} />
       </PropRow>
-      <PropRow toggle label="Even out speech" hint="A slow dialogue leveler on speech categories: loud words come down, the take stays natural.">
+      <PropRow label="Even out speech" hint="A slow dialogue leveler on speech categories: loud words come down, the take stays natural.">
         <Switch checked={lv.evenSpeech} onCheckedChange={(on) => set("Even out speech", (l) => void (l.evenSpeech = on))} disabled={!lv.enabled} />
       </PropRow>
       {lv.enabled && measuring > 0 && (
-        <p className="px-1 text-[11px] text-muted-foreground">Measuring {measuring} {measuring === 1 ? "sound" : "sounds"}…</p>
+        <Note>Measuring {measuring} {measuring === 1 ? "sound" : "sounds"}…</Note>
       )}
     </PanelSection>
   );
@@ -123,7 +118,7 @@ function MasterSection({ frame }: { frame: Frame }) {
           onChange={(v) => update("Master level", (m) => void (m.volume = Math.max(0, Math.min(4, v / 100))), "master-vol")}
         />
       </PropRow>
-      <PropRow toggle label="Limiter" hint="Nothing leaves the mix louder than the ceiling — the last guard for your ears.">
+      <PropRow label="Limiter" hint="Nothing leaves the mix louder than the ceiling — the last guard for your ears.">
         <Switch checked={mix.limiter.enabled} onCheckedChange={(on) => update(on ? "Limiter on" : "Limiter off", (m) => void (m.limiter.enabled = on))} />
       </PropRow>
       {mix.limiter.enabled && (
@@ -152,16 +147,16 @@ export function CategoriesSection() {
     <PanelSection id="frame-categories" title="Categories" count={doc.soundBuses.length}>
       <ul className="-mx-1 space-y-px">
         {doc.soundBuses.map((bus) => (
-          <li key={bus.id} className="group flex h-7 items-center gap-1.5 rounded-md px-1.5 transition-colors hover:bg-accent">
+          <li key={bus.id} className="group flex h-(--control-h) items-center gap-1.5 rounded-md px-1.5 transition-colors hover:bg-hover">
             <BusDot color={bus.color} />
             <button
               type="button"
-              className="min-w-0 flex-1 truncate text-left text-xs"
+              className="min-w-0 flex-1 truncate text-left text-body"
               onClick={() => useSession.getState().inspectSoundBus(bus.id)}
             >
               {bus.name}
             </button>
-            <span className="font-mono text-[10px] text-muted-foreground">{members.get(bus.id)?.length ?? 0}</span>
+            <span className="text-meta tabular-nums text-fg-faint">{members.get(bus.id)?.length ?? 0}</span>
             <IconToggle label={bus.solo ? "Unsolo" : "Solo"} pressed={bus.solo} onClick={() => updateBus(bus.id, bus.solo ? "Unsolo category" : "Solo category", (b) => void (b.solo = !b.solo))}>
               <Headphones />
             </IconToggle>
@@ -178,7 +173,7 @@ export function CategoriesSection() {
           store.update("New sound category", (d) => void (id = createSoundBus(d, { name: `Category ${d.soundBuses.filter((b) => !b.builtIn).length + 1}` })));
           if (id) useSession.getState().inspectSoundBus(id);
         }}
-        className="mt-1 flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 text-[11px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+        className="mt-1 flex h-(--control-h) w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-line text-meta text-fg-muted transition-colors hover:bg-hover hover:text-fg"
       >
         <Plus className="size-3" />
         New category

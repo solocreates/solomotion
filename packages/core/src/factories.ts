@@ -66,6 +66,29 @@ import { healContourIds } from "./vector/contour-id";
  */
 export const ATOM_DEFAULT_FILL = PALETTE_LIBRARIES[0]!.colors[0]!.value;
 
+/**
+ * THE BRAND FILL — the colour anything drawn without a colour arrives in: a
+ * rectangle off the tool, a closed pen path, a shape an agent makes with no
+ * `fill`. It is the app's PRIMARY, so a shape drawn in SoloMotion is
+ * SoloMotion's green, another product's own accent, and a user theme's accent
+ * paints with it too. Every product used to draw one fixed red.
+ *
+ * The engine knows no theme, so the app STAMPS it (`setBrandFill`, called
+ * where a theme is applied) the way a product stamps its identity; a test, a
+ * worker and the exporter never draw a new shape and keep the Atom swatch.
+ * One value read at creation time, so the tool, the inspector's default and
+ * the API cannot each have their own idea of it.
+ */
+let brandFill: string = ATOM_DEFAULT_FILL;
+
+export function setBrandFill(hex: string): void {
+  if (/^#[0-9a-f]{6}$/i.test(hex)) brandFill = hex.toUpperCase();
+}
+
+export function brandFillColor(): string {
+  return brandFill;
+}
+
 export function defaultTextStyle(overrides: Partial<TextStyle> = {}): TextStyle {
   const style: TextStyle = {
     fontFamily: "Space Grotesk",
@@ -686,11 +709,9 @@ export function createShapeClip(input: CreateShapeClipInput): ShapeClip {
     arcSweepDeg: clamp(input.arcSweepDeg ?? 360, 0, 360),
     arcRatio: clamp(input.arcRatio ?? 0, 0, 0.99),
     cornerOffsets: null,
-    // The brand's own accent, not a stray amber. A new rectangle is the first
-    // thing anyone draws, so its colour is the app introducing itself — and it
-    // is the Atom palette's first swatch, so the default and the shipped
-    // library agree instead of being two unrelated opinions.
-    fills: asFills(input.fill, ATOM_DEFAULT_FILL),
+    // The app's own primary (`brandFillColor`). A new rectangle is the first
+    // thing anyone draws, so its colour is the app introducing itself.
+    fills: asFills(input.fill, brandFillColor()),
     strokes: asStrokes(input.stroke, null),
     opacity: 1,
     blendMode: "normal",
@@ -1325,6 +1346,18 @@ export function createEmptyDocument(name = "Untitled"): MotionDocument {
     scripts: [],
     scriptFolders: [],
   };
+}
+
+/**
+ * A blank canvas: the empty document with no frame, and so none of the
+ * starter tracks that would belong to it. The first frame is drawn, not
+ * asked for; the tracks arrive with the first layer, as they do in any comp.
+ */
+export function createBlankDocument(name = "Untitled"): MotionDocument {
+  const doc = createEmptyDocument(name);
+  doc.frames = [];
+  doc.tracks = [];
+  return doc;
 }
 
 /** A small demo document so the editor opens alive, not blank. */

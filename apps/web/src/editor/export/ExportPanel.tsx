@@ -41,6 +41,7 @@ import {
 } from "@solomotion/core";
 import {
   AudioLines,
+  Box,
   Braces,
   ChevronDown,
   Copy,
@@ -51,7 +52,6 @@ import {
   Images,
   Loader2,
   Lock,
-  Music,
   Settings2,
   Sparkles,
 } from "lucide-react";
@@ -67,7 +67,8 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Range } from "@/components/ui/range";
+import { Meter, Range } from "@/components/ui/range";
+import { product } from "../product";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/segmented";
@@ -184,7 +185,7 @@ export function ExportPanel({
   // MediaRecorder makes MP4, not WebM, so the option has to be named for what
   // this engine produces rather than for what the code used to hope for.
   const realtime = React.useMemo(() => realtimeContainer(true) ?? "webm", []);
-  const realtimeLabel = realtime === "mp4" ? "MP4 video (realtime)" : "WebM video";
+  const realtimeLabel = realtime === "mp4" ? "MP4 (realtime)" : "WebM";
   /**
    * Offer the realtime recorder only when it is worth having.
    *
@@ -771,21 +772,25 @@ export function ExportPanel({
   const showAudioReport = medium === "video" && caps.hasAudio &&
     ((showAudioToggle && includeAudio) || videoFormat === "audio");
 
-  return (
-    <div className={cn("space-y-3", compact ? "" : "space-y-4")}>
-      {/* Media tabs — image / video / lottie, capability-driven. */}
-      <Segmented
-        value={medium}
-        onChange={(v) => setMedium(v as ExportMedium)}
-        disabled={rendering}
-        stretch
-        options={caps.media.map((m) => ({
-          value: m,
-          label: MEDIUM_LABEL[m],
-        }))}
-      />
+  // ── Formats: one list, the comp's natural medium first ─────────────────────
+  const formats = formatCards({
+    media: [caps.defaultMedium, ...caps.media.filter((m) => m !== caps.defaultMedium)],
+    svg: caps.svg,
+    mp4Ok,
+    showRealtime,
+    realtimeLabel,
+    hasAudio: caps.hasAudio,
+    world: !!frame.world,
+  });
+  const currentFormat: FormatId = medium === "video" ? videoFormat : medium === "image" ? imageFormat : medium;
+  const pickFormat = (f: FormatCardDef) => {
+    setMedium(f.medium);
+    if (f.medium === "video") setVideoFormat(f.id as VideoFormat);
+    if (f.medium === "image") setImageFormat(f.id as ImageFormat);
+  };
 
-
+  const settings = (
+    <>
       {medium === "pdf" && (
         <>
           {caps.animated && (
@@ -840,16 +845,6 @@ export function ExportPanel({
         </>
       )}
 
-      {variant === "dialog" && (
-        <ExportPreview
-          doc={doc}
-          frame={frame}
-          target={target}
-          bounds={displayBounds}
-          canvasRef={previewRef}
-          live={rendering && medium === "video"}
-        />
-      )}
 
       {medium === "model" && (
         <>
@@ -874,21 +869,6 @@ export function ExportPanel({
 
       {medium === "image" && (
         <>
-          <Field label="Format" compact={compact}>
-            <Segmented
-              value={imageFormat}
-              onChange={(v) => setImageFormat(v as ImageFormat)}
-              disabled={rendering}
-              options={
-                frame.world
-                  ? [{ value: "png", label: "PNG" }]
-                  : [
-                      { value: "png", label: "PNG" },
-                      { value: "svg", label: "SVG" },
-                    ]
-              }
-            />
-          </Field>
           {imageFormat === "png" && (
             <>
               <Field label="Size" compact={compact}>
@@ -925,28 +905,6 @@ export function ExportPanel({
 
       {medium === "video" && (
         <>
-          <Field label="Format" compact={compact}>
-            <Select value={videoFormat} onValueChange={(v) => setVideoFormat(v as VideoFormat)} disabled={rendering}>
-              <SelectTrigger className={cn("h-8 text-xs", compact ? "w-full" : "w-48")}>
-                {/* A div (not a >span) so the trigger's line-clamp doesn't turn
-                    this into a vertical -webkit-box and stack the icon. */}
-                <div className="flex min-w-0 items-center gap-1.5 [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground">
-                  <VideoFormatIcon format={videoFormat} />
-                  <span className="truncate font-medium">
-                    {videoFormat === "webm" ? realtimeLabel : VIDEO_FORMAT_LABELS[videoFormat]}
-                  </span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mp4" disabled={!mp4Ok}>MP4 video</SelectItem>
-                <SelectItem value="mov">Master — lossless MOV</SelectItem>
-                {showRealtime && <SelectItem value="webm">{realtimeLabel}</SelectItem>}
-                <SelectItem value="gif">Animated GIF</SelectItem>
-                <SelectItem value="png-seq">PNG sequence</SelectItem>
-                {caps.hasAudio && <SelectItem value="audio">Audio only (WAV)</SelectItem>}
-              </SelectContent>
-            </Select>
-          </Field>
 
           {(isLayer || workRange) && !isBatch && (
             <Field label="Range" compact={compact}>
@@ -1000,7 +958,7 @@ export function ExportPanel({
                       <>This comp runs at {formatFps(compRateFps)}.</>
                     ) : (
                       <span className="flex items-center gap-1">
-                        <span className="text-amber-400/90">
+                        <span className="text-warning/90">
                           Override — comp runs at {formatFps(compRateFps)}.
                         </span>
                         <button
@@ -1150,27 +1108,41 @@ export function ExportPanel({
         </>
       )}
 
+    </>
+  );
+
+  return (
+    <div className={cn("space-y-3", compact ? "" : "space-y-4")}>
+      {variant === "dialog" && (
+        <ExportPreview
+          doc={doc}
+          frame={frame}
+          target={target}
+          bounds={displayBounds}
+          canvasRef={previewRef}
+          live={rendering && medium === "video"}
+        />
+      )}
+      {/* One column of formats. The chosen one opens to show its settings. */}
+      <div role="radiogroup" aria-label="Format" className="flex flex-col gap-1.5">
+        {formats.map((f) => (
+          <FormatCard key={f.id} format={f} selected={f.id === currentFormat} compact={compact} disabled={rendering} onPick={() => pickFormat(f)}>
+            {settings}
+          </FormatCard>
+        ))}
+      </div>
+
       <CreditsField doc={scopedDoc(doc, target)} compact={compact} />
 
-      {/* Progress + the one export button */}
+      {/* Progress, or the one action. In the dialog it stays in reach at the
+          foot however long the chosen format's settings run. */}
+      <div className={cn(variant === "dialog" && "sticky -bottom-4 z-10 -mx-5 -mb-4 border-t border-line bg-popover px-5 py-3")}>
       {rendering && (medium === "video" || medium === "pdf" || isBatch) ? (
-        <div className="space-y-1.5">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-            {/* No width transition. A width transition animates on the main
-                thread, and during a render the main thread is the encoder —
-                so the animation starved while the percentage beside it (plain
-                text, no animation) ran ahead, and the bar looked stuck at 5%
-                until the export finished and unmounted it. Progress arrives
-                every frame; it is already smooth without being animated. */}
-            <div className="h-full bg-primary" style={{ width: `${Math.round((progress ?? 0) * 100)}%` }} />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => abortRef.current?.abort()}
-          >
-            <Loader2 className="animate-spin" /> Rendering {Math.round((progress ?? 0) * 100)}% — cancel
+        <div className="flex items-center gap-2">
+          <product.Loader size={compact ? 18 : 22} className="shrink-0" />
+          <Meter value={progress ?? 0} label={medium === "video" ? "Rendering" : "Exporting"} className="flex-1" />
+          <Button variant="secondary" size={compact ? "sm" : "default"} onClick={() => abortRef.current?.abort()}>
+            Cancel
           </Button>
         </div>
       ) : sizeLocked ? (
@@ -1180,23 +1152,11 @@ export function ExportPanel({
         </Button>
       ) : (
         <Button onClick={() => void start()} disabled={rendering} size={compact ? "sm" : "default"} className="w-full">
-          {rendering ? (
-            <Loader2 className="animate-spin" />
-          ) : medium === "image" ? (
-            <FileImage />
-          ) : medium === "pdf" ? (
-            <FileText />
-          ) : medium === "lottie" ? (
-            <Braces />
-          ) : videoFormat === "audio" ? (
-            <Music />
-          ) : (
-            <Film />
-          )}
-          Export {target.kind === "frame" || isBatch ? target.name : `“${target.name}”`}
-          {medium === "pdf" && " as PDF"}
+          {rendering ? <product.Loader size={16} /> : <FormatIcon id={currentFormat} />}
+          {medium === "video" && videoFormat !== "audio" ? "Render" : "Export"} {target.kind === "frame" || isBatch ? target.name : `“${target.name}”`}
         </Button>
       )}
+      </div>
     </div>
   );
 }
@@ -1270,7 +1230,7 @@ function ExportPreview({
       <canvas ref={canvasRef} className="max-w-full rounded-sm shadow-sm" />
       {live && (
         <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-          <span className="size-1.5 animate-pulse rounded-full bg-red-500" /> Rendering
+          <span className="size-1.5 animate-pulse rounded-full bg-destructive" /> Rendering
         </span>
       )}
     </div>
@@ -1280,10 +1240,10 @@ function ExportPreview({
 // ── Lottie compatibility report ──────────────────────────────────────────────
 
 const STATUS_STYLE: Record<LottieLayerReport["status"], string> = {
-  mapped: "bg-emerald-500/15 text-emerald-500",
-  baked: "bg-sky-500/15 text-sky-500",
-  partial: "bg-amber-500/15 text-amber-500",
-  skipped: "bg-red-500/15 text-red-500",
+  mapped: "bg-success/15 text-success",
+  baked: "bg-primary/15 text-primary",
+  partial: "bg-warning/15 text-warning",
+  skipped: "bg-destructive/15 text-destructive",
 };
 
 /** Runs the translator (dry) and lists what maps, bakes, or drops per layer. */
@@ -1360,19 +1320,91 @@ function LottieReportPreview({
 
 // ── Small building blocks (shared with the dialog shell) ────────────────────
 
-const VIDEO_FORMAT_LABELS: Record<VideoFormat, string> = {
-  mp4: "MP4 video",
-  mov: "Master — lossless MOV",
-  webm: "WebM video",
-  gif: "Animated GIF",
-  "png-seq": "PNG sequence",
-  audio: "Audio only (WAV)",
-};
+type FormatId = VideoFormat | ImageFormat | "lottie" | "pdf" | "model";
+interface FormatCardDef {
+  id: FormatId;
+  medium: ExportMedium;
+  name: string;
+  /** One line: what this format is FOR. */
+  spec: string;
+}
 
-function VideoFormatIcon({ format }: { format: VideoFormat }) {
-  if (format === "gif" || format === "png-seq") return <Images />;
-  if (format === "audio") return <AudioLines />;
+function FormatIcon({ id }: { id: FormatId }) {
+  if (id === "gif" || id === "png-seq") return <Images />;
+  if (id === "audio") return <AudioLines />;
+  if (id === "png") return <FileImage />;
+  if (id === "svg") return <FileCode2 />;
+  if (id === "lottie") return <Braces />;
+  if (id === "pdf") return <FileText />;
+  if (id === "model") return <Box />;
   return <Film />;
+}
+
+/** Every format this subject can become, as preset cards, grouped by medium. */
+function formatCards(o: {
+  media: ExportMedium[];
+  svg: "vector" | "outline" | "mixed";
+  mp4Ok: boolean;
+  showRealtime: boolean;
+  realtimeLabel: string;
+  hasAudio: boolean;
+  world: boolean;
+}): FormatCardDef[] {
+  const out: FormatCardDef[] = [];
+  for (const m of o.media) {
+    if (m === "video") {
+      if (o.mp4Ok) out.push({ id: "mp4", medium: m, name: "MP4", spec: "H.264, plays everywhere" });
+      out.push({ id: "mov", medium: m, name: "Master MOV", spec: "Lossless, keeps transparency" });
+      if (o.showRealtime) out.push({ id: "webm", medium: m, name: o.realtimeLabel, spec: "Recorded as it plays" });
+      out.push({ id: "gif", medium: m, name: "GIF", spec: "Loops anywhere, 256 colours" });
+      out.push({ id: "png-seq", medium: m, name: "PNG sequence", spec: "A file per frame, for compositing" });
+      if (o.hasAudio) out.push({ id: "audio", medium: m, name: "WAV", spec: "The sound on its own" });
+    } else if (m === "image") {
+      out.push({ id: "png", medium: m, name: "PNG", spec: "The frame at the playhead" });
+      if (!o.world)
+        out.push({ id: "svg", medium: m, name: "SVG", spec: o.svg === "vector" ? "True vector, every layer as paths" : o.svg === "outline" ? "Vector, text as outlines" : "Vector, media embedded as images" });
+    } else if (m === "lottie") out.push({ id: "lottie", medium: m, name: "Lottie", spec: "Vector motion for web and apps" });
+    else if (m === "pdf") out.push({ id: "pdf", medium: m, name: "PDF", spec: "A page per frame" });
+    else if (m === "model") out.push({ id: "model", medium: m, name: "3D model", spec: "glTF, USDZ, OBJ, STL or PLY" });
+  }
+  return out;
+}
+
+/**
+ * A format as a preset card: icon, name, one line. The chosen card is the
+ * raised plane and holds that format's settings, so what you picked and what
+ * it asks are always in one place.
+ */
+function FormatCard({ format, selected, compact, disabled, onPick, children }: { format: FormatCardDef; selected: boolean; compact: boolean; disabled: boolean; onPick: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "rounded-(--r-md) border transition-colors",
+        selected ? "border-line bg-raised shadow-(--elevation-1)" : "border-transparent hover:bg-hover",
+      )}
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        disabled={disabled && !selected}
+        onClick={onPick}
+        className={cn("flex w-full min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ring) rounded-(--r-md) disabled:opacity-40", compact ? "px-2 py-1.5" : "px-3 py-2.5")}
+      >
+        <span className={cn("grid shrink-0 place-items-center rounded-(--r-sm) [&_svg]:size-4", compact ? "size-7" : "size-8", selected ? "text-primary" : "bg-hover text-fg-muted")}>
+          <FormatIcon id={format.id} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn("block truncate font-medium", compact ? "text-xs" : "text-body", selected ? "text-fg" : "text-fg-muted")}>{format.name}</span>
+          <span className="block truncate text-meta text-fg-faint">{format.spec}</span>
+        </span>
+        <span aria-hidden className={cn("grid size-4 shrink-0 place-items-center rounded-full border", selected ? "border-primary" : "border-line")}>
+          {selected && <span className="size-2 rounded-full bg-primary" />}
+        </span>
+      </button>
+      {selected && <div className={cn("space-y-3 border-t border-line", compact ? "px-2 py-2.5" : "px-3 py-3")}>{children}</div>}
+    </div>
+  );
 }
 
 /**
@@ -1419,7 +1451,7 @@ function SizeQualityControl({
             <SelectTrigger className="h-8 w-fit gap-1.5 text-xs" aria-label="Resolution preset">
               {currentRes ? (
                 <div className="flex items-center gap-1 font-medium [&_svg]:shrink-0">
-                  {locked && <Lock className="size-3 text-amber-500" />}
+                  {locked && <Lock className="size-3 text-warning" />}
                   {currentRes.label}
                   <span className="text-[10px] font-normal text-muted-foreground">{currentRes.name}</span>
                 </div>
@@ -1435,7 +1467,7 @@ function SizeQualityControl({
                     <span className="font-mono text-[10px] text-muted-foreground">
                       {o.width}×{o.height}
                     </span>
-                    {o.pro && !pro && <Lock className="size-3 text-amber-500" />}
+                    {o.pro && !pro && <Lock className="size-3 text-warning" />}
                   </span>
                 </SelectItem>
               ))}
@@ -1461,7 +1493,7 @@ function SizeQualityControl({
                     <span className="font-mono text-[10px] text-muted-foreground">
                       {w}×{h}
                     </span>
-                    {optLocked && <Lock className="size-3 text-amber-500" />}
+                    {optLocked && <Lock className="size-3 text-warning" />}
                   </span>
                 </SelectItem>
               );
@@ -1470,7 +1502,7 @@ function SizeQualityControl({
         </Select>
       </div>
       {locked && (
-        <span className="text-[10px] text-amber-600 dark:text-amber-500">
+        <span className="text-[10px] text-warning">
           {FREE_MAX_LONGEST_EDGE >= 1280 ? "720p" : `${FREE_MAX_LONGEST_EDGE}px`} max on the free plan — Pro unlocks Full HD &amp; 4K
         </span>
       )}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { flipbookInContext, type DocumentStore, type Frame } from "@solomotion/core";
-import { activeCompId, timeToPx, timelineSpanMs } from "../timeline/timeline-utils";
+import { activeCompId, timelineSpanMs } from "../timeline/timeline-utils";
 import { Box, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export function StandaloneGraph({ tab }: { tab: GraphTab }) {
   const pxPerSec = usePxPerSec();
   const headerW = useHeaderWidth((s) => s.width);
   const compId = activeCompId(doc, useSession((s) => s.activeFrameId));
-  const contentWidth = timeToPx(timelineSpanMs(doc, compId), pxPerSec) + 120;
+  const spanMs = timelineSpanMs(doc, compId);
   return (
     <div className="h-full min-h-0" data-pick-area="curves">
       <GraphPanel
@@ -153,7 +153,7 @@ export function StandaloneGraph({ tab }: { tab: GraphTab }) {
           if (t !== tab) useLayout.getState().reveal(t);
         }}
         pxPerSec={pxPerSec}
-        contentWidth={contentWidth}
+        spanMs={spanMs}
         headerW={headerW}
         fill
       />

@@ -8,11 +8,11 @@ using your work safely, now and later. Please read it. You sign it once, by
 following the link the CLA Assistant bot posts on your first pull request, and
 it covers every contribution you make after that.
 
-**Why there is an agreement.** SoloMotion is released under the GNU General
-Public License, version 3. The maintainer also builds and sells products on the
+**Why there is an agreement.** SoloMotion is released under the GNU Affero
+General Public License, version 3. The maintainer also builds and sells products on the
 same engine, under other licenses. That is how the project pays for the time it
 takes. Without this agreement, a contribution could only ever be used under the
-GPL, and a fix you send could never reach those products. With it, your work can
+AGPL, and a fix you send could never reach those products. With it, your work can
 be used in both, and the open project stays open (section 6).
 
 ## 1. Definitions
@@ -71,7 +71,7 @@ kind, except where the law requires otherwise or you agree to them in writing.
 ## 6. What we promise
 
 - Every Contribution we accept into SoloMotion will remain available to the
-  public under the GNU General Public License, version 3, or under another
+  public under the GNU Affero General Public License, version 3, or under another
   license approved by the Open Source Initiative.
 - We will credit you as the author of your Contributions in the project's
   history.

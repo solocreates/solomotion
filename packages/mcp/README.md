@@ -1,6 +1,6 @@
 # @solomotion/mcp
 
-The MCP server for [SoloMotion](https://github.com/novincode/solomotion), the
+The MCP server for [SoloMotion](https://github.com/solocreates/solomotion), the
 open-source motion studio. It lets Claude Code, Cursor, Codex or any
 [MCP](https://modelcontextprotocol.io) client drive a SoloMotion editor that is
 open in your browser: design, animate, edit and render, live on your canvas.
@@ -56,4 +56,4 @@ header when the tab comes from SoloMotion itself, the desktop app or
 
 ## License
 
-GPL-3.0-only
+AGPL-3.0-only

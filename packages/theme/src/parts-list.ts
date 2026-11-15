@@ -27,6 +27,14 @@ export const PART_DIALECTS = {
   /** Never a black well: a field is always a step of the surface it sits on. */
   field: ["well", "line", "box"],
   menu: ["solid", "terminal", "inverted"],
+  /** The stage's tool rail: a glass capsule with an accent armed tool, or a
+   *  roomy neutral float whose armed tool is a lit tile, with rich tips. */
+  tools: ["capsule", "float"],
+  /** The stage's surround: plain, or a quiet dot field. */
+  backdrop: ["plain", "dots"],
+  /** A section's or a window's title: set in the display face, or as an
+   *  eyebrow (the code face, small, tracked caps), like the site's sections. */
+  heads: ["display", "eyebrow"],
 } as const;
 export type PartName = keyof typeof PART_DIALECTS;
 export type Dialect<P extends PartName> = (typeof PART_DIALECTS)[P][number];

@@ -6,7 +6,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { withFloatingLayerEvents } from "@/lib/portal-events";
 import { Kbd } from "@/components/ui/kbd";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { MENU_EDGE_PADDING, MENU_SEPARATOR, MENU_SURFACE, MenuScroll } from "@/components/ui/menu-kit";
 
 const ContextMenu = ContextMenuPrimitive.Root;
 
@@ -93,18 +93,7 @@ function ContextMenuSubTrigger({
  * Items keep keyboard reach: focusing one scrolls the viewport to it, because
  * the viewport is an ordinary overflow box.
  */
-const MENU_EDGE_PADDING = 8;
-const MENU_SURFACE =
-  "group/menu [&:has([role=menuitemcheckbox])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 [&:has([role=menuitemradio])_[role=menuitem]:not(:has(>svg:first-child))]:pl-8 z-50 flex flex-col overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95";
 const MENU_MAX_HEIGHT = { maxHeight: "var(--radix-context-menu-content-available-height)" } as const;
-
-function MenuScroll({ children }: { children: React.ReactNode }) {
-  return (
-    <ScrollArea className="min-h-0 flex-1">
-      <div className="p-1">{children}</div>
-    </ScrollArea>
-  );
-}
 
 function ContextMenuSubContent({
   className,
@@ -315,7 +304,7 @@ function ContextMenuSeparator({
   className,
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Separator>) {
-  return <ContextMenuPrimitive.Separator data-part="menu-separator" className={cn("-mx-1 my-1 h-px", className)} {...props} />;
+  return <ContextMenuPrimitive.Separator data-part="menu-separator" className={cn(MENU_SEPARATOR, className)} {...props} />;
 }
 
 function ContextMenuShortcut(props: React.ComponentProps<"span">) {

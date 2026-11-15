@@ -443,14 +443,44 @@ export const RailCapsule = React.forwardRef<HTMLDivElement, { children: React.Re
 /** A hairline between two groups of a rail, across its run. */
 export function RailDivider() {
   const vertical = useChromeAxis() === "vertical";
-  return <span aria-hidden className={cn("shrink-0 bg-border", vertical ? "my-0.5 h-px w-5" : "mx-0.5 h-5 w-px")} />;
+  return <span aria-hidden className={cn("stage-tool-divider shrink-0 bg-border", vertical ? "my-0.5 h-px w-5" : "mx-0.5 h-5 w-px")} />;
 }
 
 /** One tool on a rail. ARMED is the app's one armed state, accent on the icon. */
 export function railButton(active?: boolean): string {
   return cn(
-    "relative flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors [&_svg]:size-4",
+    // `stage-tool` is the theme's hook: the `tools` dialect repaints it
+    // (globals.css, beside the glass switch).
+    "stage-tool relative flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors [&_svg]:size-4",
     active ? "material-glass-raised text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+  );
+}
+
+/**
+ * THE TOOL TIP — a tool's name and keys, and the line on what it does. Every
+ * rail tool's tip is this one, so the `tools` dialect restyles all of them:
+ * `capsule` shows name + keys on one line (the detail is hidden), `float`
+ * makes it a small card with the detail under the name.
+ */
+export function ToolTip({
+  side,
+  label,
+  keys,
+  detail,
+}: {
+  side: "top" | "right" | "bottom" | "left";
+  label: string;
+  keys?: string | null;
+  detail?: string;
+}) {
+  return (
+    <TooltipContent side={side} sideOffset={10} className="stage-tip flex flex-col items-start gap-1">
+      <span data-el="head" className="flex items-center gap-1.5">
+        {label}
+        {keys && <kbd className="rounded bg-secondary px-1 font-mono text-2xs">{keys}</kbd>}
+      </span>
+      {detail && <span data-el="detail">{detail}</span>}
+    </TooltipContent>
   );
 }
 
@@ -512,10 +542,7 @@ export function RailTool({
         <PopoverTrigger asChild>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
         </PopoverTrigger>
-        <TooltipContent side={side} sideOffset={10} className="flex items-center gap-1.5">
-          {label}
-          {shortcut && <kbd className="rounded bg-secondary px-1 font-mono text-2xs">{shortcut}</kbd>}
-        </TooltipContent>
+        <ToolTip side={side} label={label} keys={shortcut} />
       </Tooltip>
       {more && (
         <PopoverContent side={side} align="start" sideOffset={10} className="w-auto p-1" onOpenAutoFocus={(e) => e.preventDefault()} onClick={() => setOpen(false)}>

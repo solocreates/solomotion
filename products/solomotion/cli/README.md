@@ -1,6 +1,6 @@
 # solomotion
 
-The command line for [SoloMotion](https://github.com/novincode/solomotion),
+The command line for [SoloMotion](https://github.com/solocreates/solomotion),
 the open-source motion studio: motion design, animation and video editing in
 the browser, with agents as first-class collaborators.
 
@@ -38,4 +38,4 @@ Then, in SoloMotion: **Agents > Use your agent app > Link**.
 
 ## License
 
-GPL-3.0-only
+AGPL-3.0-only

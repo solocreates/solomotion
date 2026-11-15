@@ -41,14 +41,14 @@
       }
     }
   },
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/novincode/solomotion.git",
+    "url": "git+https://github.com/solocreates/solomotion.git",
     "directory": "packages/plugin-sdk"
   },
-  "homepage": "https://github.com/novincode/solomotion/tree/main/packages/plugin-sdk#readme",
+  "homepage": "https://github.com/solocreates/solomotion/tree/main/packages/plugin-sdk#readme",
   "bugs": {
-    "url": "https://github.com/novincode/solomotion/issues"
+    "url": "https://github.com/solocreates/solomotion/issues"
   }
 }

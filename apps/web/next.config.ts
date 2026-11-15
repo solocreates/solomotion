@@ -76,6 +76,10 @@ const ORT_VERSION = (
 ).version;
 
 const nextConfig: NextConfig = {
+  // Next allows ONE `next dev` per build folder (its lock lives in
+  // `<distDir>/dev`). The root `dev` script builds into `.next-alt`, so both
+  // products can run side by side from this one app folder.
+  distDir: process.env.NEXT_DIST_DIR || undefined,
   // The dev badge's default corner is the left rail's foot, on top of Settings.
   devIndicators: { position: "bottom-right" },
   transpilePackages: ["@solomotion/core", "@solomotion/platform", "@solomotion/plugin-sdk", "@solomotion/ui", "@solomotion/theme"],

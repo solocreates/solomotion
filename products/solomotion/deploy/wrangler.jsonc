@@ -1,6 +1,6 @@
 /**
  * The SoloMotion editor Worker — its OWN deploy, wholly separate from the site.
- * Served at app.solomotion.app. Shipping the app no longer touches the site
+ * Served at open.solomotion.app. Shipping the app no longer touches the site
  * (and vice-versa): each has its own Worker, its own cadence.
  *
  * The editor serves several products; this config is SoloMotion's, and only
@@ -21,7 +21,7 @@
 	},
 	// Bind the app to its subdomain. `custom_domain` provisions the DNS record +
 	// route automatically as long as the `solomotion.app` zone is in the account.
-	"routes": [{ "pattern": "app.solomotion.app", "custom_domain": true }],
+	"routes": [{ "pattern": "open.solomotion.app", "custom_domain": true }],
 	"images": {
 		"binding": "IMAGES"
 	},

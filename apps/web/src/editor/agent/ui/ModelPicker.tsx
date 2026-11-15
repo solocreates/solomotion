@@ -126,7 +126,7 @@ export function ContextMeter({ used, window }: { used: number; window: number })
   const f = Math.min(1, used / window);
   const r = 7;
   const c = 2 * Math.PI * r;
-  const tone = f > 0.85 ? "text-destructive" : f > 0.6 ? "text-amber-500" : "text-primary";
+  const tone = f > 0.85 ? "text-destructive" : f > 0.6 ? "text-warning" : "text-primary";
   return (
     <span className="group relative flex items-center" title={`Context ${fmtTokens(used)} of ${fmtTokens(window)} tokens (${Math.round(f * 100)}%)`}>
       <svg viewBox="0 0 18 18" className="size-4 -rotate-90" aria-label={`Context ${Math.round(f * 100)}% full`}>

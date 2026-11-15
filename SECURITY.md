@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security problems privately, through GitHub:
-**[Report a vulnerability](https://github.com/novincode/solomotion/security/advisories/new)**
+**[Report a vulnerability](https://github.com/solocreates/solomotion/security/advisories/new)**
 (the Security tab of this repository). Do not open a public issue, pull
 request or discussion for it.
 

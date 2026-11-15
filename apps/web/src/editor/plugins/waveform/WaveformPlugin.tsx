@@ -246,7 +246,7 @@ function EditView({
       }
       footer={
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" />
+          <span className="inline-block size-1.5 animate-pulse rounded-full bg-success" />
           Live — edits apply instantly and stay in sync with the audio.
         </div>
       }
@@ -478,7 +478,7 @@ function PresetBrowser({
               type="button"
               onClick={() => setCat(c)}
               className={cn(
-                "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+                "shrink-0 rounded-(--r-xs) px-2.5 py-1 text-[11px] font-medium transition-colors",
                 cat === c
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",

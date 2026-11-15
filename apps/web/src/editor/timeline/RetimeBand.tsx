@@ -228,7 +228,7 @@ export function RetimeBand({ clip, pxPerSec }: { clip: Clip; pxPerSec: number })
           stroke="currentColor"
           strokeWidth={detail === "full" ? 1.5 : 1}
           strokeLinejoin="round"
-          className="text-[#FBBF24]"
+          className="text-(--kind-speed)"
         />
       </svg>
 
@@ -250,7 +250,7 @@ export function RetimeBand({ clip, pxPerSec }: { clip: Clip; pxPerSec: number })
                  said nothing. */
               className={cn(
                 "pointer-events-none absolute top-0 flex items-center justify-center truncate px-1 font-mono text-[9px] font-medium leading-none",
-                s.frozen ? "text-[#7DD3FC]" : "text-[#FBBF24]",
+                s.frozen ? "text-(--kind-frozen)" : "text-(--kind-speed)",
               )}
               style={{ left: timeToPx(s.startMs, pxPerSec), width: w, height: 11 }}
             >
@@ -462,7 +462,7 @@ function FreezeBlock({
           onPointerDown={move("body")}
           onDoubleClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute inset-y-0 border-x border-[#7DD3FC]/60 touch-none",
+            "absolute inset-y-0 border-x border-(--kind-frozen)/60 touch-none",
             active ? "cursor-slip" : "cursor-default",
           )}
           style={{
@@ -638,12 +638,12 @@ function SpeedHandle({
             className={cn(
               "absolute left-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/80 shadow transition-transform",
               readout ? "scale-125" : "hover:scale-125",
-              frozen ? "bg-[#7DD3FC]" : "bg-[#FBBF24]",
+              frozen ? "bg-(--kind-frozen)" : "bg-(--kind-speed)",
             )}
             style={{ top: plotY(rate, height) }}
           />
           {readout && (
-            <span className="material-chip pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-1 font-mono text-[9px] text-[#FBBF24]">
+            <span className="material-chip pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-1 font-mono text-[9px] text-(--kind-speed)">
               {readout}
             </span>
           )}

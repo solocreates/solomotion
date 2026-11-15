@@ -224,7 +224,7 @@ export function PublishDialog() {
         </DialogHeader>
 
         {!available ? (
-          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+          <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
             No content repo on this machine. Set <code>LIBRARY_CONTENT_DIR</code> and restart the dev server.
           </p>
         ) : (
@@ -365,7 +365,7 @@ export function PublishDialog() {
                     key={t}
                     type="button"
                     onClick={() => setTags(tags.filter((x) => x !== t))}
-                    className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/25"
+                    className="flex items-center gap-1 rounded-(--r-xs) bg-primary/15 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/25"
                   >
                     #{t} <X className="size-2.5" />
                   </button>

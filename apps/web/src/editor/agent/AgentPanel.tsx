@@ -210,7 +210,7 @@ function Welcome() {
     <ScrollArea fill className="min-h-0 flex-1">
       <div className="mx-auto flex w-full max-w-[17rem] flex-col items-center justify-center gap-4 px-5 py-8 text-center">
         <ProviderMark providerId="builtin" className="size-12 rounded-xl text-primary" />
-        <p className="text-body text-fg-muted">Ask AI to design, animate and edit this project</p>
+        <p className="text-body text-fg-muted">An agent that designs, animates and edits with you</p>
         <div className="flex w-full flex-col gap-1.5">
           <Button className="h-(--control-h-lg) w-full min-w-0 px-2" onClick={() => useAgent.getState().setSetupOpen(true)}>
             <PlugZap /> <span className="truncate">Connect a model</span>
@@ -243,11 +243,12 @@ function ChatHistory() {
       key={c.id}
       type="button"
       onClick={() => void useAgent.getState().openChat(c.id)}
-      className="group flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent"
+      data-part="menu-item"
+      className="group flex w-full min-w-0 items-center gap-2 px-2 py-1.5 text-left hover:bg-hover"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs text-foreground">{c.title}</span>
-        <span className="block truncate text-2xs text-muted-foreground">
+        <span className="block truncate text-xs text-fg">{c.title}</span>
+        <span className="block truncate text-2xs text-fg-faint">
           {new Date(c.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {c.model ?? "—"}
         </span>
       </span>
@@ -259,7 +260,7 @@ function ChatHistory() {
           e.stopPropagation();
           void useAgent.getState().deleteChat(c.id);
         }}
-        className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition hover:bg-background hover:text-destructive group-hover:opacity-100 [&_svg]:size-3.5"
+        className="flex size-6 shrink-0 items-center justify-center rounded-(--r-xs) text-fg-faint opacity-0 transition hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 [&_svg]:size-3.5"
       >
         <Trash2 />
       </span>
@@ -276,13 +277,13 @@ function ChatHistory() {
           {filtered.length === 0 && <p className="py-10 text-center text-xs text-muted-foreground">No chats yet.</p>}
           {here.length > 0 && (
             <section>
-              <h3 className="px-2 pb-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">This project</h3>
+              <h3 data-part="label" className="px-2 pb-1 text-meta text-fg-faint">This project</h3>
               {here.map(row)}
             </section>
           )}
           {elsewhere.length > 0 && (
             <section>
-              <h3 className="px-2 pb-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">Other projects</h3>
+              <h3 data-part="label" className="px-2 pb-1 text-meta text-fg-faint">Other projects</h3>
               {elsewhere.map(row)}
             </section>
           )}

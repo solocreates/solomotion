@@ -61,16 +61,16 @@ const CORNER_POSITION: Record<NotificationCorner, string> = {
 const TONE_ACCENT: Record<NotificationTone, string> = {
   default: "before:bg-border",
   brand: "before:bg-primary",
-  success: "before:bg-emerald-500",
-  warning: "before:bg-amber-500",
+  success: "before:bg-success",
+  warning: "before:bg-warning",
   destructive: "before:bg-destructive",
 };
 
 const TONE_ICON: Record<NotificationTone, string> = {
   default: "text-muted-foreground",
   brand: "text-primary",
-  success: "text-emerald-500",
-  warning: "text-amber-500",
+  success: "text-success",
+  warning: "text-warning",
   destructive: "text-destructive",
 };
 

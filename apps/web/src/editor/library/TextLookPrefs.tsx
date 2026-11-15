@@ -226,7 +226,7 @@ function Dial({
           type="button"
           aria-pressed={active}
           className={cn(
-            "flex h-6 min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-[10px] font-medium transition-colors outline-none",
+            "flex h-6 min-w-0 shrink items-center gap-1.5 rounded-(--r-xs) px-2 text-[10px] font-medium transition-colors outline-none",
             "focus-visible:ring-1 focus-visible:ring-primary/60 [&_svg]:size-3 [&_svg]:shrink-0",
             active
               ? "material-glass-raised text-primary"

@@ -1278,7 +1278,7 @@ export function FrameMenuItems({ store, frameId }: { store: DocumentStore; frame
         </ContextMenuItem>
       )}
       {isComponent && (
-        <ContextMenuItem disabled className="text-[#B79BFF]">
+        <ContextMenuItem disabled className="text-(--kind-component)">
           <Component /> Component
         </ContextMenuItem>
       )}

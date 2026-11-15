@@ -129,14 +129,14 @@ export function SaveProjectDialog() {
           </div>
           <div className="flex items-center justify-between border-t px-3 py-2">
             <span className="text-sm font-semibold">Total</span>
-            <span className={cn("text-sm font-semibold tabular-nums", heavy ? "text-destructive" : warn ? "text-amber-500" : "text-foreground")}>
+            <span className={cn("text-sm font-semibold tabular-nums", heavy ? "text-destructive" : warn ? "text-warning" : "text-foreground")}>
               {estimating || !estimate ? "…" : formatBytes(total)}
             </span>
           </div>
         </div>
 
         {warn && (
-          <div className={cn("flex items-start gap-2 rounded-md px-3 py-2 text-xs", heavy ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600 dark:text-amber-400")}>
+          <div className={cn("flex items-start gap-2 rounded-md px-3 py-2 text-xs", heavy ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               This is a {heavy ? "very large" : "large"} file ({formatBytes(total)}). {hasMedia && "Turn off “Include media” for a lightweight copy, "}
@@ -149,7 +149,7 @@ export function SaveProjectDialog() {
           <button
             type="button"
             onClick={() => useMediaReviewUi.getState().openReview()}
-            className="flex w-full items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-left text-xs text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+            className="flex w-full items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-left text-xs text-warning transition-colors hover:bg-warning/10"
           >
             <AlertTriangle className="size-3.5 shrink-0" />
             <span className="min-w-0 flex-1">

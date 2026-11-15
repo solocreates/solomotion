@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HighlightedCode } from "../../scripts/HighlightedCode";
 
 /**
  * Markdown for chat replies — the subset models actually write (paragraphs,
@@ -95,7 +97,7 @@ function inline(text: string, key = 0): React.ReactNode[] {
   for (const m of text.matchAll(INLINE)) {
     if (m.index! > last) out.push(...withBreaks(text.slice(last, m.index), k++));
     const s = m[0];
-    if (m[1]) out.push(<code key={k++} className="rounded bg-muted px-1 py-px font-mono text-[0.92em]">{s.slice(1, -1)}</code>);
+    if (m[1]) out.push(<code key={k++} className="rounded-(--r-xs) bg-raised px-1 py-px font-mono text-[0.92em] text-(--code-foreground)">{s.slice(1, -1)}</code>);
     else if (m[2]) out.push(<strong key={k++} className="font-semibold text-foreground">{inline(s.slice(2, -2), k * 100)}</strong>);
     else if (m[3]) out.push(<em key={k++}>{inline(s.slice(1, -1), k * 100)}</em>);
     else if (m[4]) {
@@ -155,9 +157,7 @@ export const Markdown = React.memo(function Markdown({ text, className }: { text
             );
           case "code":
             return (
-              <pre key={i} className="overflow-x-auto rounded-md border bg-background/70 p-2.5 font-mono text-xs leading-snug text-foreground/85">
-                <code>{b.text}</code>
-              </pre>
+              <CodeBlock key={i} code={b.text} lang={b.lang} />
             );
           case "hr":
             return <hr key={i} className="border-border" />;
@@ -193,3 +193,41 @@ export const Markdown = React.memo(function Markdown({ text, className }: { text
     </div>
   );
 });
+
+const LANG_LABEL: Record<string, string> = { js: "JavaScript", javascript: "JavaScript", ts: "TypeScript", typescript: "TypeScript", tsx: "TSX", jsx: "JSX", json: "JSON", bash: "Shell", sh: "Shell", css: "CSS", diff: "Diff" };
+
+/**
+ * Fenced code, drawn as the site's docs draw it: ink on the panel inside a
+ * hairline frame, the docs' token colours, the language and a copy button on
+ * a quiet head.
+ */
+function CodeBlock({ code, lang }: { code: string; lang: string }) {
+  const [copied, setCopied] = React.useState(false);
+  const copy = () => {
+    void navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    });
+  };
+  const label = LANG_LABEL[lang.toLowerCase()] ?? (lang || "Code");
+  return (
+    <figure className="group/code overflow-hidden rounded-(--r-md) border border-(--line)">
+      <figcaption className="flex h-7 items-center justify-between border-b border-(--line) pl-3 pr-1">
+        <span data-part="label" className="text-meta text-fg-faint">{label}</span>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label="Copy code"
+          className="grid size-6 place-items-center rounded-(--r-xs) text-fg-faint opacity-0 transition hover:bg-hover hover:text-fg focus-visible:opacity-100 group-hover/code:opacity-100 [@media(pointer:coarse)]:opacity-100 [&_svg]:size-3.5"
+        >
+          {copied ? <Check className="text-success" /> : <Copy />}
+        </button>
+      </figcaption>
+      <pre className="overflow-x-auto px-3 py-2.5 font-mono text-xs leading-[1.7] text-(--code-foreground)">
+        <code>
+          <HighlightedCode code={code} lang={lang} />
+        </code>
+      </pre>
+    </figure>
+  );
+}

@@ -23,6 +23,7 @@ import { PluginsPanel } from "../plugins/PluginsPanel";
 import { Inspector } from "../inspector/Inspector";
 import { CenterStage } from "../nodes/CenterStage";
 import { lazyComponent } from "@/editor/lazy-component";
+import { PanelBoundary } from "./PanelLoading";
 import { EDITORS, editorMeta, LEFT_DEFAULT, type EditorId, type EditorMeta } from "../workspace/editor-registry";
 import {
   StandaloneColor,
@@ -35,25 +36,28 @@ import {
 /**
  * The Agents panel is a LAZY chunk — its runtime, provider SDKs and skill load
  * the first time the panel opens, so an editor that never uses AI never pays
- * for it. The registry needs a prop-free component; this is that component.
+ * for it. Scripts are lazy for the same reason (CodeMirror and the runtime ride
+ * in the chunk). Neither carries a fallback: every body is wrapped in ONE
+ * boundary below, so a lazy panel only has to be lazy.
  */
-const AgentPanelChunk = lazyComponent("AgentPanelChunk", () => import("../agent/AgentPanel"));
-function AgentsPanel() {
-  return (
-    <React.Suspense fallback={<div className="h-full" />}>
-      <AgentPanelChunk />
-    </React.Suspense>
-  );
-}
+const AgentsPanel = lazyComponent("AgentPanelChunk", () => import("../agent/AgentPanel"));
+const ScriptsPanel = lazyComponent("ScriptsPanelChunk", () => import("../scripts/ScriptsPanel"));
 
-/** Scripts are lazy for the same reason — CodeMirror and the runtime ride in the chunk. */
-const ScriptsPanelChunk = lazyComponent("ScriptsPanelChunk", () => import("../scripts/ScriptsPanel"));
-function ScriptsPanel() {
-  return (
-    <React.Suspense fallback={<div className="h-full" />}>
-      <ScriptsPanelChunk />
-    </React.Suspense>
-  );
+/**
+ * Every body inside the shared loading boundary, so whichever host draws it
+ * (a region, a floating window, an OS window, a compact overlay) shows the
+ * same loading state while a chunk arrives — never a blank panel.
+ */
+function bounded(Body: React.ComponentType): React.ComponentType {
+  function Bounded() {
+    return (
+      <PanelBoundary>
+        <Body />
+      </PanelBoundary>
+    );
+  }
+  Bounded.displayName = `Bounded(${Body.displayName ?? Body.name ?? "Panel"})`;
+  return Bounded;
 }
 
 /**
@@ -97,6 +101,7 @@ export interface PanelDef extends EditorMeta {
 export const PANELS: readonly PanelDef[] = EDITORS.map((e) => ({
   ...e,
   ...VIEWS[e.id],
+  component: bounded(VIEWS[e.id].component),
   defaultSize: { width: e.floatSize.w, height: e.floatSize.h },
 }));
 

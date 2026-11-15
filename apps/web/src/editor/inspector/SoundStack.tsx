@@ -188,7 +188,7 @@ export function SoundStackSection({ clip }: { clip: Clip }) {
                 rather than on each sound in it: it is one fact about the
                 drawer, not N facts about its contents. */}
             {missing && rows.length > 0 && (
-              <div className="flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-[10.5px] text-amber-600 dark:text-amber-400">
+              <div className="flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1 text-[10.5px] text-warning">
                 <TriangleAlert className="size-3 shrink-0" />
                 {missing}
               </div>

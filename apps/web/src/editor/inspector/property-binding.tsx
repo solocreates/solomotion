@@ -26,6 +26,8 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverAnchor } from "@/components/ui/popover";
+import { FieldUnitProvider } from "@/components/ui/field-unit";
+import { fieldUnitFor } from "./unit-control";
 import { useDoc, useDocStore } from "../state/document-context";
 import { useSession } from "../state/session";
 import { evaluateAt, useExprContext } from "../expressions/expression-context";
@@ -249,6 +251,9 @@ export function PropertyBindingMenu({
         open={panel !== null}
         onOpenChange={(open) => !open && setPanel(null)}
       >
+        {/* The field draws its own unit (a length's live chip) in its reserved
+            slot. Scoped to the control, never the panels below it. */}
+        <FieldUnitProvider unit={fieldUnitFor(clip, path)}>
         <ContextMenu>
           <ContextMenuTrigger asChild className={className}>
             {/* An anchor, not a trigger: the control keeps its own click and drag
@@ -298,6 +303,7 @@ export function PropertyBindingMenu({
             )}
           </ContextMenuContent>
         </ContextMenu>
+        </FieldUnitProvider>
         {panel === "variable" && (
           <VariablePickerContent
             {...shared}

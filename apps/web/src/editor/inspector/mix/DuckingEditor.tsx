@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDoc } from "../../state/document-context";
-import { IconAction, PropRow } from "../controls";
+import { IconAction, Pair, PropRow, declareRowShape } from "../controls";
 import { BusDot } from "./CategoryPicker";
 import { useSoundSources } from "./use-mix";
 
@@ -45,16 +45,17 @@ export function DuckingEditor({
     onChange(label, rules.map((r) => (r.id === id ? fn(r) : r)), mergeKey);
 
   return (
-    <div className="space-y-2">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-(--gap-row)">
       {rules.map((rule) => (
-        <div key={rule.id} className="space-y-1.5 rounded-md border border-border/60 p-2">
-          <div className="flex items-center gap-1.5">
+        // A rule is a card on the raised plane — space and value separate it, not a hairline.
+        <div key={rule.id} className="grid grid-cols-[minmax(0,1fr)] gap-(--gap-row) rounded-lg bg-raised p-2">
+          <div className="flex min-w-0 items-center gap-1.5">
             <Switch
               checked={rule.enabled}
               onCheckedChange={(on) => patch(rule.id, (r) => ({ ...r, enabled: on }), on ? "Enable ducking" : "Bypass ducking")}
               aria-label="Ducking on"
             />
-            <span className="shrink-0 text-[11px] text-muted-foreground">Under</span>
+            <span className="shrink-0 text-meta text-fg-muted">Under</span>
             <TriggerPicker
               value={rule.under}
               owner={owner}
@@ -78,8 +79,8 @@ export function DuckingEditor({
               onChange={(v) => patch(rule.id, (r) => ({ ...r, depthDb: v }), "Ducking depth", "duck-depth")}
             />
           </PropRow>
-          <PropRow label="Timing" hint="How fast it gets out of the way (it starts early), and how fast it comes back.">
-            <div className="flex min-w-0 flex-1 gap-1.5">
+          <PropRow label="Timing" stack hint="How fast it gets out of the way (it starts early), and how fast it comes back.">
+            <Pair>
               <NumberInput
                 label="In"
                 value={rule.attackMs}
@@ -98,14 +99,14 @@ export function DuckingEditor({
                 unit="ms"
                 onChange={(v) => patch(rule.id, (r) => ({ ...r, releaseMs: Math.max(0, v) }), "Ducking release", "duck-release")}
               />
-            </div>
+            </Pair>
           </PropRow>
         </div>
       ))}
       <button
         type="button"
         onClick={() => onChange("Add ducking", [...rules, makeDuckRule(defaultTrigger)])}
-        className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 text-[11px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+        className="flex h-(--control-h) w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-line text-meta text-fg-muted transition-colors hover:bg-hover hover:text-fg"
       >
         <Plus className="size-3" />
         {rules.length ? "Another rule" : `Duck under ${nameOf(doc, defaultTrigger)}`}
@@ -113,6 +114,9 @@ export function DuckingEditor({
     </div>
   );
 }
+
+// A rule list is a composite: its row stacks the label above and gives it the width.
+declareRowShape(DuckingEditor, "stack");
 
 function nameOf(doc: ReturnType<typeof useDoc>, t: SoundTarget): string {
   if (t.kind === "bus") return doc.soundBuses.find((b) => b.id === t.id)?.name ?? "a category";
@@ -146,7 +150,7 @@ function TriggerPicker({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md bg-input/35 px-2 text-xs transition-colors hover:bg-input/55"
+          className="flex h-(--control-h) min-w-0 flex-1 items-center gap-1.5 rounded-md bg-input px-2 text-body transition-colors hover:bg-hover"
         >
           {bus ? <BusDot color={bus.color} /> : <Layers className="size-3 shrink-0 opacity-70" />}
           <span className="flex-1 truncate text-left">{nameOf(doc, value)}</span>
@@ -154,7 +158,7 @@ function TriggerPicker({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Category</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-meta text-fg-muted">Category</DropdownMenuLabel>
         {doc.soundBuses
           .filter((b) => !same({ kind: "bus", id: b.id }))
           .map((b) => (
@@ -166,7 +170,7 @@ function TriggerPicker({
         {layers.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Layer</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-meta text-fg-muted">Layer</DropdownMenuLabel>
             {layers.map((c) => (
               <DropdownMenuItem key={c.id} onSelect={() => onPick({ kind: "clip", id: c.id })}>
                 {c.kind === "nested" ? <Layers className="size-3.5" /> : <AudioLines className="size-3.5" />}

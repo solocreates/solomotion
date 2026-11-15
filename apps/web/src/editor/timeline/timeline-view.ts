@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useSession } from "../state/session";
 import { pxToTime, timeToPx } from "./timeline-utils";
 import { pxPerSecNow } from "./use-time-axes";
@@ -45,6 +46,39 @@ export function dynamicMinPxPerSec(viewportWidthPx: number, spanMs: number): num
   const spanSec = Math.max(1, spanMs / 1000);
   const fitPx = (viewportWidthPx * 0.92) / spanSec; // px/s that fits the span
   return clamp(fitPx, ABSOLUTE_MIN_PX_PER_SEC, MIN_PX_PER_SEC);
+}
+
+/** Room after the last clip, so its end is never flush with the edge. */
+export const TIME_TAIL_PX = 120;
+
+/**
+ * How wide a time surface DRAWS: the span plus a tail, and never less than the
+ * viewport it is drawn in.
+ *
+ * The zoom floor deliberately goes past "fit the span" (`MIN_PX_PER_SEC` keeps
+ * ~80s of runway on a 10s edit, so there is time to drop a clip into), but the
+ * content stopped at the span — so zooming out showed the runway as a dead
+ * slab with no ruler, no lanes and nowhere to drop. The runway is time like any
+ * other: the ruler counts it and the lanes run through it. The lanes and the
+ * graph both read this, so their widths cannot disagree.
+ */
+export function drawnTimeWidth(spanMs: number, pxPerSec: number, viewportPx: number): number {
+  return Math.max(timeToPx(spanMs, pxPerSec) + TIME_TAIL_PX, Math.ceil(viewportPx));
+}
+
+/** An element's client width, live. 0 until it has mounted. */
+export function useClientWidth(ref: React.RefObject<HTMLElement | null>): number {
+  const [w, setW] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const read = () => setW(el.clientWidth);
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return w;
 }
 
 /**

@@ -270,7 +270,6 @@ export function AppMenu({ trigger, side }: { trigger?: React.ReactElement; side?
             <DropdownMenuItem onClick={() => useSession.getState().setSettingsDialogOpen(true)}>
               <Settings /> Settings
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <MenuFooter />
           </>
         )}
@@ -303,14 +302,16 @@ function QuickTiles({ store, inEditor }: { store: ReturnType<typeof useDocStore>
 }
 
 /**
- * The quiet last row: where the app is going, how to learn it, how to tell us
- * it broke — and the product's own row (the way to Pro; Support). Small on purpose; these
- * are reassurance, not tasks.
+ * The menu's foot: where the app is going, how to learn it, how to tell us it
+ * broke, and the product's own row (the way to Pro; Support). Reassurance, not
+ * tasks — so it is a quieter band of its own at the bottom edge, full bleed,
+ * two columns of left-aligned rows. Four centred items in one row were
+ * squeezed to their icons' width and read as a broken toolbar.
  */
 function MenuFooter() {
-  const item = "flex-1 justify-center gap-1 px-1 text-meta text-fg-muted focus:text-fg [&_svg]:size-3.5";
+  const item = "gap-2 px-2 text-meta text-fg-muted focus:text-fg [&_svg]:size-3.5";
   return (
-    <div className="flex gap-0.5">
+    <div className="-mx-1 -mb-1 mt-1 grid grid-cols-2 gap-0.5 border-t border-line bg-[color-mix(in_srgb,var(--foreground)_2.5%,transparent)] p-1">
       <DropdownMenuItem className={item} onClick={() => openSite("/changelog")}>
         <Gift /> What's new
       </DropdownMenuItem>

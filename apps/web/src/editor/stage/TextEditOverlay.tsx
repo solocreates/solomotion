@@ -55,6 +55,7 @@ import {
   highlightPills,
   layoutOverridesFor,
   layoutTextClip,
+  selectionRects,
   type LayoutOverrides,
 } from "./render/text-layout";
 
@@ -81,6 +82,7 @@ export function TextEditOverlay() {
   // evaluation the canvas draws: scrub and it re-positions, re-styles and
   // re-contents in real time (keyframed motion, typography and content).
   const playheadMs = useSession((s) => (s.editingClipId ? s.playheadMs : 0));
+  const textSelection = useSession((s) => (s.editingClipId ? s.textSelection : null));
   const view = useStageView();
   const rootRef = React.useRef<HTMLDivElement>(null);
   /** Desired selection in grapheme offsets, restored after each rebuild. */
@@ -397,6 +399,13 @@ export function TextEditOverlay() {
   const domW = hostBox ? hostBox.width : (boxW ?? Math.max(1, layout?.width ?? 0));
   const domH = hostBox ? hostBox.height : (layout?.height ?? 0);
   const pills = layout && !ride ? highlightPills(layout) : [];
+  // THE SELECTION IS DRAWN FROM THE LAYOUT TOO. The browser's own highlight
+  // fills ITS line box — half-leading around the font's real ascent, then
+  // shifted by the baseline drift above — so it sat high and overshot the
+  // box the stage outlines from this layout's line slots. Same slots here, so
+  // a selected line fills that box exactly; `::selection` is transparent.
+  const selRects =
+    layout && !ride && textSelection ? selectionRects(layout, textSelection.start, textSelection.end) : [];
 
   const editable = (
     <div
@@ -419,7 +428,7 @@ export function TextEditOverlay() {
       onDoubleClick={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
-      {pills.length > 0 && (
+      {(pills.length > 0 || selRects.length > 0) && (
         <div
           aria-hidden
           style={{
@@ -448,6 +457,15 @@ export function TextEditOverlay() {
               }}
             />
           ))}
+          {/* Over the pills, under the glyphs (the editable paints after this
+              layer): a translucent accent keeps every look's colour readable. */}
+          {selRects.map((r, i) => (
+            <div
+              key={`sel-${i}`}
+              className="bg-primary/40"
+              style={{ position: "absolute", left: r.x + domW / 2, top: r.y + domH / 2, width: r.width, height: r.height }}
+            />
+          ))}
         </div>
       )}
       {/* No outline of its own: the stage keeps drawing this layer's selection
@@ -462,10 +480,9 @@ export function TextEditOverlay() {
         // The selection is drawn OVER whatever the look already paints — a black
         // headline, a yellow pill, a neon glow — so it cannot be left to the
         // browser's default `Highlight`, which is opaque, platform-dependent,
-        // and disappeared entirely on some of these looks. A translucent accent
-        // reads on every one of them and keeps the glyph's own colour visible
-        // underneath, which is the point: you are selecting text, not replacing it.
-        className="cursor-text outline-none selection:bg-primary/40 selection:text-inherit"
+        // and disappeared entirely on some of these looks. It is drawn above
+        // from the layout's own line slots (`selRects`); the browser's is off.
+        className="cursor-text outline-none selection:bg-transparent selection:text-inherit"
         style={{
           // Positioned so it paints ABOVE the absolutely-positioned pills
           // behind it — an in-flow box would be painted under every one of them.

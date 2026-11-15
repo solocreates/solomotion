@@ -366,8 +366,8 @@ export function TransitionPreview({
       <div ref={wipeRef} className="absolute inset-0">
         <div
           ref={bRef}
-          className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90"
-          style={{ backgroundImage: "linear-gradient(135deg,#ff8732,#ff2885)" }}
+          className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary-foreground"
+          style={{ background: "var(--primary)" }}
         >
           B
         </div>

@@ -92,7 +92,7 @@ export function StarButton({ family, className }: { family: string; className?: 
       }}
       className={cn(
         "flex size-6 shrink-0 items-center justify-center rounded-md transition-[opacity,color] hover:bg-foreground/8 [&_svg]:size-3.5",
-        starred ? "text-[#F5B843]" : "text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+        starred ? "text-warning" : "text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
         className,
       )}
     >
@@ -340,7 +340,7 @@ export const FontCard = React.memo(function FontCard({
             {personality.map((p) => (
               <span
                 key={p}
-                className="hidden shrink-0 rounded-full bg-foreground/[0.06] px-1.5 text-2xs leading-4 text-muted-foreground @[560px]:inline"
+                className="hidden shrink-0 rounded-(--r-sm) bg-foreground/[0.06] px-1.5 text-2xs leading-4 text-muted-foreground @[560px]:inline"
               >
                 {p}
               </span>

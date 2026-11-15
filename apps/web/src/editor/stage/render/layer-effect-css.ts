@@ -100,6 +100,13 @@ export function layerEffectCssText(
     .join(";");
 }
 
+/** `-webkit-text-stroke` → `WebkitTextStroke`, `paint-order` → `paintOrder`. */
+export function cssKeyToReact(key: string): string {
+  return key
+    .replace(/^-(webkit|moz|ms)-/, (_, vendor: string) => `${vendor[0]!.toUpperCase()}${vendor.slice(1)}-`)
+    .replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
 /** The stack as a React style object (the preview card renders JSX). */
 export function layerEffectStyle(
   effects: readonly LayerEffect[],
@@ -107,9 +114,9 @@ export function layerEffectStyle(
 ): React.CSSProperties {
   const style: Record<string, string> = {};
   for (const [k, v] of layerEffectDecls(effects, resolve)) {
-    // React passes any hyphenated key straight through to the CSS declaration,
-    // which is exactly what the vendor-prefixed and `paint-order` entries need.
-    style[k] = v;
+    // React wants the DOM's camelCase names (`paintOrder`, `WebkitTextStroke`):
+    // a hyphenated key still painted, but React warned on every render.
+    style[cssKeyToReact(k)] = v;
   }
   return style as React.CSSProperties;
 }

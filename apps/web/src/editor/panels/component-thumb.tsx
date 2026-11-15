@@ -84,7 +84,7 @@ export function ComponentThumb({ doc, frame }: { doc: MotionDocument; frame: Fra
     }
   }, [doc, frame, sig, fv]);
 
-  if (!url) return <Component className="size-5 text-[#9B7BFF]" />;
+  if (!url) return <Component className="size-5 text-(--kind-component)" />;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt="" draggable={false} className="max-h-full max-w-full object-contain" />;
 }

@@ -43,10 +43,61 @@ const SCREEN: ReadonlyArray<SegmentedOption<LengthUnit>> = (["spx", "vw", "vh", 
   hint: LENGTH_UNIT_META[u].describe,
 }));
 
-export function UnitChip({ clip, property }: { clip: Clip; property: string }) {
+/*
+ * WHO DRAWS THE UNIT. Inside the field is the home (the field reserves a slot
+ * for it, so the number never runs under it); beside the keyframe diamond is the
+ * fallback for a field nobody wrapped. A field that mounts the chip CLAIMS its
+ * (clip, path), and the diamond's copy steps aside — the two are siblings, so a
+ * context could not tell one about the other.
+ */
+const claims = new Map<string, number>();
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => void listeners.delete(l);
+};
+function useClaim(key: string, on: boolean) {
+  React.useLayoutEffect(() => {
+    if (!on) return;
+    claims.set(key, (claims.get(key) ?? 0) + 1);
+    notify();
+    return () => {
+      const n = (claims.get(key) ?? 1) - 1;
+      if (n > 0) claims.set(key, n);
+      else claims.delete(key);
+      notify();
+    };
+  }, [key, on]);
+}
+function useClaimed(key: string): boolean {
+  return React.useSyncExternalStore(subscribe, () => claims.has(key), () => false);
+}
+
+/** The unit a length field shows in its own slot (see `FieldUnitProvider`). */
+export function fieldUnitFor(clip: Clip, property: string): React.ReactNode {
+  return isLengthPath(property) ? <UnitChip clip={clip} property={property} placement="field" /> : null;
+}
+
+export function UnitChip({
+  clip,
+  property,
+  placement = "beside",
+}: {
+  clip: Clip;
+  property: string;
+  /** `field` = inside the field's unit slot (always visible, the field's unit);
+   *  `beside` = the keyframe gutter's fallback, quiet at px. */
+  placement?: "field" | "beside";
+}) {
   const update = useClipUpdater(clip.id);
   const [open, setOpen] = React.useState(false);
+  const key = `${clip.id}\u0000${property}`;
+  const inField = placement === "field";
+  useClaim(key, inField && isLengthPath(property));
+  const claimed = useClaimed(key);
   if (!isLengthPath(property)) return null;
+  if (!inField && claimed) return null;
   const spec = clip.units?.[property];
   const active = specActive(spec);
   const unit = spec?.unit ?? "px";
@@ -68,9 +119,14 @@ export function UnitChip({ clip, property }: { clip: Clip; property: string }) {
               type="button"
               aria-label={`Unit: ${unit}`}
               className={cn(
-                "h-4 shrink-0 rounded px-1 font-mono text-2xs leading-4 tabular-nums transition-[opacity,color,background-color]",
-                "hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                active ? "text-primary" : "text-muted-foreground opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100",
+                "shrink-0 rounded-sm text-meta tabular-nums transition-[opacity,color,background-color] hover:bg-hover hover:text-fg",
+                inField
+                  ? // The field's own unit: always there, as quiet as any unit.
+                    cn("-mr-0.5 px-0.5", active ? "text-primary" : "text-fg-faint")
+                  : cn(
+                      "h-4 px-1 leading-4",
+                      active ? "text-primary" : "text-fg-muted opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100",
+                    ),
               )}
             >
               {bounded ? `[${unit}]` : unit}

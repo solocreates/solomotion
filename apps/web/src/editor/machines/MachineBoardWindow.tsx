@@ -24,8 +24,9 @@ import {
   type MachineLayerReading,
   type MachineTransition,
 } from "@solomotion/core";
-import { FloatingWindow, type WindowBounds } from "@/components/ui/floating-window";
+import { FloatingWindow, TITLE_BUTTON, type WindowBounds } from "@/components/ui/floating-window";
 import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/segmented";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { RenameInput } from "@/components/ui/rename-input";
@@ -82,18 +83,13 @@ export default function MachineBoardWindow({ frameId, machineId }: { frameId: st
       onClose={close}
       body="fill"
       titleActions={
-        <div className="flex items-center rounded-md bg-muted/60 p-0.5 text-[11px]">
-          {(["board", "code"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={cn("rounded px-2 py-0.5", tab === t ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground")}
-              onClick={() => useMachineBoard.getState().setTab(t)}
-            >
-              {t === "board" ? "Board" : "Code"}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          aria-label="View"
+          className="h-(--control-h-sm)"
+          value={tab}
+          onChange={(t) => useMachineBoard.getState().setTab(t)}
+          options={BOARD_TABS}
+        />
       }
     >
       {tab === "board" ? <MachineBoard frame={frame} machine={machine} onClose={close} /> : <MachineCodeTab frame={frame} machine={machine} />}
@@ -428,7 +424,7 @@ function MachineBoard({ frame, machine, onClose }: { frame: Frame; machine: Mach
                   setSelection({ kind: "transition", id: t.id });
                 }}
                 className={cn(
-                  "absolute max-w-48 -translate-x-1/2 -translate-y-1/2 cursor-pointer truncate whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px]",
+                  "absolute max-w-48 -translate-x-1/2 -translate-y-1/2 cursor-pointer truncate whitespace-nowrap rounded-(--r-xs) border px-2 py-0.5 text-[10px]",
                   lit ? "border-primary bg-primary text-primary-foreground" : "border-border bg-popover text-muted-foreground",
                 )}
                 style={{ left: mid.x, top: mid.y }}
@@ -470,7 +466,7 @@ function MachineBoard({ frame, machine, onClose }: { frame: Frame; machine: Mach
               key={l.id}
               type="button"
               onClick={() => setLayerIdx(i)}
-              className={cn("material-glass rounded-full px-3 py-1 text-xs", i === layerIdx ? "font-medium" : "text-muted-foreground")}
+              className={cn("material-glass rounded-(--r-sm) px-3 py-1 text-xs", i === layerIdx ? "font-medium" : "text-muted-foreground")}
             >
               {l.name}
             </button>
@@ -558,7 +554,7 @@ function NodeCard({
       className={cn(
         "group absolute flex items-center justify-center border text-xs shadow-sm transition-shadow select-none",
         pseudo ? "rounded-full border-dashed bg-muted/70 text-muted-foreground" : "cursor-grab rounded-lg bg-popover font-medium",
-        node.kind === "any" && "border-solid bg-amber-500/10 text-foreground",
+        node.kind === "any" && "border-solid bg-warning/10 text-foreground",
         selected && "border-primary ring-1 ring-primary",
         live && "border-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_35%,transparent),0_0_24px_color-mix(in_srgb,var(--primary)_45%,transparent)]",
       )}
@@ -613,7 +609,7 @@ function LoopBanner({ layer, reading, onShow }: { layer: MachineLayer; reading: 
   const ids = [reading.from?.id, reading.stateId].filter((x): x is string => !!x);
   const count = layer.transitions.filter((t) => (ids.includes(t.from) || t.from === MACHINE_ANY) && ids.includes(t.to)).length;
   return (
-    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/15 px-3 py-1 text-xs">
+    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-(--r-sm) border border-warning/50 bg-warning/15 px-3 py-1 text-xs">
       <span>
         Ping-pong between {a} and {b} — {count} transitions are true together
       </span>
@@ -688,6 +684,11 @@ function InputsStrip({ frame, live }: { frame: Frame; live: LiveMachine }) {
   );
 }
 
+const BOARD_TABS = [
+  { value: "board", label: "Board" },
+  { value: "code", label: "Code" },
+] as const;
+
 // ── The transition inspector: When · Blend · Wait for end ───────────────────
 
 const OPS = ["==", "!=", "<", "<=", ">", ">="] as const;
@@ -719,13 +720,13 @@ function TransitionPanel({
   const firstTrigger = inputs.find((d) => d.type === "trigger");
 
   return (
-    <div className="material-glass absolute right-3 top-3 w-64 rounded-xl p-3 text-xs" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="material-glass-raised absolute right-3 top-3 w-64 rounded-(--r-md) p-3 text-xs" onPointerDown={(e) => e.stopPropagation()}>
       <div className="mb-2 flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate font-medium">
           {nameOf(t.from)} → {nameOf(t.to)}
         </span>
-        <button type="button" aria-label="Close" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="size-3.5" />
+        <button type="button" aria-label="Close" title="Close" onClick={onClose} className={TITLE_BUTTON}>
+          <X />
         </button>
       </div>
       <div className="mb-1 text-[11px] font-medium text-muted-foreground">When</div>

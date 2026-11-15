@@ -206,7 +206,7 @@ export function ScopeTabs({ offer }: { offer: ReadonlySet<ScopeAddress["kind"]> 
                       className={cn(
                         "shrink-0 font-mono text-primary",
                         active
-                          ? "rounded-full bg-primary/20 px-1 text-[9px] leading-[14px]"
+                          ? "rounded-(--r-xs) bg-primary/20 px-1 text-[9px] leading-[14px]"
                           // Collapsed, the count is a bare numeral: a pill on a
                           // 28px chip is more chrome than fact.
                           : "text-[9px] leading-none",

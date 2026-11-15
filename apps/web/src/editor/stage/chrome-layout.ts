@@ -96,26 +96,55 @@ export function placementOf(edge: ChromeEdge, align?: ChromeAlign): ChromePlacem
 /*
  * THE ZONED BAND: a horizontal edge with a `center` occupant.
  *
- *     wide stage        [ start ]   [ ···· centre, ≤ 45rem, scrolls ···· ]   [ end ]
+ *     it fits           [ start ]      [ ···· centre ···· ]      [ end ]
  *
- *     narrow stage      [ ············ centre, full row, scrolls ············ ]
- *     (< 40rem)         [ start ]                                     [ end ]
+ *     no start, tight   [ ···· centre, slides left, then scrolls ···· ][ end ]
+ *
+ *     start, too tight  [ start ]                                    [ end ]
+ *                       [ ············ centre, full row ············ ]
  *
  * On the top edge that is nav (where you are) on the left, stage settings
  * (zoom, quality, view) ALWAYS on the right, and the armed tool's options in
- * the middle. They are three zones of ONE grid (`chrome-zones` in
- * globals.css), so nothing is positioned by measuring its neighbour:
+ * the middle — three zones of ONE grid (`chrome-zones` in globals.css).
  *
- * - the sides are `minmax(max-content, 1fr)`, capped at a third of the stage,
- *   so they never give way to the centre and the centre never overlaps them;
- * - the centre is `fit-content(45rem)`: its content, never past its own max,
- *   and never past what the sides leave. Its capsule scrolls inside itself
- *   with edge fades (`BarCapsule`), so a long bar costs nothing but a swipe;
- * - the break is a CONTAINER query on the stage (`@container stage-chrome`),
- *   not the viewport: a docked panel narrows the stage exactly like a small
- *   window does. Under it the centre takes a full row of its own at the edge
- *   and the sides share the row on the canvas side of it.
+ * - The sides are `minmax(max-content, 1fr)` and the centre
+ *   `minmax(0, max-content)`. Grid's own flex resolution then centres the
+ *   centre while the two `1fr`s are equal, and the moment the end needs more
+ *   than half the leftover it keeps its content and the START gives — so an
+ *   empty start lets the bar slide left beside the stage settings instead of
+ *   leaving a hole where the nav would be. Nothing is measured for that.
+ * - Whether the centre needs a ROW OF ITS OWN is the one thing CSS cannot
+ *   answer: it depends on whether three natural widths add up to more than
+ *   the band. It used to be a container query at a guessed 40rem, which
+ *   stacked a 550px bar under an EMPTY nav on a 700px stage and kept three
+ *   capsules crammed together on a 680px one. `fitZonedBand` asks the actual
+ *   question, from natural widths (content, not the squeezed box, so the
+ *   answer cannot feed back into itself).
+ * - Only a present START stacks the centre. Without one the centre already
+ *   has the whole row beside the end; it shrinks and scrolls inside itself
+ *   (`BarCapsule`, edge fades) rather than leaving the row half empty.
  *
  * The bottom edge mirrors it (the centre hugs the bottom). Vertical edges
  * keep their three flex groups: a column has nothing to collide with.
  */
+
+export type ZonedBandFit = "row" | "stacked";
+
+export interface ZoneWidths {
+  /** The band's own width. */
+  band: number;
+  /** Each zone's NATURAL width — 0 when the zone rendered nothing. */
+  start: number;
+  center: number;
+  end: number;
+  /** Space between two occupied zones. */
+  gap: number;
+}
+
+/** One row while every zone fits at its natural width, or while there is no start to make room for. */
+export function fitZonedBand(w: ZoneWidths): ZonedBandFit {
+  if (w.start <= 0 || w.center <= 0) return "row";
+  const zones = [w.start, w.center, w.end].filter((n) => n > 0);
+  const need = zones.reduce((a, b) => a + b, 0) + w.gap * (zones.length - 1);
+  return need <= w.band ? "row" : "stacked";
+}

@@ -360,7 +360,7 @@ function HoldRow({
     <div
       className={cn(
         "group/seg grid grid-cols-[1.5rem_1fr_1fr_1.25rem] items-center gap-1 rounded-[3px] px-1 py-0.5",
-        seg.frozen ? "bg-[#7DD3FC]/12" : "bg-background/40",
+        seg.frozen ? "bg-(--kind-frozen)/12" : "bg-background/40",
       )}
     >
       <button
@@ -369,7 +369,7 @@ function HoldRow({
         title={`${secs(seg.startMs)}s – ${secs(seg.endMs)}s · jump here`}
         className={cn(
           "flex items-center gap-0.5 text-left font-mono text-[9px] tabular-nums transition-colors",
-          seg.frozen ? "text-[#7DD3FC]" : "text-muted-foreground hover:text-foreground",
+          seg.frozen ? "text-(--kind-frozen)" : "text-muted-foreground hover:text-foreground",
         )}
       >
         {seg.frozen ? <Snowflake className="size-2.5" /> : <span className="w-2.5 text-center">{index}</span>}
@@ -392,7 +392,7 @@ function HoldRow({
         step={5}
         precision={0}
         unit="%"
-        className={cn("h-6", seg.frozen && "text-[#7DD3FC]")}
+        className={cn("h-6", seg.frozen && "text-(--kind-frozen)")}
         title={
           seg.frozen
             ? `Frozen from ${secs(seg.startMs)}s to ${secs(seg.endMs)}s — type a rate to start it moving again`

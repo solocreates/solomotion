@@ -35,7 +35,7 @@ export function DialMark({ size = 24, turn = 0, title, ...rest }: DialMarkProps)
 }
 
 /**
- * The loader: the same dial, its quarter stepping round a beat at a time
+ * The loader: the same dial, its quarter clicking round a beat at a time
  * (`parts.css` → `[data-part="dial-loader"]`). Holds still under reduced
  * motion. `beat` is one quarter, in ms.
  */
@@ -59,6 +59,11 @@ export function DialLoader({ size = 24, beat = 400, label = "Loading", ...rest }
 
 const oCache = new Map<string, OMetrics>();
 
+/** Within a hundredth of an em: the same o, so no re-render and no jump. */
+function sameO(a: OMetrics, b: OMetrics): boolean {
+  return (Object.keys(a) as (keyof OMetrics)[]).every((k) => Math.abs(a[k] - b[k]) < 1);
+}
+
 /** Measure the "o" of the font this element actually renders in. */
 function measureO(el: HTMLElement): OMetrics | null {
   const cs = getComputedStyle(el);
@@ -74,13 +79,13 @@ function measureO(el: HTMLElement): OMetrics | null {
   // Only a measurement of the REAL face is worth keeping: before the webfont
   // loads, the canvas measures the fallback, and caching that would pin every
   // later wordmark to the wrong o.
-  if (document.fonts?.status === "loaded" && document.fonts.check(`${cs.fontWeight} 100px ${cs.fontFamily}`)) oCache.set(key, o);
+  if (!document.fonts || document.fonts.check(`${cs.fontWeight} 100px ${cs.fontFamily}`)) oCache.set(key, o);
   return o;
 }
 
 /** One o. The quarter is drawn pointing up and TURNED, so a change of turn is
  *  a CSS transition (`parts.css`), not a new path. */
-function DialO({ o, turn, onPoint }: { o: OMetrics; turn: number; onPoint?: () => void }) {
+function DialO({ o, index, turn, onPoint }: { o: OMetrics; index: number; turn: number; onPoint?: () => void }) {
   return (
     <svg
       aria-hidden
@@ -95,32 +100,51 @@ function DialO({ o, turn, onPoint }: { o: OMetrics; turn: number; onPoint?: () =
         data-el="quarter"
         d={wedgePath(o.cx, o.cy, o.rx, o.ry, 0)}
         fill={WEDGE}
-        style={{ transform: `rotate(${turn * 90}deg)`, transformOrigin: `${o.cx}px ${o.cy}px` }}
+        style={
+          {
+            transform: `rotate(${turn * 90}deg)`,
+            transformOrigin: `${o.cx}px ${o.cy}px`,
+            "--o-turn": `${turn * 90}deg`,
+            "--o-i": index,
+          } as React.CSSProperties
+        }
       />
     </svg>
   );
 }
 
 /**
- * Below this size the dials stop reading as o's: the disc sinks into the
- * ground and only the bright quarter survives, so 16px read "s•l•m•ti•n".
+ * Below this size the theme's quiet disc sinks into the ground and only the
+ * bright quarter survives ("s•l•m•ti•n" at 16px). So a SMALL wordmark keeps
+ * its dials but wears a denser disc (`parts.css` → `[data-size="small"]`):
+ * the lockup stays the logo in a top bar, never the name in plain type.
  */
 export const DIAL_WORDMARK_MIN_PX = 28;
+/** Under this the o's are a few pixels across: the name is set plainly. */
+export const DIAL_WORDMARK_FLOOR_PX = 12;
 
 /**
  * The wordmark: "solomotion" set in the display face, each o replaced by a
  * dial placed over the font's REAL o — measured from the face that rendered,
- * so it is right in any theme's display font. It is a DISPLAY lockup: set
- * below `DIAL_WORDMARK_MIN_PX` it renders the name plainly in the same face,
- * and the dial mark beside it carries the brand.
+ * so it is right in any theme's display font. Below `DIAL_WORDMARK_MIN_PX`
+ * it is the small lockup (denser discs); only under the floor is it plain.
  */
 export function DialWordmark({
   className,
   style,
   turns = [0, 1, 2, 3],
   onTurn,
+  turning = false,
+  beat = 400,
   ...rest
 }: React.HTMLAttributes<HTMLSpanElement> & {
+  /**
+   * The wordmark IS the loader: every o clicks round a quarter per beat,
+   * together. A splash shows this instead of the name plus a spinner.
+   */
+  turning?: boolean;
+  /** One quarter, in ms, while `turning`. */
+  beat?: number;
   /** Each o's quarter, in quarter-turns from up (may exceed 3 to keep turning). */
   turns?: readonly number[];
   /** A pointer reached o `i` — a page can turn it. */
@@ -128,19 +152,26 @@ export function DialWordmark({
 }) {
   const ref = React.useRef<HTMLSpanElement>(null);
   const [o, setO] = React.useState<OMetrics>(DEFAULT_O);
-  const [plain, setPlain] = React.useState(false);
+  const [size, setSize] = React.useState<"plain" | "small" | "display">("display");
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     let live = true;
-    const run = () => {
+    const px = parseFloat(getComputedStyle(el).fontSize);
+    setSize(px < DIAL_WORDMARK_FLOOR_PX ? "plain" : px < DIAL_WORDMARK_MIN_PX ? "small" : "display");
+    // ONE placement, from the REAL face. Placing the o's from the fallback
+    // face and again when the webfont lands moved them twice on every boot
+    // (the splash's "double reload"); until the face is real the default
+    // metrics stand, and a measurement that matches them changes nothing.
+    const place = () => {
       if (!live) return;
-      setPlain(parseFloat(getComputedStyle(el).fontSize) < DIAL_WORDMARK_MIN_PX);
       const m = measureO(el);
-      if (m) setO(m);
+      if (m) setO((prev) => (sameO(prev, m) ? prev : m));
     };
-    run();
-    document.fonts?.ready.then(run);
+    const cs = getComputedStyle(el);
+    const font = `${cs.fontWeight} 100px ${cs.fontFamily}`;
+    if (!document.fonts || document.fonts.check(font)) place();
+    else document.fonts.load(font).then(place, place);
     return () => {
       live = false;
     };
@@ -149,19 +180,22 @@ export function DialWordmark({
     <span
       ref={ref}
       role="img"
-      aria-label="solomotion"
+      aria-label={turning ? "solomotion, loading" : "solomotion"}
+      aria-busy={turning || undefined}
       data-part="wordmark"
+      data-turning={turning ? "" : undefined}
+      data-size={size === "small" ? "small" : undefined}
       className={className}
-      style={{ fontFamily: "var(--font-display)", whiteSpace: "nowrap", lineHeight: 1, display: "inline-block", ...style }}
+      style={{ fontFamily: "var(--font-display)", whiteSpace: "nowrap", lineHeight: 1, display: "inline-block", "--dial-beat": `${beat * 4}ms`, ...style } as React.CSSProperties}
       {...rest}
     >
-      {plain ? <span aria-hidden>solomotion</span> : WORDMARK_PARTS.map((p, i) =>
+      {size === "plain" ? <span aria-hidden>solomotion</span> : WORDMARK_PARTS.map((p, i) =>
         "text" in p ? (
           <span key={i} aria-hidden>
             {p.text}
           </span>
         ) : (
-          <DialO key={i} o={o} turn={turns[p.o] ?? p.o} onPoint={onTurn ? () => onTurn(p.o) : undefined} />
+          <DialO key={i} o={o} index={p.o} turn={turns[p.o] ?? p.o} onPoint={onTurn ? () => onTurn(p.o) : undefined} />
         ),
       )}
     </span>

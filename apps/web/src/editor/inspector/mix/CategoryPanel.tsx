@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AudioLines, ChevronLeft, Headphones, Layers, Trash2, Volume2, VolumeX } from "lucide-react";
+import { AudioLines, ChevronLeft, Headphones, Layers, RotateCcw, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
   busTargetLufs,
   CHARACTER_TARGET_LUFS,
@@ -19,7 +19,7 @@ import { useDoc, useDocStore } from "../../state/document-context";
 import { useSession } from "../../state/session";
 import { AudioEffectsSection } from "../audio-effects/AudioEffectsSection";
 import { ClipHostProvider, type ClipHost } from "../clip-host";
-import { IconAction, IconToggle, PanelSection, PropRow } from "../controls";
+import { IconAction, IconToggle, Note, PanelSection, PropRow } from "../controls";
 import { BusDot } from "./CategoryPicker";
 import { DuckingEditor } from "./DuckingEditor";
 import { CHARACTER_LABELS, goToLayer, useBusMembers, useBusUpdater } from "./use-mix";
@@ -82,7 +82,7 @@ export function CategoryPanel({ busId }: { busId: string }) {
         <input
           value={bus.name}
           onChange={(e) => updateBus(busId, "Rename category", (b) => void (b.name = e.target.value), "rename-bus")}
-          className="min-w-0 flex-1 truncate rounded bg-transparent px-1 text-[13px] font-semibold outline-none transition-colors hover:bg-input/30 focus:bg-input/45"
+          className="min-w-0 flex-1 truncate rounded bg-transparent px-1 text-title outline-none transition-colors hover:bg-hover focus:bg-input"
           spellCheck={false}
           aria-label="Category name"
         />
@@ -148,7 +148,7 @@ export function CategoryPanel({ busId }: { busId: string }) {
             value={bus.character}
             onValueChange={(v) => updateBus(busId, "Category kind", (b) => void (b.character = v as SoundCharacter))}
           >
-            <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
+            <SelectTrigger className="h-(--control-h) min-w-0 flex-1 text-body">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -160,7 +160,18 @@ export function CategoryPanel({ busId }: { busId: string }) {
             </SelectContent>
           </Select>
         </PropRow>
-        <PropRow label="Target" hint="The loudness the leveler brings this category to.">
+        <PropRow
+          label="Target"
+          hint="The loudness the leveler brings this category to."
+          keyControl={
+            // A moved target resets from the gutter, like any value that has a default.
+            bus.targetLufs !== null && bus.targetLufs !== CHARACTER_TARGET_LUFS[bus.character] ? (
+              <IconAction label="Reset to the kind's target" onClick={() => updateBus(busId, "Reset category target", (b) => void (b.targetLufs = null))}>
+                <RotateCcw />
+              </IconAction>
+            ) : undefined
+          }
+        >
           <NumberInput
             value={busTargetLufs(bus)}
             min={-40}
@@ -170,15 +181,6 @@ export function CategoryPanel({ busId }: { busId: string }) {
             unit="LUFS"
             onChange={(v) => updateBus(busId, "Category target", (b) => void (b.targetLufs = Math.max(-40, Math.min(-6, v))), "bus-target")}
           />
-          {bus.targetLufs !== null && bus.targetLufs !== CHARACTER_TARGET_LUFS[bus.character] && (
-            <button
-              type="button"
-              className="shrink-0 px-1 text-[11px] text-muted-foreground hover:text-foreground"
-              onClick={() => updateBus(busId, "Reset category target", (b) => void (b.targetLufs = null))}
-            >
-              Reset
-            </button>
-          )}
         </PropRow>
       </PanelSection>
 
@@ -196,7 +198,7 @@ export function CategoryPanel({ busId }: { busId: string }) {
 
       <PanelSection id="bus-members" title="Layers" count={members.length} defaultOpen={members.length > 0 && members.length <= 24}>
         {members.length === 0 ? (
-          <p className="px-1 py-1 text-[11px] text-muted-foreground">Nothing routes here yet.</p>
+          <Note>Nothing routes here yet.</Note>
         ) : (
           <ul className="-mx-1 space-y-px">
             {members.map((id) => {
@@ -216,7 +218,7 @@ export function CategoryPanel({ busId }: { busId: string }) {
                       <AudioLines className="size-3.5 shrink-0 text-muted-foreground" />
                     )}
                     <span className="min-w-0 flex-1 truncate">{clip.name}</span>
-                    {frame && <span className="max-w-[45%] truncate text-[10px] text-muted-foreground">{frame.name}</span>}
+                    {frame && <span className="max-w-[45%] truncate text-meta text-fg-faint">{frame.name}</span>}
                   </button>
                 </li>
               );

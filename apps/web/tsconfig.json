@@ -12,6 +12,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "out", ".open-next", ".next/static", ".next/server", ".next/dev"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next-alt/types/**/*.ts"],
+  "exclude": ["node_modules", "out", ".open-next", ".next/static", ".next/server", ".next/dev", ".next-alt/static", ".next-alt/server", ".next-alt/dev"]
 }

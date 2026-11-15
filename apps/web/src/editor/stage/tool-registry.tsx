@@ -53,6 +53,11 @@ import { useSession, type Tool } from "../state/session";
 export interface ToolMeta {
   tool: Tool;
   label: string;
+  /** One line on what the tool DOES, under the label in a rich tip. */
+  detail: string;
+  /** The brush's two entries are one tool and an engine: arming sets both,
+   *  and the entry is armed only while both match. */
+  engine?: BrushEngine;
   shortcutId: string;
   icon: React.ReactNode;
 }
@@ -61,90 +66,97 @@ export interface ToolSlot {
   id: string;
   /** First entry is the slot's default; the rest are its flyout siblings. */
   tools: ToolMeta[];
-  /** For the two brush slots: which engine arming this slot selects. Armed
-   *  state then asks the engine as well as the tool, so exactly one of them
-   *  lights up. */
-  engine?: BrushEngine;
   /** Draw a divider before this slot. */
   groupStart?: boolean;
+  /** Lives behind the rail's More button: reachable (and by shortcut), but
+   *  not a tool most people reach for every minute. */
+  more?: boolean;
+}
+
+/** A tool entry's identity: the tool, plus the engine for the brush's two. */
+export function toolKey(m: ToolMeta): string {
+  return m.engine ? `${m.tool}:${m.engine}` : m.tool;
+}
+
+/** Is this entry the armed one? */
+export function isArmed(m: ToolMeta, tool: Tool, engine: BrushEngine): boolean {
+  return m.tool === tool && (!m.engine || m.engine === engine);
+}
+
+/** Arm this entry (the brush's engine too). */
+export function armTool(m: ToolMeta): void {
+  if (m.engine) useDrawing.getState().setBrushOptions({ engine: m.engine });
+  useSession.getState().setTool(m.tool);
 }
 
 export const TOOL_SLOTS: ToolSlot[] = [
   {
     id: "select",
     tools: [
-      { tool: "select", label: "Move", shortcutId: "tool.select", icon: <MousePointer2 /> },
-      { tool: "lasso", label: "Lasso", shortcutId: "tool.lasso", icon: <Lasso /> },
-      { tool: "wand", label: "Magic wand", shortcutId: "tool.lasso", icon: <Wand2 /> },
+      { tool: "select", label: "Move", detail: "Select, move and resize. Drag empty space to marquee.", shortcutId: "tool.select", icon: <MousePointer2 /> },
+      { tool: "lasso", label: "Lasso", detail: "Draw around pixels to select them.", shortcutId: "tool.lasso", icon: <Lasso /> },
+      { tool: "wand", label: "Magic wand", detail: "Select a region of similar colour.", shortcutId: "tool.lasso", icon: <Wand2 /> },
     ],
   },
   {
     id: "hand",
-    tools: [{ tool: "hand", label: "Hand", shortcutId: "tool.hand", icon: <Hand /> }],
+    tools: [{ tool: "hand", label: "Hand", detail: "Pan the view. Hold Space for it anywhere.", shortcutId: "tool.hand", icon: <Hand /> }],
   },
   {
     id: "frame",
     groupStart: true,
-    tools: [{ tool: "frame", label: "Frame", shortcutId: "tool.frame", icon: <Frame /> }],
+    tools: [{ tool: "frame", label: "Frame", detail: "Draw a frame: a scene with its own size and time.", shortcutId: "tool.frame", icon: <Frame /> }],
   },
   {
     id: "text",
-    tools: [{ tool: "text", label: "Text", shortcutId: "tool.text", icon: <Type /> }],
+    tools: [{ tool: "text", label: "Text", detail: "Click to type; drag to set the box.", shortcutId: "tool.text", icon: <Type /> }],
   },
   {
     id: "shape",
     tools: [
-      { tool: "rect", label: "Rectangle", shortcutId: "tool.rect", icon: <Square /> },
-      { tool: "ellipse", label: "Ellipse", shortcutId: "tool.ellipse", icon: <Circle /> },
-      { tool: "triangle", label: "Triangle", shortcutId: "tool.triangle", icon: <Triangle /> },
-      { tool: "polygon", label: "Polygon", shortcutId: "tool.polygon", icon: <Hexagon /> },
-      { tool: "star", label: "Star", shortcutId: "tool.star", icon: <Star /> },
+      { tool: "rect", label: "Rectangle", detail: "Drag to draw. Shift keeps it square.", shortcutId: "tool.rect", icon: <Square /> },
+      { tool: "ellipse", label: "Ellipse", detail: "Drag to draw. Shift keeps it round.", shortcutId: "tool.ellipse", icon: <Circle /> },
+      { tool: "triangle", label: "Triangle", detail: "Drag to draw a triangle.", shortcutId: "tool.triangle", icon: <Triangle /> },
+      { tool: "polygon", label: "Polygon", detail: "Drag to draw; the sides are yours to set.", shortcutId: "tool.polygon", icon: <Hexagon /> },
+      { tool: "star", label: "Star", detail: "Drag to draw; points and depth are yours to set.", shortcutId: "tool.star", icon: <Star /> },
     ],
   },
   {
     id: "pen",
     tools: [
-      { tool: "pen", label: "Pen", shortcutId: "tool.pen", icon: <PenTool /> },
-      { tool: "cut", label: "Knife", shortcutId: "tool.cut", icon: <Scissors /> },
+      { tool: "pen", label: "Pen", detail: "Click for corners, drag for curves.", shortcutId: "tool.pen", icon: <PenTool /> },
+      { tool: "cut", label: "Knife", detail: "Slice a path where you drag across it.", shortcutId: "tool.cut", icon: <Scissors /> },
     ],
   },
   {
     id: "bone",
-    tools: [{ tool: "bone", label: "Bone", shortcutId: "tool.bone", icon: <Bone /> }],
+    more: true,
+    tools: [{ tool: "bone", label: "Bone", detail: "Draw bones to rig a character.", shortcutId: "tool.bone", icon: <Bone /> }],
   },
-  // THE TWO BRUSHES ARE TWO SLOTS.
-  //
-  // They were one slot with the engine hidden in a hold flyout, which is the
-  // arrangement Figma uses for shapes — and shapes are the wrong analogy. A
-  // rectangle and an ellipse are the same act on different geometry; a pixel
-  // brush and a vector brush are two different materials with two different
-  // libraries, two armed presets and two sets of things you can do afterwards.
-  // Hiding one behind the other meant half the drawing tools in the app had no
-  // visible entry point, and the badge in the options bar that showed which one
-  // you had could not switch it.
-  //
-  // Both arm `tool: "brush"` and differ by `brush.engine` — one piece of state,
-  // three surfaces (here, the options bar's switch, the shortcut).
+  // THE BRUSH IS ONE SLOT, its two engines its flyout (Shayan: the rail was
+  // crowded). They used to be two slots because the options bar's badge could
+  // not switch engines; it can now (`ToolSwitch`, from this registry), so the
+  // vector brush is one hold, one right-click or one pick in the bar away.
+  // Both arm `tool: "brush"` and differ by `brush.engine`.
   {
     id: "brush",
     groupStart: true,
-    tools: [{ tool: "brush", label: "Pixel brush", shortcutId: "tool.brush", icon: <Paintbrush2 /> }],
-    engine: "raster",
-  },
-  {
-    id: "brush-vector",
-    tools: [{ tool: "brush", label: "Vector brush", shortcutId: "tool.brushEngine", icon: <Spline /> }],
-    engine: "vector",
+    tools: [
+      { tool: "brush", engine: "raster", label: "Pixel brush", detail: "Paint pixels on the current drawing.", shortcutId: "tool.brush", icon: <Paintbrush2 /> },
+      { tool: "brush", engine: "vector", label: "Vector brush", detail: "Paint strokes that stay editable.", shortcutId: "tool.brushEngine", icon: <Spline /> },
+    ],
   },
   {
     id: "eraser",
+    more: true,
     tools: [
-      { tool: "eraser", label: "Eraser", shortcutId: "tool.eraser", icon: <Eraser /> },
+      { tool: "eraser", label: "Eraser", detail: "Rub out what you painted.", shortcutId: "tool.eraser", icon: <Eraser /> },
     ],
   },
   {
     id: "fill",
-    tools: [{ tool: "fill", label: "Paint bucket", shortcutId: "tool.fill", icon: <PaintBucket /> }],
+    more: true,
+    tools: [{ tool: "fill", label: "Paint bucket", detail: "Fill a closed region with colour.", shortcutId: "tool.fill", icon: <PaintBucket /> }],
   },
 ];
 
@@ -189,32 +201,14 @@ export function useToolVariants(): ToolVariant[] {
     const slots = TOOL_SLOTS.filter((sl) => sl.tools.some((t) => t.tool === tool));
     const out: ToolVariant[] = [];
     for (const slot of slots) {
-      // A slot that names an ENGINE is one of the brush's two: it contributes a
-      // single entry, and arming it sets the engine rather than the tool.
-      if (slot.engine) {
-        const meta = slot.tools[0];
-        if (!meta) continue;
-        out.push({
-          key: slot.id,
-          label: meta.label,
-          icon: meta.icon,
-          shortcutId: meta.shortcutId,
-          active: engine === slot.engine,
-          arm: () => {
-            useSession.getState().setTool(meta.tool);
-            useDrawing.getState().setBrushOptions({ engine: slot.engine! });
-          },
-        });
-        continue;
-      }
       for (const meta of slot.tools) {
         out.push({
-          key: meta.tool,
+          key: toolKey(meta),
           label: meta.label,
           icon: meta.icon,
           shortcutId: meta.shortcutId,
-          active: meta.tool === tool,
-          arm: () => useSession.getState().setTool(meta.tool),
+          active: isArmed(meta, tool, engine),
+          arm: () => armTool(meta),
         });
       }
     }

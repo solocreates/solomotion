@@ -1367,8 +1367,8 @@ function LoopCycleHandle({ clip, pxPerSec, doc }: { clip: Clip; pxPerSec: number
       style={{ left: timeToPx(wallMs, pxPerSec), zIndex: 35 }}
       className="group/loop absolute inset-y-0 -translate-x-1/2 cursor-ew-resize px-1"
     >
-      <div className="mx-auto h-full w-px bg-teal-400/70 transition-colors group-hover/loop:bg-teal-400" />
-      <Icon className="pointer-events-none absolute left-1/2 top-0.5 size-2.5 -translate-x-1/2 text-teal-400/80 transition-colors group-hover/loop:text-teal-400" />
+      <div className="mx-auto h-full w-px bg-(--clip-edge)/70 transition-colors group-hover/loop:bg-(--clip-edge)" />
+      <Icon className="pointer-events-none absolute left-1/2 top-0.5 size-2.5 -translate-x-1/2 text-(--clip-edge)/80 transition-colors group-hover/loop:text-(--clip-edge)" />
     </div>
   );
 }
@@ -1857,7 +1857,7 @@ function SourceCycleMarks({ clip, pxPerSec, doc }: { clip: Clip; pxPerSec: numbe
         style={{ left, width: Math.max(0, timeToPx(clip.durationMs, pxPerSec) - left) }}
         title={`Media ends at ${(wallMs / 1000).toFixed(2)}s — the rest holds this frame`}
       >
-        <div className="absolute inset-y-0 left-0 w-px bg-amber-300/60" />
+        <div className="absolute inset-y-0 left-0 w-px bg-warning/60" />
       </div>
     );
   }
@@ -1877,7 +1877,7 @@ function SourceCycleMarks({ clip, pxPerSec, doc }: { clip: Clip; pxPerSec: numbe
       {marks.map((t) => (
         <div
           key={t}
-          className="pointer-events-none absolute inset-y-0 w-px bg-teal-400/40"
+          className="pointer-events-none absolute inset-y-0 w-px bg-(--clip-edge)/40"
           style={{ left: timeToPx(t, pxPerSec) }}
         />
       ))}
@@ -2528,7 +2528,7 @@ function AudioEnvelope({ clip, pxPerSec }: { clip: AudioClip; pxPerSec: number }
               cx={Math.max(0, Math.min(width, fadeInX))}
               cy={3}
               r={4}
-              className="fill-amber-300 stroke-background"
+              className="fill-warning stroke-background"
               strokeWidth={1}
               style={{ pointerEvents: "auto", cursor: resizeCursor(0) }}
               onPointerDown={(e) => dragFade(e, "in")}
@@ -2539,7 +2539,7 @@ function AudioEnvelope({ clip, pxPerSec }: { clip: AudioClip; pxPerSec: number }
               cx={Math.max(0, Math.min(width, fadeOutX))}
               cy={3}
               r={4}
-              className="fill-amber-300 stroke-background"
+              className="fill-warning stroke-background"
               strokeWidth={1}
               style={{ pointerEvents: "auto", cursor: resizeCursor(0) }}
               onPointerDown={(e) => dragFade(e, "out")}

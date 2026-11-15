@@ -311,7 +311,7 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "live" | "
     <span
       className={cn(
         "shrink-0 rounded px-1 py-px text-3xs font-medium uppercase",
-        tone === "live" ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500",
+        tone === "live" ? "bg-success/15 text-success" : "bg-warning/15 text-warning",
       )}
     >
       {children}

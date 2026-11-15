@@ -90,7 +90,7 @@ export function AiWorkOverlay() {
         >
           <div className={b.ghost ? "ai-work inset-0 rounded-xl border border-dashed border-primary/40" : "ai-work inset-0"} />
           <div
-            className="agent-rise absolute left-1/2 flex max-w-[min(320px,80vw)] -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-background/70 px-2.5 py-1 text-2xs font-medium text-foreground shadow-lg backdrop-blur-md"
+            className="agent-rise absolute left-1/2 flex max-w-[min(320px,80vw)] -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-(--r-sm) border border-white/10 bg-background/70 px-2.5 py-1 text-2xs font-medium text-foreground shadow-lg backdrop-blur-md"
             style={{ top: b.ghost ? "50%" : -30, transform: `translateX(-50%) ${b.ghost ? "translateY(-50%)" : ""} rotate(${-b.rotation}deg)` }}
           >
             <Sparkles className="size-3 shrink-0 text-primary" />

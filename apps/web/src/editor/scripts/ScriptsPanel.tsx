@@ -238,7 +238,7 @@ export default function ScriptsPanel() {
         )}
         <span className="flex-1" />
         {script && (
-          <Button variant="ghost" size="icon-sm" aria-label="Brief for AI" title="Brief for AI — what a chatbot needs to write a script" className="[@media(pointer:coarse)]:size-9" onClick={brief}>
+          <Button variant="ghost" size="icon-sm" aria-label="Brief for AI" title="Brief for AI: everything a chatbot needs to write a script" className="[@media(pointer:coarse)]:size-9" onClick={brief}>
             <Sparkles className="size-4" />
           </Button>
         )}
@@ -301,7 +301,7 @@ function EmptyState({ onNew, onBrief }: { onNew: () => void; onBrief: () => void
   return (
     <div className="flex h-full items-center justify-center overflow-auto p-4">
       <div className="flex w-full max-w-60 flex-col items-center text-center">
-        <div className="material-chip mb-3 grid size-9 place-items-center rounded-lg">
+        <div className="mb-3 grid size-9 place-items-center rounded-(--r-sm) bg-raised">
           <FileCode2 className="size-4 text-muted-foreground" />
         </div>
         <p className="text-[13px] font-medium text-foreground">Script your scene</p>
@@ -353,7 +353,7 @@ function Explorer(props: ExplorerProps) {
   walk(null, 0);
 
   return (
-    <div className={cn("flex w-52 shrink-0 flex-col border-r border-border bg-background", props.overlay && "absolute inset-y-0 left-0 z-20 w-60 shadow-xl")}>
+    <div className={cn("flex w-52 shrink-0 flex-col border-r border-border bg-background", props.overlay && "absolute inset-y-0 left-0 z-20 w-60 shadow-(--elevation-3)")}>
       <div className="flex h-9 shrink-0 items-center gap-0.5 px-2">
         <span className="flex-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Files</span>
         <Button variant="ghost" size="icon-sm" aria-label="New script" title="New script" className="[@media(pointer:coarse)]:size-9" onClick={() => props.onNewFile(null)}>
@@ -516,27 +516,30 @@ function HereChip() {
  * move anything in the toolbar.
  */
 function RunButton({ script, running, onRun, onStop, onKeep, onMode }: { script: Script; running: boolean; onRun: () => void; onStop: () => void; onKeep: () => void; onMode: (mode: ScriptRunMode) => void }) {
-  const seg = "flex items-center justify-center text-xs font-medium transition-[filter,background-color] disabled:opacity-50";
-  const tone = running ? "bg-secondary text-secondary-foreground hover:bg-accent" : "bg-primary text-primary-foreground hover:brightness-110";
+  // The theme's button part, split in two: one frame, a hairline between.
+  const intent = running ? "secondary" : "primary";
+  const seg = "flex h-full items-center justify-center rounded-none text-xs font-medium disabled:opacity-50";
   return (
-    <div className="ml-0.5 flex h-7 shrink-0 overflow-hidden rounded-md shadow-[0_1px_2px_rgb(0_0_0/0.3)] [@media(pointer:coarse)]:h-9">
+    <div className="ml-0.5 flex h-7 shrink-0 overflow-hidden rounded-(--r-control) [@media(pointer:coarse)]:h-9">
       <button
         type="button"
+        data-part="button"
+        data-variant={intent}
         onClick={running ? onStop : onRun}
-        title={running ? "Stop" : script.onRun === "append" ? "Run — adds to what it made (⌘↵)" : "Run — replaces what it made (⌘↵)"}
-        className={cn(seg, tone, "w-[4.25rem] gap-1.5")}
+        title={running ? "Stop" : script.onRun === "append" ? "Run and add to its output (⌘↵)" : "Run and replace its output (⌘↵)"}
+        className={cn(seg, "w-[4.25rem] gap-1.5")}
       >
         {running ? <Square className="size-3 fill-current" /> : <Play className="size-3 fill-current" />}
         {running ? "Stop" : "Run"}
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" disabled={running} aria-label="Run options" className={cn(seg, tone, "w-6 border-l border-black/25 [@media(pointer:coarse)]:w-8")}>
+          <button type="button" data-part="button" data-variant={intent} disabled={running} aria-label="Run options" className={cn(seg, "w-6 border-l border-current/20 [@media(pointer:coarse)]:w-8")}>
             <ChevronDown className="size-3.5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">When run again</DropdownMenuLabel>
+          <DropdownMenuLabel>When run again</DropdownMenuLabel>
           <DropdownMenuRadioGroup value={script.onRun} onValueChange={(v) => onMode(v as ScriptRunMode)}>
             <DropdownMenuRadioItem value="replace">Replace what it made</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="append">Add to it</DropdownMenuRadioItem>

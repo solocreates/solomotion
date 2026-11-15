@@ -11,9 +11,11 @@ import type { Theme } from "./schema";
  * names another product.
  */
 
+// The stage is the ground itself, as on the site: its dot field sits on the
+// page colour with the panels a step above, never in a darker pit.
 const INK = {
-  dark: { bg: "#0a0b0a", panel: "#101210", raised: "#191c19", line: "rgba(220,255,235,0.08)", fg: "#e9eee9", muted: "#8f978f", faint: "#5a615a" },
-  light: { bg: "#f6f7f5", panel: "#ffffff", raised: "#eef0ec", line: "rgba(10,20,12,0.09)", fg: "#0b0d0b", muted: "#5b635c", faint: "#9ba39c" },
+  dark: { bg: "#0a0b0a", panel: "#101210", raised: "#191c19", line: "rgba(220,255,235,0.08)", fg: "#e9eee9", muted: "#8f978f", faint: "#5a615a", stage: "#0a0b0a" },
+  light: { bg: "#f6f7f5", panel: "#ffffff", raised: "#eef0ec", line: "rgba(10,20,12,0.09)", fg: "#0b0d0b", muted: "#5b635c", faint: "#9ba39c", stage: "#f6f7f5" },
 };
 const TERM = {
   dark: { bg: "#050605", panel: "#080908", raised: "#101210", line: "rgba(160,255,210,0.10)", fg: "#dfe6e1", muted: "#83908a", faint: "#4f5a54" },
@@ -41,14 +43,14 @@ export const SOLOMOTION: Theme = define({
   accentFg: { dark: "#03140c", light: "#ffffff" },
   // A linked variable reads in the brand green, like the token in the brief.
   tones: { variable: { dark: "#3df2a8", light: "#0b8a57" } },
-  font: { ui: "geist", display: "space-grotesk", mono: "geist-mono", num: "doto" },
+  font: { ui: "geist", display: "space-grotesk", mono: "geist-mono", num: "geist-mono" },
   size: 12,
-  weight: 550,
+  weight: 500,
   labels: "upper",
   radius: 12,
   density: 28,
   glass: true,
-  parts: { range: "trail", measure: "ruler", switch: "notch", tabs: "playhead", button: "solid", field: "well", menu: "solid" },
+  parts: { range: "trail", measure: "ruler", switch: "notch", tabs: "playhead", button: "solid", field: "well", menu: "solid", tools: "float", backdrop: "dots", heads: "eyebrow" },
 });
 
 export const TERMINAL: Theme = define({
@@ -66,7 +68,7 @@ export const TERMINAL: Theme = define({
   radius: 0,
   density: 28,
   glass: false,
-  parts: { range: "blocks", measure: "ruler", switch: "led", tabs: "tmux", button: "outline", field: "box", menu: "terminal" },
+  parts: { range: "blocks", measure: "ruler", switch: "led", tabs: "tmux", button: "outline", field: "box", menu: "terminal", tools: "float", backdrop: "dots", heads: "display" },
 });
 
 export const PAPER_THEME: Theme = define({
@@ -83,7 +85,7 @@ export const PAPER_THEME: Theme = define({
   radius: 0,
   density: 30,
   glass: false,
-  parts: { range: "line", measure: "ruler", switch: "notch", tabs: "boxed", button: "offset", field: "line", menu: "inverted" },
+  parts: { range: "line", measure: "ruler", switch: "notch", tabs: "boxed", button: "offset", field: "line", menu: "inverted", tools: "float", backdrop: "dots", heads: "display" },
 });
 
 export const HARDWARE: Theme = define({
@@ -100,7 +102,7 @@ export const HARDWARE: Theme = define({
   radius: 12,
   density: 30,
   glass: true,
-  parts: { range: "steps", measure: "ruler", switch: "rocker", tabs: "chip", button: "keycap", field: "well", menu: "solid" },
+  parts: { range: "steps", measure: "ruler", switch: "rocker", tabs: "chip", button: "keycap", field: "well", menu: "solid", tools: "float", backdrop: "dots", heads: "display" },
 });
 
 /** The open studio's looks, in the order a gallery shows them. */

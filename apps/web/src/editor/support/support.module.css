@@ -1,0 +1,156 @@
+/*
+ * Support's own motion and material. Co-located because `globals.css` belongs
+ * to the design-language session. Every colour is derived from theme tokens,
+ * so each product, preset and mode gets the same warmth in its own key.
+ *
+ * --heart: the theme's danger red pulled a fifth toward its warning amber.
+ * Red alone reads as "delete"; the amber makes it a warm thing, not an alarm.
+ */
+
+.root {
+  --heart: color-mix(in oklab, var(--destructive) 80%, var(--warning, #f5a524));
+  --heart-hi: color-mix(in oklab, var(--heart) 70%, var(--warning, #f5a524));
+}
+
+/* ── The heart: an outline that fills from the bottom ─────────────────────── */
+
+.heart {
+  overflow: visible;
+}
+.heartInk {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  transition: stroke 260ms ease-out;
+}
+.heartFill {
+  transform-box: fill-box;
+  transform: translateY(calc((1 - var(--level, 0)) * 100%));
+  transition: transform 640ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* The top-bar button. Rest: plain ink. Hover warms it from the bottom; open
+   keeps it full and the heart beats once — the popover's arrival, not a loop. */
+.button {
+  --heart: color-mix(in oklab, var(--destructive) 80%, var(--warning, #f5a524));
+  --heart-hi: color-mix(in oklab, var(--heart) 70%, var(--warning, #f5a524));
+}
+.button:hover .heartFill,
+.button[data-state="open"] .heartFill {
+  --level: 1;
+}
+.button:hover .heartInk,
+.button[data-state="open"] .heartInk {
+  stroke: var(--heart);
+}
+.button[data-state="open"] .heart {
+  animation: beat 520ms cubic-bezier(0.3, 0, 0.2, 1) 1;
+}
+@keyframes beat {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.18); }
+  55% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* ── Coins: a face on a stack of rims. Choosing one stacks it up. ─────────── */
+
+@property --lift {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 2px;
+}
+
+.coin {
+  --lift: 1.5px;
+  --face: color-mix(in oklab, var(--fg) 7%, var(--popover));
+  --rim: color-mix(in oklab, var(--fg) 24%, var(--popover));
+  --rim2: color-mix(in oklab, var(--fg) 13%, var(--popover));
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 58%, color-mix(in oklab, var(--fg) 9%, transparent) 60%, transparent 63%),
+    var(--face);
+  color: var(--muted-foreground);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 14%, transparent),
+    0 var(--lift) 0 var(--rim),
+    0 calc(var(--lift) * 2) 0 var(--rim2),
+    0 calc(var(--lift) * 3) 0 var(--rim),
+    0 calc(var(--lift) * 3 + 3px) 6px -2px color-mix(in oklab, black 40%, transparent);
+  transform: translateY(calc(var(--lift) * -3));
+  transition:
+    --lift 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 200ms ease-out,
+    color 200ms ease-out;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.coin:hover {
+  --lift: 2px;
+  color: var(--foreground);
+}
+.coin[data-on] {
+  --lift: 3.5px;
+  --face: color-mix(in oklab, var(--heart) 18%, var(--popover));
+  --rim: color-mix(in oklab, var(--heart) 62%, var(--popover));
+  --rim2: color-mix(in oklab, var(--heart) 34%, var(--popover));
+  color: var(--heart-hi);
+}
+/* Pressed into the table: the stack takes the weight. */
+.coin:active {
+  --lift: 0.5px;
+  transition-duration: 70ms;
+}
+.coinDollar {
+  opacity: 0.55;
+  font-size: 0.75em;
+  margin-right: 0.05em;
+}
+
+/* ── The amount ────────────────────────────────────────────────────────────── */
+
+.amount {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--num-weight, 600);
+  font-size: calc(2.25rem * var(--num-scale, 1));
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* The numerals tick when the amount changes (keyed remount). */
+.tick {
+  display: inline-block;
+  animation: tick 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes tick {
+  from { transform: translateY(0.18em); opacity: 0.2; }
+  to { transform: none; opacity: 1; }
+}
+
+/* A warm glow behind the fund half, only as strong as the heart is full. */
+.fund {
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--heart) calc(var(--level, 0) * 14%), transparent), transparent 70%);
+  transition: background 640ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heartFill,
+  .heartInk,
+  .coin,
+  .fund {
+    transition: none;
+  }
+  .button[data-state="open"] .heart,
+  .tick {
+    animation: none;
+  }
+}

@@ -297,7 +297,7 @@ function PoseSetRow({ character, set, art }: { character: GroupClip; set: PoseSe
                 onDoubleClick={() => setRenaming(pose.id)}
               >
                 <PoseThumb art={art} character={character} set={set} pose={pose} className="w-full rounded-[5px]" />
-                {pose.id === current && match.modified && <span aria-label="Changed by hand" className="absolute right-1 top-1 size-1.5 rounded-full bg-amber-400 shadow-[0_0_0_2px_var(--background)]" />}
+                {pose.id === current && match.modified && <span aria-label="Changed by hand" className="absolute right-1 top-1 size-1.5 rounded-full bg-warning shadow-[0_0_0_2px_var(--background)]" />}
                 {renaming === pose.id ? (
                   <RenameInput
                     initial={pose.name}

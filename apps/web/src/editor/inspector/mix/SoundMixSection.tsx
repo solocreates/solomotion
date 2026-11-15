@@ -69,7 +69,7 @@ export function SoundMixSection({ clip }: { clip: Clip }) {
         />
       </PropRow>
       {peers.length === 1 && (
-        <PropRow label="Ducking" start>
+        <PropRow label="Ducking">
           <DuckingEditor
             rules={clip.ducking ?? []}
             owner={{ kind: "clip", id: clip.id }}

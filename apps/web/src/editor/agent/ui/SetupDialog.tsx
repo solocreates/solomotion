@@ -89,7 +89,7 @@ export function SetupDialog() {
                           <span className="block truncate text-xs font-medium text-foreground">{c.label}</span>
                           <span className="block truncate text-2xs text-muted-foreground">{c.defaultModel ?? providerDef(c.providerId)?.name}</span>
                         </span>
-                        {c.verifiedAt && <Check className="size-3.5 shrink-0 text-emerald-500" aria-label="Tested" />}
+                        {c.verifiedAt && <Check className="size-3.5 shrink-0 text-success" aria-label="Tested" />}
                       </ListButton>
                     ))}
                   </div>
@@ -384,7 +384,7 @@ function ConnectionForm({
             <div
               className={cn(
                 "agent-rise flex items-start gap-2 rounded-lg border px-3 py-2 text-xs",
-                test.ok ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-destructive/40 bg-destructive/10 text-destructive",
+                test.ok ? "border-success/40 bg-success/10 text-success" : "border-destructive/40 bg-destructive/10 text-destructive",
               )}
               role="status"
             >

@@ -4,13 +4,13 @@ import * as React from "react";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, acceptCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
-import { bracketMatching, HighlightStyle, indentOnInput, syntaxHighlighting, syntaxTree } from "@codemirror/language";
+import { bracketMatching, indentOnInput, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { forceLinting, linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { EditorState, Prec } from "@codemirror/state";
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder as placeholderExt } from "@codemirror/view";
-import { tags as t } from "@lezer/highlight";
 import { acCompletions, acHover, type CompletionDeps } from "./completions";
+import { codeHighlightStyle } from "./code-tokens";
 
 /**
  * THE SCRIPT EDITOR — CodeMirror 6, in its own lazy chunk.
@@ -44,32 +44,21 @@ export interface CodeEditorProps {
   className?: string;
 }
 
-const highlight = HighlightStyle.define([
-  { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.operatorKeyword, t.definitionKeyword, t.modifier], color: "var(--syntax-function)" },
-  { tag: [t.string, t.special(t.string), t.regexp], color: "var(--syntax-text)" },
-  { tag: [t.number, t.bool, t.null], color: "var(--syntax-number)" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "var(--syntax-global)" },
-  { tag: [t.propertyName], color: "var(--syntax-local)" },
-  { tag: [t.definition(t.variableName)], color: "var(--syntax-variable)" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--syntax-comment)", fontStyle: "italic" },
-  { tag: [t.punctuation, t.bracket, t.operator], color: "var(--syntax-punct)" },
-]);
-
 const theme = EditorView.theme({
-  "&": { height: "100%", fontSize: "12.5px", backgroundColor: "transparent", color: "var(--foreground)" },
+  "&": { height: "100%", fontSize: "12.5px", backgroundColor: "transparent", color: "var(--code-foreground, var(--foreground))" },
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": { fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)", lineHeight: "1.6" },
   ".cm-content": { caretColor: "var(--foreground)", padding: "8px 0" },
-  ".cm-gutters": { backgroundColor: "transparent", border: "none", color: "var(--muted-foreground)", opacity: "0.6" },
+  ".cm-gutters": { backgroundColor: "transparent", border: "none", color: "var(--fg-faint)" },
   ".cm-activeLine": { backgroundColor: "color-mix(in oklab, var(--foreground) 4%, transparent)" },
   ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--foreground)" },
   ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": { backgroundColor: "color-mix(in oklab, var(--primary) 30%, transparent) !important" },
   ".cm-cursor": { borderLeftColor: "var(--foreground)" },
   ".cm-matchingBracket": { backgroundColor: "color-mix(in oklab, var(--foreground) 12%, transparent)", outline: "none" },
-  ".cm-tooltip": { backgroundColor: "var(--popover)", color: "var(--popover-foreground)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" },
+  ".cm-tooltip": { backgroundColor: "var(--popover)", color: "var(--popover-foreground)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", boxShadow: "var(--elevation-3)", overflow: "hidden" },
   ".cm-tooltip-autocomplete > ul": { fontFamily: "inherit", maxHeight: "16rem" },
-  ".cm-tooltip-autocomplete > ul > li": { padding: "3px 8px", lineHeight: "1.5" },
-  ".cm-tooltip-autocomplete > ul > li[aria-selected]": { backgroundColor: "var(--accent)", color: "var(--accent-foreground)" },
+  ".cm-tooltip-autocomplete > ul > li": { padding: "3px 8px", lineHeight: "1.5", borderRadius: "var(--r-xs)" },
+  ".cm-tooltip-autocomplete > ul > li[aria-selected]": { backgroundColor: "var(--hover)", color: "var(--foreground)" },
   ".cm-completionDetail": { opacity: "0.6", fontStyle: "normal", marginLeft: "8px" },
   ".cm-completionInfo": { padding: "8px 10px", maxWidth: "26rem" },
   ".cm-ac-info": { padding: "8px 10px", maxWidth: "28rem", fontSize: "12px" },
@@ -161,7 +150,7 @@ export default function CodeEditor(props: CodeEditorProps) {
           closeBrackets(),
           highlightSelectionMatches(),
           javascript(),
-          syntaxHighlighting(highlight),
+          syntaxHighlighting(codeHighlightStyle),
           autocompletion({ override: [acCompletions(live.current.deps)], icons: false, activateOnTyping: true }),
           acHover(live.current.deps),
           linter(

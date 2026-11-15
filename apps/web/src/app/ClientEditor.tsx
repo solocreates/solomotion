@@ -14,12 +14,23 @@ import { UpdateChecker, UpdateDialog } from "@/editor/update";
 // `ssr: false` requires the `dynamic()` call itself to live in a Client
 // Component — layout.tsx (a Server Component) renders this wrapper instead
 // of calling `dynamic()` directly.
-const Editor = dynamic(() => import("@/editor/Editor"), {
-  ssr: false,
-  loading: () => <AppSplash />,
-});
+// No `loading`: the splash is a hydrated sibling (see `AppSplash`), told when
+// the editor has mounted.
+const Editor = dynamic(
+  () =>
+    import("@/editor/Editor").then(({ default: Inner }) => {
+      function Mounted({ onMounted }: { onMounted: () => void }) {
+        React.useEffect(onMounted, [onMounted]);
+        return <Inner />;
+      }
+      return Mounted;
+    }),
+  { ssr: false },
+);
 
 export function ClientEditor() {
+  const [mounted, setMounted] = React.useState(false);
+  const onMounted = React.useCallback(() => setMounted(true), []);
   // Boot the platform bridge once, as early as the client mounts: installs
   // console capture so the in-app Console window catches everything, in the
   // browser and the Electron desktop shell alike.
@@ -42,7 +53,8 @@ export function ClientEditor() {
   }, []);
   return (
     <>
-      <Editor />
+      <Editor onMounted={onMounted} />
+      <AppSplash done={mounted} />
       {/* App-wide overlays: the reusable notification stack, the update
           orchestrator (headless), and its dialog. All no-ops until something
           actually happens, so they're cheap to always mount. */}
