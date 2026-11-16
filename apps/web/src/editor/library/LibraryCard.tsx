@@ -200,8 +200,8 @@ export function LibraryCard(props: LibraryCardProps) {
       disabled={busy}
       className={cn(
         frame
-          ? "flex size-6 shrink-0 items-center justify-center rounded-md bg-popover text-fg shadow-sm ring-1 ring-line transition hover:bg-primary hover:text-primary-foreground hover:ring-primary disabled:opacity-60"
-          : "flex size-6 shrink-0 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition hover:border-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-60",
+          ? "flex size-6 shrink-0 items-center justify-center rounded-md bg-popover text-fg shadow-sm ring-1 ring-line transition hover:bg-[color-mix(in_srgb,var(--primary)_18%,var(--popover))] hover:text-primary hover:ring-primary/50 disabled:opacity-60"
+          : "flex size-6 shrink-0 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition hover:border-primary/50 hover:bg-[color-mix(in_srgb,var(--primary)_18%,var(--popover))] hover:text-primary disabled:opacity-60",
         "[&_svg]:size-3",
       )}
     >

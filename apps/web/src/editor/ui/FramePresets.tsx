@@ -15,6 +15,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Segmented, type SegmentedOption } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { addFrameFromPreset, addWorldFromPreset } from "../state/clip-actions";
 import { useDocSelector, useDocStore } from "../state/document-context";
@@ -276,6 +277,11 @@ export function FramePresetList({
  * frame presets). Same list, same search, same rows as New Project — picking
  * here places the frame instead of selecting a size.
  */
+const SPACES = [
+  { value: "2d", label: "Frame" },
+  { value: "3d", label: "3D world" },
+] as const satisfies ReadonlyArray<SegmentedOption<"2d" | "3d">>;
+
 export function FramePresetsPanel() {
   const store = useDocStore();
   const activeFrameId = useSession((s) => s.activeFrameId);
@@ -285,20 +291,16 @@ export function FramePresetsPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 gap-1 border-b p-2">
-        {(["2d", "3d"] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setSpace(k)}
-            className={cn(
-              "h-7 flex-1 rounded-md text-xs transition-colors",
-              space === k ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {k === "2d" ? "Frame" : "3D world"}
-          </button>
-        ))}
+      {/* Which space a preset makes: the app's one segmented control, so the
+          armed side wears the armed pane, not a solid accent slab. */}
+      <div className="shrink-0 border-b p-2">
+        <Segmented
+          aria-label="Add as"
+          stretch
+          value={space}
+          onChange={setSpace}
+          options={SPACES}
+        />
       </div>
       <FramePresetList
         className="min-h-0 flex-1"

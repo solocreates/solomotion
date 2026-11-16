@@ -317,7 +317,7 @@ function CheckRow({
           "flex size-3.5 shrink-0 items-center justify-center border transition-colors [&_svg]:size-2.5",
           radio ? "rounded-full" : "rounded-[4px]",
           checked
-            ? "border-primary bg-primary text-primary-foreground"
+            ? "border-primary/60 bg-primary/15 text-primary"
             : "border-border group-hover:border-primary/50",
         )}
       >

@@ -170,7 +170,7 @@ export function ProjectHero({ id, record }: { id: string; record: ProjectRecord 
       </div>
       <DropdownMenuItem
         onSelect={() => useSession.getState().setExportDialogOpen(true)}
-        className="min-h-(--control-h-sm) shrink-0 gap-1.5 rounded-md bg-primary px-2.5 py-0 font-medium text-primary-foreground focus:bg-primary/85 focus:text-primary-foreground [&_svg]:size-3.5"
+        className="min-h-(--control-h-sm) shrink-0 gap-1.5 rounded-md bg-primary/15 px-2.5 py-0 font-medium text-primary focus:bg-primary/25 focus:text-primary [&_svg]:size-3.5"
       >
         <Download /> Export
       </DropdownMenuItem>

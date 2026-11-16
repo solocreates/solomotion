@@ -236,7 +236,7 @@ export function PresetTransferDialog() {
                       }}
                       className={cn(
                         "grid size-4 shrink-0 place-items-center rounded border transition-colors",
-                        picked.has(g.kind) ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                        picked.has(g.kind) ? "border-primary/60 bg-primary/15 text-primary" : "border-border",
                       )}
                     >
                       {picked.has(g.kind) && <Check className="size-3" />}

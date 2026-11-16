@@ -480,7 +480,7 @@ function PresetBrowser({
               className={cn(
                 "shrink-0 rounded-(--r-xs) px-2.5 py-1 text-[11px] font-medium transition-colors",
                 cat === c
-                  ? "bg-primary text-primary-foreground"
+                  ? "material-glass-raised text-primary"
                   : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >

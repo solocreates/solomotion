@@ -269,7 +269,7 @@ function SectionRow({ section, on, open, onToggle, onExpand }: { section: BriefS
           onClick={() => onToggle(!on)}
           className="flex min-w-0 flex-1 items-center gap-2.5 self-stretch rounded-md px-2 text-left hover:bg-accent/60 disabled:cursor-default disabled:hover:bg-transparent"
         >
-          <span className={cn("grid size-4 shrink-0 place-items-center rounded-[4px] border transition-colors", on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50", section.locked && "opacity-60")}>
+          <span className={cn("grid size-4 shrink-0 place-items-center rounded-[4px] border transition-colors", on ? "border-primary/60 bg-primary/15 text-primary" : "border-muted-foreground/50", section.locked && "opacity-60")}>
             {on && <Check className="size-3" strokeWidth={3} />}
           </span>
           <span className="min-w-0 flex-1 py-1.5">

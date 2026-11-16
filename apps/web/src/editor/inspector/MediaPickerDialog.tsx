@@ -5,6 +5,7 @@ import type { AssetKind } from "@solomotion/core";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -133,14 +134,9 @@ export function MediaPickerDialog({
               void importFiles(files);
             }}
           />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-[12px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 [&_svg]:size-4"
-          >
+          <Button className="w-full" disabled={busy} onClick={() => inputRef.current?.click()}>
             <Upload /> {busy ? "Importing…" : "Upload media"}
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

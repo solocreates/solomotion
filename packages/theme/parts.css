@@ -754,28 +754,29 @@
     background: var(--hover);
   }
 
-  /* glass — the primary is a pane of accent-tinted glass. */
-  :root[data-button="glass"] [data-part="button"][data-variant="primary"] {
+  /* TWO WEIGHTS OF "DO THIS". `accent` is the ONE solid fill a screen may
+     carry (the studio's Export, the site's hero). `primary` is every other
+     action that matters: the app's armed pane (the chip tab's recipe: raised
+     glass tinted with the accent, the accent on the words), so a panel full
+     of actions never shouts. A screen with three solid blocks has no loudest
+     one. Every dialect below keeps its own shape and draws primary this way. */
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="primary"] {
     color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 28%, transparent);
+    background-color: color-mix(in srgb, var(--primary) 16%, var(--glass-raised));
     box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.14),
-      inset 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
-      0 1px 2px rgb(0 0 0 / 0.3);
+      inset 0 1px 0 0 var(--glass-specular-strong),
+      inset 0 0 0 1px var(--glass-rim),
+      0 1px 2px rgb(0 0 0 / 0.28);
   }
-  :root[data-button="glass"] [data-part="button"][data-variant="primary"]:hover {
-    background: color-mix(in srgb, var(--primary) 38%, transparent);
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="primary"]:hover {
+    background-color: color-mix(in srgb, var(--primary) 24%, var(--glass-raised));
   }
-  :root[data-button="glass"] [data-part="button"][data-variant="primary"]:active {
-    background: color-mix(in srgb, var(--primary) 44%, transparent);
-  }
-  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="accent"],
-  :root[data-button="solid"] [data-part="button"][data-variant="primary"] {
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="accent"] {
     color: var(--primary-foreground);
     background: var(--primary);
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
   }
-  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"]:is([data-variant="accent"], [data-variant="primary"]):hover {
+  :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="accent"]:hover {
     filter: brightness(1.08);
   }
   :root:is([data-button="glass"], [data-button="solid"]) [data-part="button"][data-variant="secondary"] {
@@ -818,13 +819,22 @@
   /* The primary is INVERSE VIDEO, the terminal's selected row: a solid
      accent block. An accent outline was the same weight as every other
      frame, so the one action on a screen did not read as the one. */
-  :root[data-button="outline"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+  :root[data-button="outline"] [data-part="button"][data-variant="accent"] {
     color: var(--primary-foreground);
     background: var(--primary);
     box-shadow: none;
   }
-  :root[data-button="outline"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]):hover {
+  :root[data-button="outline"] [data-part="button"][data-variant="accent"]:hover {
     background: color-mix(in oklab, var(--primary) 88%, var(--foreground));
+  }
+  /* Every other action is the armed window of the tmux tabs: lit, not inverted. */
+  :root[data-button="outline"] [data-part="button"][data-variant="primary"] {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  :root[data-button="outline"] [data-part="button"][data-variant="primary"]:hover {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
   }
   :root[data-button="outline"] [data-part="button"]:is([data-variant="secondary"], [data-variant="outline"]) {
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 28%, transparent);
@@ -845,7 +855,16 @@
       inset 0 0 0 1px rgb(0 0 0 / 0.1),
       0 2px 0 rgb(0 0 0 / 0.18);
   }
-  :root[data-button="keycap"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+  /* primary: the same key, its cap tinted, the accent on the legend. */
+  :root[data-button="keycap"] [data-part="button"][data-variant="primary"] {
+    color: var(--primary);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--primary) 14%, var(--card)),
+      color-mix(in srgb, var(--primary) 14%, var(--panel))
+    );
+  }
+  :root[data-button="keycap"] [data-part="button"][data-variant="accent"] {
     color: var(--primary-foreground);
     background: var(--primary);
     box-shadow:
@@ -886,21 +905,33 @@
   :root[data-button="offset"] [data-part="button"]:hover {
     background: var(--hover);
   }
-  :root[data-button="offset"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+  :root[data-button="offset"] [data-part="button"][data-variant="accent"] {
     color: var(--primary-foreground);
     background: var(--primary);
     box-shadow:
       inset 0 0 0 1.5px color-mix(in oklab, var(--primary) 55%, var(--offset-ink)),
       3px 3px 0 var(--offset-cast);
   }
-  :root[data-button="offset"][data-mode="dark"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]) {
+  :root[data-button="offset"][data-mode="dark"] [data-part="button"][data-variant="accent"] {
     box-shadow: 3px 3px 0 var(--offset-cast);
+  }
+  /* primary: the press in a tinted frame, the accent on the words, the quiet
+     cast every other button drops. */
+  :root[data-button="offset"] [data-part="button"][data-variant="primary"] {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    box-shadow:
+      inset 0 0 0 1.5px color-mix(in oklab, var(--primary) 60%, var(--offset-frame)),
+      2px 2px 0 var(--offset-cast-quiet);
+  }
+  :root[data-button="offset"] [data-part="button"][data-variant="primary"]:hover {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
   }
   :root[data-button="offset"] [data-part="button"]:not([data-variant="ghost"], [data-variant="link"]):active {
     transform: translate(2px, 2px);
     box-shadow: inset 0 0 0 1.5px var(--offset-frame);
   }
-  :root[data-button="offset"] [data-part="button"]:is([data-variant="primary"], [data-variant="accent"]):active {
+  :root[data-button="offset"] [data-part="button"][data-variant="accent"]:active {
     transform: translate(3px, 3px);
     box-shadow: none;
   }

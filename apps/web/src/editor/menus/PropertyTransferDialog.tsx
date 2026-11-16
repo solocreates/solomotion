@@ -107,7 +107,7 @@ function TriCheckbox({
           "flex size-3.5 shrink-0 items-center justify-center rounded-sm border [&_svg]:size-2.5",
           state === "off"
             ? "border-border bg-transparent"
-            : "border-primary bg-primary text-primary-foreground",
+            : "border-primary/60 bg-primary/15 text-primary",
         )}
       >
         {state === "on" && <Check strokeWidth={3.5} />}

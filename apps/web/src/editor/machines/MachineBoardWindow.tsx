@@ -425,7 +425,7 @@ function MachineBoard({ frame, machine, onClose }: { frame: Frame; machine: Mach
                 }}
                 className={cn(
                   "absolute max-w-48 -translate-x-1/2 -translate-y-1/2 cursor-pointer truncate whitespace-nowrap rounded-(--r-xs) border px-2 py-0.5 text-[10px]",
-                  lit ? "border-primary bg-primary text-primary-foreground" : "border-border bg-popover text-muted-foreground",
+                  lit ? "border-primary/60 bg-primary/15 text-primary" : "border-border bg-popover text-muted-foreground",
                 )}
                 style={{ left: mid.x, top: mid.y }}
               >
