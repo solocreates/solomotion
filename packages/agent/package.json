@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/agent",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "The agent runtime: provider dialects, the tool loop, knowledge packs, media generation and feedback folding. Provider- and UI-agnostic.",
   "private": true,
   "type": "module",

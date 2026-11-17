@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/lipsync",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "private": true,
   "type": "module",
   "description": "Headless speech foundation: lazy speech engines (analyze/align/synthesize), ARPAbet G2P, viseme alphabets, an offline Test Voice, cue post-processing and an evaluation harness. Zero dependencies, zero DOM.",

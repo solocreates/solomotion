@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CENTER_ANCHOR, type LayerBox } from "../transform-map";
 import { MOTION_EPSILON_PX, MOTION_FULL_PX, poseMotion, poseQuad, motionSpeed, type LayerPose } from "./motion";
 import {
+  cutShutterAtSteps,
   POLICY_FAST,
   POLICY_FULL,
   POLICY_OFF,
@@ -336,5 +337,55 @@ describe("shutterSubsteps: each bin integrated whole", () => {
     expect(shutterSubsteps([0.5, 0.5], 1, "sum")).toEqual([{ at: 0, weight: 0.5 }, { at: 1, weight: 0.5 }]);
     const trail = shutterSubsteps([1, 0.5], 6, "max");
     expect(trail.filter((s) => s.at < 0.5).every((s) => s.weight === 1)).toBe(true);
+  });
+});
+
+describe("cutShutterAtSteps: a shutter never exposes across a step", () => {
+  // A position over time, in px; `dist` is the travel between two.
+  const dist = (a: number, b: number) => Math.abs(b - a);
+  const win = { openMs: 1000 - 4.1667, closeMs: 1000 + 4.1667 }; // 180°, phase −90, 60 fps
+
+  it("a HOLD landing on the frame keeps the after side (the frame's own pose)", () => {
+    const hold = (t: number) => (t < 1000 ? 0 : 80);
+    const w = cutShutterAtSteps(win, 1000, hold, dist);
+    expect(w.openMs).toBe(1000);
+    expect(w.closeMs).toBe(win.closeMs);
+    expect(dist(hold(w.openMs), hold(w.closeMs))).toBe(0);
+  });
+
+  it("a step just before the frame keeps only the after side", () => {
+    const hold = (t: number) => (t < 998 ? 0 : 80);
+    const w = cutShutterAtSteps(win, 1000, hold, dist);
+    expect(w.openMs).toBeGreaterThanOrEqual(998);
+    expect(w.openMs).toBeLessThan(998.1);
+    expect(w.closeMs).toBe(win.closeMs);
+  });
+
+  it("a step just after the frame keeps only the before side", () => {
+    const hold = (t: number) => (t < 1003 ? 0 : 80);
+    const w = cutShutterAtSteps(win, 1000, hold, dist);
+    expect(w.openMs).toBe(win.openMs);
+    expect(w.closeMs).toBeLessThanOrEqual(1003);
+    expect(w.closeMs).toBeGreaterThan(1002.9);
+  });
+
+  it("a step on top of a move still cuts, and the move keeps blurring on its side", () => {
+    const f = (t: number) => t * 2 + (t < 1002 ? 0 : 300);
+    const w = cutShutterAtSteps(win, 1000, f, dist);
+    expect(w.openMs).toBe(win.openMs);
+    expect(w.closeMs).toBeLessThanOrEqual(1002);
+    expect(dist(f(w.openMs), f(w.closeMs))).toBeGreaterThan(10);
+  });
+
+  it("a fast smooth move — even a sharp ease — is left whole", () => {
+    for (const f of [(t: number) => t * 40, (t: number) => ((t - 995) / 10) ** 4 * 200]) {
+      expect(cutShutterAtSteps(win, 1000, f, dist)).toEqual(win);
+    }
+  });
+
+  it("standing still costs no search", () => {
+    let calls = 0;
+    expect(cutShutterAtSteps(win, 1000, () => (calls++, 5), dist)).toEqual(win);
+    expect(calls).toBe(2);
   });
 });

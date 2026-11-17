@@ -29,6 +29,7 @@ import { getClipProperty } from "../../animation/paths";
 import { propertyHasKeys, sampleKeyframes } from "../../animation/keyframes";
 import { compFps } from "../../timeline/fps";
 import { positionOrigin } from "../../timeline/group-space";
+import { layerBoxCenter } from "../../pivot";
 import { clipNaturalSize, emptyTrackCount, frameDurationMs } from "../../timeline/ops";
 import { frameLanes } from "../../timeline/layer-tree";
 import { ApiError, defineCommand } from "../command";
@@ -125,7 +126,7 @@ export const layerGet = defineCommand({
   id: "layer.get",
   summary: "One layer's full data as JSON (bulky parts folded; ask for them by field).",
   details:
-    "`box` is the layer's measured size before scale — a text layer's laid-out glyphs, a path's outline, a shape's size — so you can place things against it without a probe render. A GROUP also gets `pivot`: the point its scale and rotation happen about (the centre of what it holds, by its anchor), in its parent's space (the comp's for a top-level group), at the playhead. A group's `transform.x/y` is an OFFSET from where its members rest, not a position: a member at q lands at pivot + (x, y) + scale·(q − pivot). To zoom by s keeping comp point P still: x = (1 − s)·(P.x − pivot.x), same for y.",
+    "`box` is the layer's measured size before scale — a text layer's laid-out glyphs, a path's outline, a shape's size — so you can place things against it without a probe render. `box.center` is where the box's middle sits in the parent's space (at the resting transform): `x/y` is the PIVOT, which is the centre for text and shapes but a path's own `d` origin, so line icons up by `center`, or better, put icon + label in an auto-layout row. A GROUP also gets `pivot`: the point its scale and rotation happen about (the centre of what it holds, by its anchor), in its parent's space (the comp's for a top-level group), at the playhead. A group's `transform.x/y` is an OFFSET from where its members rest, not a position: a member at q lands at pivot + (x, y) + scale·(q − pivot). To zoom by s keeping comp point P still: x = (1 − s)·(P.x − pivot.x), same for y.",
   effect: "read",
   input: z.object({
     id: z.string(),
@@ -141,7 +142,15 @@ export const layerGet = defineCommand({
     const out = clipForReading(clip, input.fields);
     // Derived, never stored: the same measure every gizmo and pivot uses.
     const size = wantsBox ? clipNaturalSize(doc, clip) : null;
-    if (size) out.box = { width: round1(size.width), height: round1(size.height) };
+    if (size) {
+      const box: { width: number; height: number; center?: { x: number; y: number } } = { width: round1(size.width), height: round1(size.height) };
+      // Where the art's middle is: x/y is the pivot, which for a path is its d origin, not its centre.
+      if (clip.kind !== "group" && clip.kind !== "audio") {
+        const c = layerBoxCenter(clip.transform, size);
+        box.center = { x: round1(c.x), y: round1(c.y) };
+      }
+      out.box = box;
+    }
     // A group's pivot is derived from what it holds (`positionOrigin`, the term
     // every surface adds to a group's x/y) — the number a camera move needs.
     if (clip.kind === "group" && (!input.fields?.length || input.fields.includes("pivot"))) {

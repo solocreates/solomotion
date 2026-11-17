@@ -1,6 +1,6 @@
 "use client";
 
-import { audioChainSignature, audioEffectsAt, dbToGain, duckGainAt, duckValueCurve, webAudioAutoMakeupDb, type MixPlan } from "@solomotion/core";
+import { audioChainSignature, audioEffectsAt, dbToGain, duckGainAt, duckValueCurve, impulseDelay, webAudioAutoMakeupDb, type MixPlan } from "@solomotion/core";
 import { buildAudioChain, type AudioChain } from "./audio-effect-chain";
 
 /**
@@ -33,7 +33,45 @@ interface BusNodes {
 /** A dialogue leveler, not a squash: slow, soft-kneed, 3:1 on the loud words. */
 const SPEECH = { threshold: -26, knee: 18, ratio: 3, attack: 0.012, release: 0.3, makeupDb: 4 };
 
+/** Measured once per sample rate (see `MixGraph.limiterLatency`). */
+const limiterLatencies = new Map<number, Promise<number>>();
+
 export class MixGraph {
+  /**
+   * HOW LATE THE LIMITED MASTER IS, in samples. The limiter's compressor looks
+   * ahead (a fixed pre-delay inside the Web Audio node, implementation-defined)
+   * and the 4× oversampled ceiling adds its own few samples, so everything
+   * through the limited path comes out late: 480 samples (10 ms) at 48 kHz in
+   * Chrome, measured 2026-11-17. A bounce drops this much from its head so its
+   * sound sits on the timeline (`renderCompAudioToBuffer`). Measured, not
+   * assumed: an impulse through this very graph with the limiter open.
+   */
+  static limiterLatency(sampleRate: number): Promise<number> {
+    let hit = limiterLatencies.get(sampleRate);
+    if (!hit) {
+      hit = (async () => {
+        try {
+          const at = 128;
+          const n = at + Math.ceil(sampleRate * 0.1);
+          const ctx = new OfflineAudioContext(1, n, sampleRate);
+          const graph = new MixGraph(ctx, ctx.destination, { meters: false });
+          graph.setLimiter({ limiter: { enabled: true, ceilingDb: -1 } }, 0);
+          const imp = ctx.createBuffer(1, n, sampleRate);
+          imp.getChannelData(0)[at] = 0.5;
+          const src = ctx.createBufferSource();
+          src.buffer = imp;
+          src.connect(graph.input(null));
+          src.start(0);
+          return impulseDelay((await ctx.startRendering()).getChannelData(0), at, Math.ceil(sampleRate * 0.05)) ?? 0;
+        } catch {
+          return 0;
+        }
+      })();
+      limiterLatencies.set(sampleRate, hit);
+    }
+    return hit;
+  }
+
   private readonly buses = new Map<string, BusNodes>();
   private readonly unrouted: GainNode;
   private readonly masterIn: GainNode;
@@ -170,7 +208,7 @@ export class MixGraph {
     b.chainSig = sig;
   }
 
-  private setLimiter(plan: MixPlan, when: number): void {
+  private setLimiter(plan: Pick<MixPlan, "limiter">, when: number): void {
     const on = !!plan.limiter;
     // A hair under the ceiling: the compressor's knee lets the first overs
     // through by a fraction of a dB.

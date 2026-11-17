@@ -17,7 +17,7 @@ import { machineSchema } from "./machines";
 import { inputDefSchema, inputValuesSchema } from "./inputs";
 import { BUILT_IN_SOUND_BUSES, frameSoundMixSchema, soundBusSchema } from "./sound-mix";
 
-export const DOCUMENT_VERSION = 116;
+export const DOCUMENT_VERSION = 117;
 
 /**
  * How visible a frame's SPILL is by default — the artwork that reaches past the

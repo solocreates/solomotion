@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/context-menu";
 import { isTypingTarget } from "../input/typing-target";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView } from "../state/session";
+import { useSession, useStageCamera } from "../state/session";
 import { clipboardPlainText } from "../state/clip-actions";
 import { commitTextContent } from "../state/text-content";
 import { layerEffectCssText } from "./render/layer-effect-css";
@@ -83,7 +83,7 @@ export function TextEditOverlay() {
   // re-contents in real time (keyframed motion, typography and content).
   const playheadMs = useSession((s) => (s.editingClipId ? s.playheadMs : 0));
   const textSelection = useSession((s) => (s.editingClipId ? s.textSelection : null));
-  const view = useStageView();
+  const view = useStageCamera();
   const rootRef = React.useRef<HTMLDivElement>(null);
   /** Desired selection in grapheme offsets, restored after each rebuild. */
   const desiredSelection = React.useRef<{ start: number; end: number } | null>(null);
@@ -291,12 +291,10 @@ export function TextEditOverlay() {
 
   // ── THE TEXT DOES NOT MOVE WHEN YOU START TYPING ──────────────────────────
   // The canvas and the browser lay lines out with different vertical models: we
-  // put a baseline `LINE_ASCENT_RATIO x size` below the line top, CSS centres
-  // the font's content area and puts it a real ascent below that. Left alone the
-  // glyphs drop by a fifth of the font size the instant you double-click in —
-  // the "it jumps down" that made editing feel broken. `domBaselineDrift` is the
-  // one place that knows the difference; taking it off here means the DOM text
-  // lands exactly on the pixels the canvas was painting.
+  // centre the letters in the line box, CSS centres the font's content area.
+  // Left alone the glyphs shift the instant you double-click in. `domBaselineDrift`
+  // is the one place that knows the difference; taking it off here means the DOM
+  // text lands exactly on the pixels the canvas was painting.
   //
   // `blockOffsetY` is the other half: the browser stacks lines from the top of
   // the box, while a fixed-height box may anchor its block in the middle or at
@@ -312,7 +310,7 @@ export function TextEditOverlay() {
   );
   const textOffsetY =
     (layout?.blockOffsetY ?? 0) -
-    domBaselineDrift(getMeasureCtx(), baseStyle, firstLineSize, lineHeightFactor);
+    domBaselineDrift(getMeasureCtx(), baseStyle, firstLineSize, lineHeightFactor, layout?.axis === "horizontal" ? layout.lines[0] : undefined);
 
   const onInput = () => {
     const root = rootRef.current;

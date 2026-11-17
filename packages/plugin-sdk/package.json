@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/plugin-sdk",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "Types and validation for SoloMotion plugins: the manifest schema, capabilities and the window.solomotion API.",
   "keywords": [
     "solomotion",

@@ -123,8 +123,11 @@ jobs:
       - name: Collect the installers
         run: |
           mkdir -p release
+          # The installers, plus the latest*.yml feeds and blockmaps that the
+          # app's updater reads from this release.
           find apps/desktop/dist -maxdepth 1 -type f \
-            \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) \
+            \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \
+               -o -name 'latest*.yml' -o -name '*.blockmap' \) \
             -exec cp {} release/ \;
           ls -l release
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -58,6 +58,8 @@ A group animates its members as one: key its `x`, `y`, `scale`, `rotation`, pivo
 
 A group with `layout` ARRANGES its members like Figma/CSS flexbox. Use it for anything that should stay aligned when text changes: buttons, chips, cards, lower thirds, lists, lyric lines.
 
+**Every icon beside a label is a row** (`flow: "row"`, `alignY: "center"`): layout centres each member's real box, so an icon drawn below its own origin (a heart, a pin, an arrow) still sits on the label's centre line. Hand-placing both at one `y` lines up the icon's ORIGIN instead, which is how a heart ends up low.
+
 ```json
 { "ids": ["Pill", "Label"], "name": "Button",
   "layout": { "flow": "row", "gap": 12, "padding": { "top": 18, "right": 32, "bottom": 18, "left": 32 }, "alignX": "center", "alignY": "center" } }

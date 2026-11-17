@@ -24,7 +24,7 @@ import {
   readDepthFrame,
 } from "@solomotion/core";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView, useParkedPlayhead, useTransportRunning } from "../state/session";
+import { useSession, useStageCamera, useParkedPlayhead, useTransportRunning } from "../state/session";
 import { useTrackRuns } from "../tracking/track-runs";
 import { pinTrackAt, startTrack, trackedClipOf, trackViewAt } from "../tracking/track-controller";
 import { usePickMode } from "../pick/pick-mode";
@@ -87,7 +87,7 @@ export function TrackOverlay() {
   const playheadMs = useParkedPlayhead();
   // An editing overlay is for a still frame: the canvas draws the motion.
   const playing = useTransportRunning();
-  const view = useStageView();
+  const view = useStageCamera();
   const showDepth = useDepthView((s) => s.show);
 
   const shown = React.useMemo(() => {

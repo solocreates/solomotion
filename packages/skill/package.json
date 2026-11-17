@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/skill",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "The agent skill and default design system — how an AI works inside the studio.",
   "private": true,
   "type": "module",

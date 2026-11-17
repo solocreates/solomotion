@@ -255,12 +255,14 @@ export function resolveShutter(
     settings: MotionBlurSettings;
     tier: MotionBlurSampling;
     maxSamples: number;
+    /** The window as cut at a step (`cutShutterAtSteps`); default the settings' own. */
+    window?: { openMs: number; closeMs: number };
   },
   /** Motion measured across `[openMs, closeMs]` — see `shutterWindow`. */
   motion: LayerMotion,
 ): ShutterPlan | null {
   const { settings, tier, maxSamples } = opts;
-  const { openMs, closeMs } = shutterWindow(opts.frameIntervalMs, opts.localMs, settings);
+  const { openMs, closeMs } = opts.window ?? shutterWindow(opts.frameIntervalMs, opts.localMs, settings);
   if (closeMs <= openMs) return null;
 
   // THE SIGNIFICANCE TEST. `amount` scales the look, so it also scales what
@@ -407,6 +409,68 @@ export function shutterSubsteps(
   }
   return out;
 }
+
+/**
+ * THE CUT — a shutter never exposes across a step.
+ *
+ * A HOLD key (a camera cut, a pose on twos, a teleport) changes a layer's
+ * placement in no time at all. Motion blur integrates what the layer DOES
+ * across the open shutter, and a step does nothing across it: it is two
+ * pictures. A window straddling one averaged them, so every step landing
+ * inside an open shutter came out as one frame of double exposure — a 50/50
+ * ghost of the before and after, whatever ancestor (a camera group, a parent
+ * rig, a nested comp's remap) held the key.
+ *
+ * So the window is cut at the step and keeps only the side the frame's own
+ * instant is on. Found by MEASUREMENT, not by reading keyframes: a step can
+ * live in any ancestor, an expression or a time remap, and the caller's
+ * placement sampler already sees all of them. Halving an interval halves a
+ * continuous move's travel but leaves a step's whole; after `STEP_BISECTIONS`
+ * halvings an interval still holding most of the travel is a step.
+ *
+ * `at(t)` is the layer's placement at an instant, `dist` the travel between
+ * two. Costs one extra sample for a moving layer (the midpoint test) and
+ * `STEP_BISECTIONS` more only when that test says one half did all the moving.
+ */
+export function cutShutterAtSteps<P>(
+  window: { openMs: number; closeMs: number },
+  atMs: number,
+  at: (t: number) => P,
+  dist: (a: P, b: P) => number,
+): { openMs: number; closeMs: number } {
+  let { openMs, closeMs } = window;
+  for (let pass = 0; pass < 2 && closeMs > openMs; pass++) {
+    const pOpen = at(openMs);
+    const pClose = at(closeMs);
+    const total = dist(pOpen, pClose);
+    if (total < MOTION_EPSILON_PX) break;
+    // The gate: continuous motion splits its travel between the halves.
+    const mid = (openMs + closeMs) / 2;
+    const pMid = at(mid);
+    const left = dist(pOpen, pMid);
+    const right = dist(pMid, pClose);
+    if (Math.max(left, right) < STEP_SHARE * total) break;
+    let a = openMs, b = closeMs, pa = pOpen, pb = pClose;
+    if (left >= right) { b = mid; pb = pMid; } else { a = mid; pa = pMid; }
+    for (let i = 0; i < STEP_BISECTIONS; i++) {
+      const m = (a + b) / 2;
+      const pm = at(m);
+      if (dist(pa, pm) >= dist(pm, pb)) { b = m; pb = pm; } else { a = m; pa = pm; }
+    }
+    if (dist(pa, pb) < STEP_SHARE * total) break; // a fast, smooth move: blur it
+    // The frame's instant decides the side: it shows what its own pose shows.
+    const pAt = at(atMs);
+    const after = dist(pAt, pb) <= dist(pAt, pa);
+    if (after) openMs = Math.min(b, Math.max(atMs, a));
+    else closeMs = Math.max(a, Math.min(atMs, b));
+  }
+  return { openMs, closeMs };
+}
+
+/** How many halvings tell a step from a move (a 180° shutter at 60 fps: ~16 µs). */
+const STEP_BISECTIONS = 9;
+/** The share of the window's travel one infinitesimal interval must hold to be a step. */
+const STEP_SHARE = 0.8;
 
 /**
  * The exposure window in clip-local ms.

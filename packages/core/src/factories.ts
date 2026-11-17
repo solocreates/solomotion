@@ -100,6 +100,7 @@ export function defaultTextStyle(overrides: Partial<TextStyle> = {}): TextStyle 
     letterSpacing: 0,
     orientation: "horizontal",
     lineHeight: 1.15,
+    baseline: "centered",
     align: "left",
     direction: "auto",
     textEffects: [],

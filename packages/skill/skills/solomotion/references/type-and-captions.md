@@ -22,10 +22,12 @@ A text layer's look is `style` (see `api_describe textStyle`): `fontFamily`, `fo
 
 The most common amateur tell is text that is *nearly* centred: a label riding high in its pill, a pill too short for its words, "vs" kissing the title under it. It comes from guessing glyph sizes. Don't.
 
-- **A text layer's bounds are its LINE BOX** (`fontSize × lineHeight` tall), not its ink. Where the ink sits inside that box depends on the face: a chunky display face's caps can sit ~0.12 em ABOVE the box centre; lowercase-heavy body text sits low. Centring by the box looks wrong.
+- **A text layer's bounds are its LINE BOX** (`fontSize × lineHeight` tall), and the letters sit in its MIDDLE: the box centre is half the cap height above the baseline, measured from the real face. Put a text layer's centre on a pill's centre and capitals, digits and ascender-height lowercase are centred, at any line height. Never nudge `y` to "fix" centring.
+- **Old text can ride high.** Text made before this rule carries `style.baseline: "fixed"` (`layer_get` shows it) and sits up to ~0.16 em above centre. Fix the cause: `text_style {style: {baseline: "centered"}}`, then remove any offset that was compensating for it.
 - **Widths are real** (`layers_list` bounds), so size every pill/chip from the measured width — never from a characters × size estimate.
-- **For optical work, measure the ink once:** render the text alone on a scratch `static` comp at `inspect`, read the ink box from the pixels, cache it per (text, family, size, weight, tracking, stroke). Then place the layer at `target − inkOffset`.
+- **Only all-lowercase words with no ascenders** ("moon", "error") sit a little low by cap centring — x-height is shorter than cap height. If one must be exact, measure the ink once at `inspect` and offset by half the difference.
 - **Pills and chips:** width = ink width + equal padding (≈0.85 em each side); an icon sits a fixed gap (≈0.38 em) from the ink's left edge; the ink is centred vertically on the pill. Or build the chip as an **auto layout** row (`layers_group` with `layout`, padding, `alignY: center`) and let the app hug it.
+- **Icon + label = an auto-layout row, never two hand-placed coordinates.** `layers_group {ids: [icon, label], layout: {flow: "row", gap, alignY: "center"}}` centres the icon's ink box on the label's box, whatever the icon's drawing origin. A path's `x/y` is its `d` origin, not its middle: `layer_create` returns `center` when they differ and `layer_get` gives `box.center`; when you must place by hand, line up `center`, not `y`. Then check the row at `inspect`: the icon's middle and the label's cap middle on one line.
 - **Stacks and rows:** space by equal OPTICAL gaps — ink bottom to ink top (stacks), ink edge to ink edge (rows); put every word of a row on one optical centre line.
 - **Always look at type at `inspect` detail** before calling it done — overlaps and near-misses hide at `glance`.
 

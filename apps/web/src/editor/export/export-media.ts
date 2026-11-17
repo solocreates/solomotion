@@ -28,7 +28,7 @@ import { prepareEffectPassesForExport } from "../stage/render/passes/registry";
 import { lockMediaForExport, prepareAnimatedImagesForExport, prepareImagesForExport, prepareVideoFramesForExport, syncVideoFrames } from "../stage/render/media-cache";
 import { prepareSurfacesForExport } from "../drawing/raster-store";
 import { documentFacesReady, ensureDocumentFaces } from "../stage/render/system-fonts";
-import { parseProgressiveMp4Audio, toMuxableAacTrack } from "@solomotion/core";
+import { impulseDelay, leadIn, parseProgressiveMp4Audio, toMuxableAacTrack } from "@solomotion/core";
 import {
   audioBufferPeak,
   audioBufferToWav,
@@ -1185,7 +1185,11 @@ async function encodeMp4Audio(
         continue;
       }
       try {
-        const encoded = await encodeAudioChunks(bounce, webCodec, muxCodec, bitrate, signal);
+        // AAC writes priming before the signal and the muxer has no edit list to
+        // trim it: feed the mix early by the encoder's measured delay instead.
+        const delay = muxCodec === "aac" ? await encoderDelaySamples(webCodec, bounce.sampleRate, bitrate) : 0;
+        const encoded = await encodeAudioChunks(bounce, webCodec, muxCodec, bitrate, signal, delay);
+        if (encoded && delay) encoded.notes.push(`aligned ${delay} samples of encoder delay`);
         if (encoded) {
           const bytes = encoded.audio.samples.reduce((n, s) => n + s.data.length, 0);
           const detail = [
@@ -1286,12 +1290,94 @@ const RECORD_FAILURES: Record<RecordFailure, string> = {
  *
  * Returns null when the encoder produced nothing, so the ladder falls through.
  */
+/**
+ * THIS MACHINE'S ENCODER DELAY, measured: an impulse through the same encode
+ * path and back through the decoder (core `audio/encoder-delay.ts` says why).
+ * Once per codec / rate / bitrate; 0 when it cannot be measured (no decoder),
+ * which leaves the export exactly as it was.
+ */
+const encoderDelays = new Map<string, Promise<number>>();
+const DELAY_PROBE_AT = 480;
+function encoderDelaySamples(codec: string, sampleRate: number, bitrate: number): Promise<number> {
+  const key = `${codec}@${sampleRate}/${bitrate}`;
+  let hit = encoderDelays.get(key);
+  if (!hit) {
+    hit = (async () => {
+      try {
+        if (typeof AudioDecoder === "undefined") return 0;
+        const probe = new AudioBuffer({ length: Math.round(sampleRate * 0.25), numberOfChannels: 2, sampleRate });
+        for (let c = 0; c < 2; c++) probe.getChannelData(c)[DELAY_PROBE_AT] = 0.9;
+        const encoded = await encodeAudioChunks(probe, codec, "aac", bitrate);
+        if (!encoded) return 0;
+        const pcm = await decodedPlane0(encoded.audio.samples, encoded.audio.description, sampleRate, 2);
+        return pcm ? (impulseDelay(pcm, DELAY_PROBE_AT) ?? 0) : 0;
+      } catch {
+        return 0;
+      }
+    })();
+    encoderDelays.set(key, hit);
+  }
+  return hit;
+}
+
+/** Decode AAC frames to their first channel, in order; null when this engine cannot. */
+async function decodedPlane0(
+  frames: Array<{ data: Uint8Array; timestampUs: number; durationUs: number }>,
+  description: Uint8Array | null,
+  sampleRate: number,
+  numberOfChannels: number,
+): Promise<Float32Array | null> {
+  const config: AudioDecoderConfig = { codec: "mp4a.40.2", sampleRate, numberOfChannels, ...(description ? { description } : {}) };
+  try {
+    if (!(await AudioDecoder.isConfigSupported(config)).supported) return null;
+  } catch {
+    return null;
+  }
+  const parts: Float32Array[] = [];
+  let failed = false;
+  const decoder = new AudioDecoder({
+    output: (data) => {
+      try {
+        const plane = new Float32Array(data.numberOfFrames);
+        data.copyTo(plane, { planeIndex: 0, format: "f32-planar" });
+        parts.push(plane);
+      } catch {
+        failed = true;
+      } finally {
+        data.close();
+      }
+    },
+    error: () => {
+      failed = true;
+    },
+  });
+  try {
+    decoder.configure(config);
+    for (const f of frames) decoder.decode(new EncodedAudioChunk({ type: "key", timestamp: f.timestampUs, duration: f.durationUs, data: f.data }));
+    await decoder.flush();
+  } catch {
+    failed = true;
+  } finally {
+    if (decoder.state !== "closed") decoder.close();
+  }
+  if (failed || !parts.length) return null;
+  const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}
+
 async function encodeAudioChunks(
   buffer: AudioBuffer,
   codec: string,
   muxCodec: "aac" | "opus",
   bitrate: number,
   signal?: AbortSignal,
+  /** Samples to feed the mix early by: the encoder's own delay (`encoderDelaySamples`). */
+  lead = 0,
 ): Promise<{ audio: EncodedMp4Audio; notes: string[] } | null> {
   let encoderError: Error | null = null;
   const raw: Array<{ data: Uint8Array; timestampUs: number; durationUs: number | null }> = [];
@@ -1338,8 +1424,8 @@ async function encodeAudioChunks(
 
   try {
     const total = buffer.length;
-    const left = buffer.getChannelData(0);
-    const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+    const left = leadIn(buffer.getChannelData(0), lead);
+    const right = buffer.numberOfChannels > 1 ? leadIn(buffer.getChannelData(1), lead) : left;
     const chunkFrames = sampleRate; // 1s per AudioData
     for (let offset = 0; offset < total; offset += chunkFrames) {
       throwIfAborted(signal);

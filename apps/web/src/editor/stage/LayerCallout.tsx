@@ -15,7 +15,7 @@ const same = (a: { size: Size; stage: Size }, b: { size: Size; stage: Size }): b
   a.stage.height === b.stage.height;
 import { cn } from "@/lib/utils";
 import { hitAABB, stageHitRects, unionAABB } from "./stage-geometry";
-import { useStageView } from "../state/session";
+import { useStageCamera } from "../state/session";
 
 /**
  * THE layer callout — a floating surface that belongs to a LAYER, not to the
@@ -63,13 +63,9 @@ export function LayerCallout({
   className?: string;
   children: React.ReactNode;
 }) {
-  // Pan/zoom moves the anchor, so the callout re-places with the camera. THREE
-  // scalar selectors, not one object: a selector that builds a fresh object is
-  // never equal to its own last result, so zustand re-renders on every store
-  // read and the component loops until React gives up.
-  const scale = useStageView((s) => s.scale);
-  const tx = useStageView((s) => s.tx);
-  const ty = useStageView((s) => s.ty);
+  // Pan/zoom moves the anchor, so the callout re-places with the camera —
+  // once per frame, in step with the canvas (`useStageCamera`).
+  const { scale, tx, ty } = useStageCamera();
   const ref = React.useRef<HTMLDivElement>(null);
   const [box, setBox] = React.useState<{ size: Size; stage: Size } | null>(null);
 

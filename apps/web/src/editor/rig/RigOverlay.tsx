@@ -46,7 +46,7 @@ import {
   type V3,
 } from "@solomotion/core";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView, useParkedPlayhead, useTransportRunning } from "../state/session";
+import { useSession, useStageCamera, useParkedPlayhead, useTransportRunning } from "../state/session";
 import { editSpaceOf, navSpace, type EditSpace } from "../stage/edit-space";
 import { capturePointer } from "../input/capture-pointer";
 import { claimPointer, subscribePointerEnd } from "../input/pointer-gestures";
@@ -191,7 +191,7 @@ export function RigOverlay() {
   // An editing overlay is for a still frame: the canvas draws the motion.
   const running = useTransportRunning();
   useSession((s) => s.nav);
-  useStageView();
+  useStageCamera();
   const picked = useRigUi((s) => (s.rigId ? s.bones : EMPTY));
   const pickedRig = useRigUi((s) => s.rigId);
   const svgRef = React.useRef<SVGSVGElement>(null);

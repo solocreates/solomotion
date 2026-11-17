@@ -243,6 +243,65 @@ export function shutterSeenRect(whole: RegionRect, seen: RegionRect, pullbacks: 
   return { x, y, width: r - x, height: btm - y };
 }
 
+/**
+ * Biggest side of a layer's DRAFT — the whole layer at whatever resolution
+ * fits, made only when a moving camera needs a layer that has no picture to
+ * show at all (`seenWindow`). A quarter of the pixels of a full buffer: it is
+ * on screen for the length of a gesture.
+ */
+export const DRAFT_LAYER_BUFFER_PX = 2048;
+
+/**
+ * THE WINDOW OF A LAYER TOO BIG FOR ONE BUFFER — a tile, not a viewport.
+ *
+ * A layer magnified past `MAX_LAYER_BUFFER_PX` cannot be held whole at the
+ * resolution it is seen at, so only the part that can land on the target is
+ * rasterised (`need`: the target's extent in frame space, grown by the effect
+ * pad). Cut to exactly that, the buffer is a picture of ONE camera position:
+ * the smallest pan moves the window, the cache key with it, and every such
+ * layer re-renders — effect stack and all — on every frame of a pan and again
+ * when it stops. That is why moving around got heavier the further you zoomed
+ * in, with nothing in the document changing.
+ *
+ * So the window is grown by `grow` (frame px) and SNAPPED to a grid of the
+ * same pitch: it holds at least `grow` beyond what is needed on every side,
+ * at most twice that, and it is the SAME window for every camera position
+ * inside its cell. A pan within the margin is a cache hit; only crossing a
+ * cell makes a new one. `grow` 0 is the exact cut — for a run of frames, where
+ * the layer changes every frame anyway and margin is pure cost.
+ *
+ * Returns `null` when the window would not be smaller than `whole`.
+ */
+export function seenWindow(need: RegionRect, whole: RegionRect, grow: number): RegionRect | null {
+  let x0 = need.x;
+  let y0 = need.y;
+  let x1 = need.x + need.width;
+  let y1 = need.y + need.height;
+  if (grow > 0 && Number.isFinite(grow)) {
+    x0 = Math.floor((x0 - grow) / grow) * grow;
+    y0 = Math.floor((y0 - grow) / grow) * grow;
+    x1 = Math.ceil((x1 + grow) / grow) * grow;
+    y1 = Math.ceil((y1 + grow) / grow) * grow;
+  }
+  const x = Math.max(whole.x, x0);
+  const y = Math.max(whole.y, y0);
+  const r = Math.min(whole.x + whole.width, x1);
+  const b = Math.min(whole.y + whole.height, y1);
+  if (!(r > x && b > y)) return { x: whole.x, y: whole.y, width: 1e-6, height: 1e-6 };
+  if (r - x >= whole.width && b - y >= whole.height) return null;
+  return { x, y, width: r - x, height: b - y };
+}
+
+/** Does `outer` hold all of `inner`? With a tolerance: both come out of float matrix maths. */
+export function regionCovers(outer: RegionRect, inner: RegionRect, eps = 1e-3): boolean {
+  return (
+    inner.x >= outer.x - eps &&
+    inner.y >= outer.y - eps &&
+    inner.x + inner.width <= outer.x + outer.width + eps &&
+    inner.y + inner.height <= outer.y + outer.height + eps
+  );
+}
+
 /** What a layer's outset needs to know about it — a clip, structurally. */
 export interface OutsetInput {
   effects?: readonly LayerEffect[];

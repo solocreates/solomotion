@@ -27,7 +27,7 @@ import {
   type VisualClip,
 } from "@solomotion/core";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView, useParkedPlayhead, useTransportRunning } from "../state/session";
+import { useSession, useStageCamera, useParkedPlayhead, useTransportRunning } from "../state/session";
 import { navSpace } from "../stage/edit-space";
 import { capturePointer } from "../input/capture-pointer";
 import { claimPointer, subscribePointerEnd } from "../input/pointer-gestures";
@@ -71,7 +71,7 @@ export function PhysicsOverlay() {
   const selected = useSession((s) => s.selectedClipIds);
   const tool = useSession((s) => s.tool);
   const nav = useSession((s) => s.nav);
-  useStageView();
+  useStageCamera();
   const dragRef = React.useRef<
     | { kind: "move"; id: string; from: { x: number; y: number }; x0: number; y0: number; inv: Mat2D }
     | { kind: "radius"; id: string; path: string; origin: { x: number; y: number }; r0: number; stop: () => void }

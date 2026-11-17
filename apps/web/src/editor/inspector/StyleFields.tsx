@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { DocColorInput } from "./DocColorInput";
 import { NumberInput } from "@/components/ui/number-input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -309,7 +310,7 @@ export function StyleFields({ value, set, preview, keyframeClip, overrideScope }
 
       {!overrideScope && (
         <PropRow label="Line" keyControl={key("lineHeight", () => lineHeight)}>
-          <Half>
+          <Pair>
             <NumberInput
               value={lineHeight}
               min={0.5}
@@ -321,7 +322,21 @@ export function StyleFields({ value, set, preview, keyframeClip, overrideScope }
               }
               title="Line height"
             />
-          </Half>
+            {/* Text from before v117 rides high in its box; one click out. */}
+            {value.baseline === "fixed" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 w-full px-2 text-xs"
+                title="Center the letters in their box"
+                onClick={() => set({ baseline: "centered" }, "Center text in its box")}
+              >
+                Center
+              </Button>
+            ) : (
+              <span />
+            )}
+          </Pair>
         </PropRow>
       )}
 

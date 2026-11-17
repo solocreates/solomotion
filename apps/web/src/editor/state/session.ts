@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { type ApiSession, type ScopeAddress } from "@solomotion/core";
 import {
@@ -2523,6 +2524,43 @@ export const useStageView = create<StageView>((set) => ({
   ty: 0,
   set: (v) => set(v),
 }));
+
+/**
+ * THE CAMERA, FOR REACT — at most once per animation frame.
+ *
+ * `useStageView` is written on every wheel and pointer event, and a trackpad
+ * sends several per frame. The canvas does not care: it reads the store when
+ * it draws, once a frame. But a component subscribed to the store re-rendered
+ * on every one of those writes — the rulers repainted, the selection callout
+ * re-placed itself, a text editor re-laid its box — two or three times for
+ * each frame anyone could see, on the main thread the pan itself needs.
+ *
+ * So anything in React that FOLLOWS the camera subscribes here: the writes of
+ * a frame collapse into one notification, delivered in that frame's animation
+ * callback, and the render it causes is synchronous — it lands in the same
+ * frame as the canvas's own draw, so a DOM overlay stays locked to the pixels
+ * under it. A selector for one field (`useStageView((v) => v.scale)`) is still
+ * fine where only that field matters: panning never re-renders it.
+ */
+const cameraFrameListeners = new Set<() => void>();
+let cameraFrame = 0;
+useStageView.subscribe(() => {
+  if (cameraFrame !== 0 || cameraFrameListeners.size === 0) return;
+  cameraFrame = requestAnimationFrame(() => {
+    cameraFrame = 0;
+    for (const notify of [...cameraFrameListeners]) notify();
+  });
+});
+const subscribeCameraFrame = (notify: () => void) => {
+  cameraFrameListeners.add(notify);
+  return () => {
+    cameraFrameListeners.delete(notify);
+  };
+};
+
+export function useStageCamera(): StageView {
+  return useSyncExternalStore(subscribeCameraFrame, useStageView.getState, useStageView.getState);
+}
 
 
 /**

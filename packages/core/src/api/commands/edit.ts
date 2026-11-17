@@ -34,10 +34,10 @@ import {
 import { clipForAsset } from "../../media/asset-clip";
 import { createId } from "../../ids";
 import { parseSvgPathData } from "../../vector/svg-path";
-import { pivotAtPathOrigin } from "../../pivot";
+import { layerBoxCenter, pivotAtPathOrigin } from "../../pivot";
 import { placeClip, type PlaceClipOptions } from "../../timeline/place";
 import { laneNumbers } from "../../timeline/lanes";
-import { locateClip } from "../../timeline/ops";
+import { clipNaturalSize, locateClip } from "../../timeline/ops";
 import { silentSounds } from "../../audio/cues";
 import { setGroupMode } from "../../timeline/group-composite";
 import { pivotPoseAt, repivotClip } from "../../timeline/group-space";
@@ -545,6 +545,24 @@ function buildClip(input: z.infer<typeof createInput>, rt: CommandRuntime, doc: 
   }
 }
 
+/**
+ * A path's x/y is its outline's own 0,0, not the middle of the art. When the
+ * two differ, the result says where the middle landed, so a script lining an
+ * icon up with a label sees the gap in the reply instead of in the render.
+ */
+function offCentre(doc: MotionDocument, clip: Clip | undefined): { center?: { x: number; y: number }; note?: string } {
+  if (!clip || clip.kind !== "path") return {};
+  const size = clipNaturalSize(doc, clip);
+  if (!size) return {};
+  const c = layerBoxCenter(clip.transform, size);
+  if (Math.hypot(c.x - clip.transform.x, c.y - clip.transform.y) < 0.5) return {};
+  const r = (v: number) => Math.round(v * 10) / 10;
+  return {
+    center: { x: r(c.x), y: r(c.y) },
+    note: "x/y is the path's d origin; `center` is the middle of the art. Align icons by center, or in an auto-layout row (alignY: center).",
+  };
+}
+
 export const layerCreate = defineCommand({
   id: "layer.create",
   summary: "Create a layer — text, shape, path (SVG d), media from the library, a nested comp, an adjustment layer, or a trace (the path a layer, a body or an expression has drawn over the whole shot).",
@@ -579,6 +597,7 @@ export const layerCreate = defineCommand({
       lane,
       ...(paints?.fills.length ? { fills: paints.fills.map((f) => f.id) } : {}),
       ...(paints?.strokes.length ? { strokes: paints.strokes.map((f) => f.id) } : {}),
+      ...offCentre(doc, loc?.clip),
     };
   },
 });

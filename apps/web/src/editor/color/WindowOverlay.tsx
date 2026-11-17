@@ -10,7 +10,7 @@ import {
   type RegionPose,
 } from "@solomotion/core";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView, useParkedPlayhead, useTransportRunning } from "../state/session";
+import { useSession, useStageCamera, useParkedPlayhead, useTransportRunning } from "../state/session";
 import { accentColor } from "../theme/theme-tokens";
 import { capturePointer } from "../input/capture-pointer";
 import { claimPointer, subscribePointerEnd } from "../input/pointer-gestures";
@@ -46,7 +46,7 @@ const HANDLE_R = 5;
 export function WindowOverlay() {
   const doc = useDoc();
   const store = useDocStore();
-  const view = useStageView();
+  const view = useStageCamera();
   const playheadMs = useParkedPlayhead();
   const navPath = useSession((s) => s.nav.path);
   // An editing overlay is for a still frame: the canvas draws the motion.

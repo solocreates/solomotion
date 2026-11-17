@@ -198,6 +198,14 @@ export const textStyleSchema = z.object({
   // stray spacing behind (Persian/Vazir looked compressed when it did).
   letterSpacing: z.number().default(0),
   lineHeight: z.number().positive(),
+  /**
+   * Where the letters sit in their line box (v117) — see `text/line-box.ts`.
+   * `centered` puts the letters' own middle on the box's middle, from the
+   * face's real metrics. `fixed` is the pre-v117 rule (0.78 em below the top,
+   * whatever the font), stamped by the migration on text that was laid out
+   * with it so no saved document moves.
+   */
+  baseline: z.enum(["fixed", "centered"]).default("centered"),
   align: textAlignSchema,
   /** Paragraph reading direction — default auto-detects from content. */
   direction: textDirectionSchema.default("auto"),

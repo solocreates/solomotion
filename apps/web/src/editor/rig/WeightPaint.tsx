@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Range } from "@/components/ui/range";
 import { cn } from "@/lib/utils";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView } from "../state/session";
+import { useSession, useStageCamera } from "../state/session";
 import { editSpaceOf, navSpace, type EditSpace } from "../stage/edit-space";
 import { capturePointer } from "../input/capture-pointer";
 import { claimPointer } from "../input/pointer-gestures";
@@ -75,7 +75,7 @@ function Painter({ clipId, bone }: { clipId: string; bone: string }) {
   const doc = useDoc();
   const store = useDocStore();
   const brush = useRigUi((s) => s.brush);
-  useStageView();
+  useStageCamera();
   useSession((s) => s.nav);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const stroke = React.useRef<number[] | null>(null);

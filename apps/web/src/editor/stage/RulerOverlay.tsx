@@ -4,7 +4,7 @@ import * as React from "react";
 import { formatRuler, rulerStep } from "@solomotion/core";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useSession, useStageView } from "../state/session";
+import { useSession, useStageCamera } from "../state/session";
 import { beginGuideDrag } from "./guide-drag";
 import { RulerSettings } from "./RulerSettings";
 import { useTheme } from "../theme/use-theme";
@@ -25,7 +25,7 @@ export function RulerOverlay() {
   const store = useDocStore();
   const rulers = useSession((s) => s.rulers);
   const unit = useSession((s) => s.rulerUnit);
-  const view = useStageView();
+  const view = useStageCamera();
   // The ruler is a canvas: it paints theme colours INTO pixels, so a theme
   // change must repaint it. It used to read `--panel` at draw time with
   // nothing to trigger a draw, so switching light ↔ dark left the strips in

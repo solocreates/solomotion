@@ -1,6 +1,6 @@
 "use client";
 
-import { pictureReadsSlotTokens, stackPrefixUnchanged, traceSamplesOf, type MotionDocument, type Clip, type DocumentDelta, type TimeSpans } from "@solomotion/core";
+import { pictureReadsSlotTokens, regionCovers, stackPrefixUnchanged, traceSamplesOf, type MotionDocument, type Clip, type DocumentDelta, type TimeSpans } from "@solomotion/core";
 import {
   cacheSettings,
   isRollingCache,
@@ -99,8 +99,17 @@ interface Entry {
   footage: boolean;
   /** Kept by a PAUSED render — the editing working set, see `dropParkedLayers`. */
   parked: boolean;
-  /** The key with its resolution taken out — see `readLayerCacheAnyScale`. */
+  /** The key with its resolution and its window taken out — see `readLayerCacheCovering`. */
   family: string;
+  /**
+   * Where the WHOLE layer's region began when this was made. `rect` is frame
+   * space at that moment; a layer placed elsewhere since (the key names a
+   * rect's size, never where it is) has moved by `now − anchor`, and so has
+   * every pixel in here.
+   */
+  anchor: { x: number; y: number };
+  /** A WINDOW of a layer too big for one buffer (core `seenWindow`), not the whole of it. */
+  window: boolean;
 }
 
 /**
@@ -115,6 +124,8 @@ export type HitRectLike = Omit<ClipHitRect, "depth">;
  * would make those variants evict each other every frame.
  */
 const entries = new Map<string, Entry>();
+/** The slots each clip holds — a covering read asks about one clip, not the table. */
+const slotsOf = new Map<string, Set<string>>();
 const slotOf = (clipId: string, key: string) => `${clipId}\u0000${key}`;
 let totalBytes = 0;
 let useClock = 0;
@@ -179,6 +190,9 @@ function drop(slot: string): void {
   const e = entries.get(slot);
   if (!e) return;
   entries.delete(slot);
+  const held = slotsOf.get(e.clip.id);
+  held?.delete(slot);
+  if (held?.size === 0) slotsOf.delete(e.clip.id);
   totalBytes -= e.bytes;
   changed();
   // The backing store is NOT zeroed, deliberately. Eviction runs from
@@ -263,6 +277,9 @@ export function layerCacheAdmits(
   return steady || pays;
 }
 
+/** Windows of one layer picture held at once — see `acquireLayerCanvas`. */
+const MAX_WINDOWS_PER_PICTURE = 4;
+
 /** How many units being kept per instant are drawing their contents right now. */
 let unitDepth = 0;
 
@@ -313,27 +330,68 @@ export function readLayerCache(
 }
 
 /**
- * THIS LAYER'S PICTURE AT ANOTHER RESOLUTION — the same clip, instant, mode and
- * scene beneath, rendered for a different zoom. What a layer shows while the
- * stage is still sharpening after a zoom (`DrawOptions.settle`): the buffer it
- * has, scaled into its frame-space rect, soft for a tick and never a stall.
- * The buffer's rect is frame space, so a picture made at any scale lands in
- * exactly the same place. Most recently used first.
+ * THE BEST PICTURE THIS LAYER HAS OF A REGION — the same clip, instant, mode
+ * and scene beneath, at whatever resolution and in whatever window it was
+ * made. One question with three callers' worth of answers:
+ *
+ *  · a layer too big for one buffer is kept as WINDOWS (core `seenWindow`), and
+ *    the window a pan needs is any one that holds the region — not the one
+ *    whose key names today's exact camera;
+ *  · while the camera moves, or the settling budget is spent, a layer shows
+ *    the picture it has rather than stalling to make the one it wants
+ *    (`DrawOptions.settle`): the whole layer as it was rendered zoomed out is
+ *    the parent tile of every window inside it;
+ *  · a zoom shows each layer's last buffer, scaled, until it sharpens.
+ *
+ * Sharpest first; `scale` is buffer px per frame px, so the caller can tell a
+ * true hit (at least what it wanted) from a stand-in. `need` and the returned
+ * rect are frame space NOW — `anchor` is where the whole layer's region begins
+ * now, and an entry made at another placement is moved by the difference.
  */
-export function readLayerCacheAnyScale(
+export function readLayerCacheCovering(
   clip: Clip,
-  family: string,
+  families: readonly string[],
   refs: readonly unknown[],
-): { canvas: HTMLCanvasElement; rect: { x: number; y: number; w: number; h: number }; hits: readonly HitRectLike[] } | null {
+  need: { x: number; y: number; width: number; height: number },
+  anchor: { x: number; y: number },
+): {
+  canvas: HTMLCanvasElement;
+  rect: { x: number; y: number; w: number; h: number };
+  hits: readonly HitRectLike[];
+  /** How far the layer has been placed since the buffer was made. */
+  dx: number;
+  dy: number;
+  scale: number;
+} | null {
+  const held = slotsOf.get(clip.id);
+  if (!held) return null;
   let best: Entry | null = null;
-  for (const e of entries.values()) {
-    if (e.family !== family || e.clip !== clip || e.generation !== renderGeneration || e.footage) continue;
+  let bestScale = 0;
+  for (const slot of held) {
+    const e = entries.get(slot);
+    if (!e || e.clip !== clip || e.generation !== renderGeneration || e.footage || !families.includes(e.family)) continue;
     if (e.refs.length !== refs.length || e.refs.some((r, i) => r !== refs[i])) continue;
-    if (!best || e.used > best.used) best = e;
+    const dx = anchor.x - e.anchor.x;
+    const dy = anchor.y - e.anchor.y;
+    if (!regionCovers({ x: e.rect.x + dx, y: e.rect.y + dy, width: e.rect.w, height: e.rect.h }, need)) continue;
+    const scale = e.canvas.width / Math.max(1e-9, e.rect.w);
+    if (!best || scale > bestScale || (scale === bestScale && e.used > best.used)) {
+      best = e;
+      bestScale = scale;
+    }
   }
   if (!best) return null;
   best.used = ++useClock;
-  return { canvas: best.canvas, rect: best.rect, hits: best.hits };
+  const dx = anchor.x - best.anchor.x;
+  const dy = anchor.y - best.anchor.y;
+  return {
+    canvas: best.canvas,
+    rect: { x: best.rect.x + dx, y: best.rect.y + dy, w: best.rect.w, h: best.rect.h },
+    hits: best.hits,
+    dx,
+    dy,
+    scale: bestScale,
+  };
 }
 
 export interface LayerCacheSlot {
@@ -371,8 +429,12 @@ export function acquireLayerCanvas(
     evict: boolean;
     /** Made while the transport runs (a run, or a build). */
     playing: boolean;
-    /** The key without its resolution terms (`readLayerCacheAnyScale`). */
+    /** The key without its resolution or window terms (`readLayerCacheCovering`). */
     family: string;
+    /** Where the whole layer's region begins — the rect's own origin unless it is a window. */
+    anchor?: { x: number; y: number };
+    /** This is a window of the layer, not the whole of it. */
+    window?: boolean;
   },
 ): LayerCacheSlot | null {
   // NON-FINITE GEOMETRY NEVER ENTERS. `String(NaN) === String(NaN)`, so a
@@ -387,12 +449,25 @@ export function acquireLayerCanvas(
   // rather than leave them for the budget to discover.
   const slot = slotOf(clip.id, key);
   let canvas: HTMLCanvasElement | undefined;
-  for (const [k, e] of entries) {
-    if (e.clip.id !== clip.id) continue;
-    if (e.clip === clip && k !== slot) continue;
+  const windows: Array<[string, Entry]> = [];
+  for (const k of [...(slotsOf.get(clip.id) ?? [])]) {
+    const e = entries.get(k);
+    if (!e) continue;
+    if (e.clip === clip && k !== slot) {
+      if (span.window && e.window && e.family === span.family) windows.push([k, e]);
+      continue;
+    }
     if (!canvas) canvas = e.canvas;
     drop(k);
   }
+  // A FEW WINDOWS PER PICTURE, NOT A TRAIL OF THEM. A magnified layer's window
+  // is superseded by the next one the camera asks for; kept, every cell a pan
+  // crossed left a viewport-sized buffer behind for the budget to find. A few,
+  // because one clip is drawn through several windows at once when its comp
+  // is instanced. The whole-layer entries stay — they are what stands in while
+  // a window is made.
+  windows.sort((a, b) => b[1].used - a[1].used);
+  for (const [k] of windows.slice(MAX_WINDOWS_PER_PICTURE - 1)) drop(k);
   canvas ??= document.createElement("canvas");
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
@@ -429,8 +504,13 @@ export function acquireLayerCanvas(
         footage,
         parked: !span.playing,
         family: span.family,
+        anchor: span.anchor ?? { x: rect.x, y: rect.y },
+        window: !!span.window,
       };
       entries.set(slot, entry);
+      let held = slotsOf.get(clip.id);
+      if (!held) slotsOf.set(clip.id, (held = new Set()));
+      held.add(slot);
       totalBytes += bytes;
       changed();
       evictToBudget();

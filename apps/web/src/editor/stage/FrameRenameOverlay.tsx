@@ -3,7 +3,7 @@
 import * as React from "react";
 import { RenameInput } from "@/components/ui/rename-input";
 import { useDoc, useDocStore } from "../state/document-context";
-import { useStageView } from "../state/session";
+import { useStageCamera } from "../state/session";
 import { TOOL_ACCENT } from "./Toolbar";
 import { frameLabelAnchor, frameLabelFont, measureFrameLabel } from "./frame-label";
 
@@ -22,7 +22,7 @@ const BORDER = 1;
 export function FrameRenameOverlay({ frameId, onDone }: { frameId: string; onDone: () => void }) {
   const doc = useDoc();
   const store = useDocStore();
-  const view = useStageView();
+  const view = useStageCamera();
   const frame = doc.frames.find((f) => f.id === frameId);
   const [textWidth, setTextWidth] = React.useState(() => (frame ? measureFrameLabel(frame.name).width : 0));
 

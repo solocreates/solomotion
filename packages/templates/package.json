@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/templates",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "private": true,
   "type": "module",
   "description": "The templates that ship in the studio — each a build script and the art it reads.",

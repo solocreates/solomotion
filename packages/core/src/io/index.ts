@@ -2244,7 +2244,27 @@ const migrations: Record<number, Migration> = {
   // one). Every such pattern, and every key on its `pattern.aspect`, is
   // halved: the picture is identical.
   115: (raw) => ({ ...(migrateLatticeAspect116(raw) as Record<string, unknown>), version: 116 }),
+  // v117: text sits in the MIDDLE of its line box (`style.baseline`, see
+  // `text/line-box.ts`). Every text style saved before was laid out with the
+  // fixed 0.78 em baseline and is stamped `fixed`, so nothing moves; new text
+  // is `centered`.
+  116: (raw) => ({ ...(stampFixedBaseline117(raw) as Record<string, unknown>), version: 117 }),
 };
+
+/** See step 116 → 117. A whole text style can sit on a clip, a caption, a
+ *  preset or a component; a partial one (a range, a caption state) has no
+ *  `lineHeight` + `align` pair and is left alone. */
+function stampFixedBaseline117(raw: unknown): unknown {
+  const walk = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(walk);
+    if (!v || typeof v !== "object") return v;
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) out[k] = walk(x);
+    if ("fontFamily" in out && "fontSize" in out && "lineHeight" in out && "align" in out && !("baseline" in out)) out.baseline = "fixed";
+    return out;
+  };
+  return walk(raw);
+}
 
 /** See step 115 → 116. Walks the whole document: a pattern paint can sit on a
  *  clip, a stroke, a comp background, a variable or a preset. */

@@ -1,4 +1,4 @@
-import { rebaseAnchor, type LayerBox } from "./transform-map";
+import { basisOfTransform, mapLocal, rebaseAnchor, type LayerBox } from "./transform-map";
 import { subpathBounds } from "./vector/geometry";
 import { healContourIds } from "./vector/contour-id";
 import { pruneContourStyles } from "./vector/contour-style";
@@ -41,6 +41,24 @@ export function pathBox(subpaths: ReadonlyArray<Contour>): LayerBox {
     cx: (b.minX + b.maxX) / 2,
     cy: (b.minY + b.maxY) / 2,
   };
+}
+
+/**
+ * WHERE A LAYER'S BOX CENTRE IS, in its parent's space, at its resting
+ * transform — the point to line up when two things must share a centre line.
+ *
+ * `x/y` is where the PIVOT sits. For text and shapes the pivot is the box
+ * centre, so `x/y` is the centre; for a path made from `d` it is the outline's
+ * own 0,0 (`pivotAtPathOrigin`), which for an icon drawn below or beside its
+ * origin is not the middle of the art. An icon hand-placed at its label's `y`
+ * then sat low by exactly that difference — the heart beside FUND, 5 px. This
+ * is the answer `layer.get` (`box.center`) and `layer.create` report, from the
+ * same basis the renderer places the box with.
+ */
+export function layerBoxCenter(transform: Transform, box: LayerBox): { x: number; y: number } {
+  // Local coordinates are the outline's own: the box centre sits at (cx, cy), not at 0,0.
+  const o = mapLocal(box.cx, box.cy, basisOfTransform(transform, box));
+  return { x: transform.x + o.x, y: transform.y + o.y };
 }
 
 /**

@@ -6,7 +6,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { clipLocalClamped, commitProperty } from "../inspector/animatable";
 import { DocPicker } from "../inspector/PaintPopover";
 import { useDocSelector, useDocStore } from "../state/document-context";
-import { useSession, useStageView, useParkedPlayhead, useTransportRunning } from "../state/session";
+import { useSession, useStageCamera, useParkedPlayhead, useTransportRunning } from "../state/session";
 import { paintNormToWorld } from "./gradient-handles";
 import { stageHitRects } from "./stage-geometry";
 
@@ -30,7 +30,7 @@ export function GradientStopEditor() {
   const playhead = useParkedPlayhead();
   // An editing overlay is for a still frame: the canvas draws the motion.
   const running = useTransportRunning();
-  const view = useStageView();
+  const view = useStageCamera();
   const store = useDocStore();
   const setStop = useSession((s) => s.setActiveGradientStop);
   const paintClipId = ref?.clipId;

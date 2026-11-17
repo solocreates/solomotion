@@ -10,6 +10,9 @@ import {
   unitIndexOf,
   shapeArabicGraphemes,
   glyphDirection,
+  lineBaseline,
+  saneFace,
+  FIXED_ASCENT_RATIO,
   styleAt,
   visualOrderRanges,
   type AnimationUnit,
@@ -17,6 +20,7 @@ import {
   type GlyphVisual,
   type ClipPose,
   type EffectiveRange,
+  type FaceMetrics,
   type RangeStyleSample,
   type ResolvedTextStyle,
   type MotionDocument,
@@ -114,21 +118,25 @@ export interface TextLayout {
    * The slots tile the block exactly, so they are the box the stage outlines.
    *
    * Anything that draws a band over a line (the editor's text selection) reads
-   * these instead of asking the browser where its own line box is: the DOM lays
-   * a line out with CSS's half-leading and the font's real ascent, this engine
-   * with {@link LINE_ASCENT_RATIO}, and a highlight from the DOM sat a fifth of
-   * the font size above the box it was meant to fill.
+   * these instead of asking the browser where its own line box is: the DOM
+   * centres the font's content area, this engine the letters (core
+   * `lineBaseline`), and a highlight from the DOM sat off the box it was meant
+   * to fill.
    */
   lines: LineSlot[];
   /** Which way the lines run — what `lines[n].at` measures along. */
   axis: "horizontal" | "vertical";
 }
 
-/** One line's band across the flow. `em` is the largest font size on it. */
+/**
+ * One line's band across the flow. `em` is the largest font size on it;
+ * `baseline` is how far below `at` its baseline sits (horizontal text).
+ */
 export interface LineSlot {
   at: number;
   size: number;
   em: number;
+  baseline: number;
 }
 
 export function fontString(style: TextStyle, fontSizeOverride?: number): string {
@@ -223,6 +231,38 @@ interface MeasuredGlyph {
   inkDescent: number;
   styleDepth: StyleDepth;
   word?: ShapedWord;
+  /** The vertical metrics of the face this glyph is set in. */
+  face: FaceMetrics;
+}
+
+/**
+ * A FACE's vertical metrics, measured once per font string and kept until the
+ * loaded fonts change. Cap height is the ink of a flat capital; the content
+ * area is the font's own ascent and descent. Measured, never looked up: it is
+ * the face the browser actually resolved, fallback included.
+ */
+const faceCache = new Map<string, FaceMetrics>();
+let faceCacheVersion = -1;
+function faceMetrics(ctx: CanvasRenderingContext2D, font: string, size: number): FaceMetrics {
+  if (faceCacheVersion !== fontsVersion()) {
+    faceCache.clear();
+    faceCacheVersion = fontsVersion();
+  }
+  let face = faceCache.get(font);
+  if (!face) {
+    // The caller has `font` set and the baseline alphabetic.
+    ctx.direction = "ltr";
+    const m = ctx.measureText("H");
+    face = saneFace({
+      cap: m.actualBoundingBoxAscent / size,
+      ascent: m.fontBoundingBoxAscent / size,
+      descent: m.fontBoundingBoxDescent / size,
+    });
+    // A tweened size mints a font string per frame.
+    if (faceCache.size > 512) faceCache.clear();
+    faceCache.set(font, face);
+  }
+  return face;
 }
 
 /** Display-only case transform — never mutates the underlying text or indices. */
@@ -373,6 +413,8 @@ function layoutMeasured(
   verticalAlign: "top" | "middle" | "bottom" = "top",
   bidiText?: string,
   bidi?: BidiInfo,
+  /** The base style's face — what an empty line is as tall as. */
+  baseFace?: FaceMetrics,
 ): TextLayout {
   if (lineHeightFactorSource.orientation === "vertical") {
     return layoutVertical(measured, align, maxWidth, lineHeightFactorSource, maxHeight, verticalAlign);
@@ -421,12 +463,21 @@ function layoutMeasured(
   if (bidi && bidiText) reorderLinesToVisual(lines, bidiText, bidi);
 
   // 2. Vertical metrics per line (driven by the largest font on the line).
+  // The baseline comes from core's `lineBaseline` — the one place that knows
+  // where letters sit in a line box.
   const lineMetrics = lines.map((line) => {
     let maxSize = 0;
-    for (const g of line) maxSize = Math.max(maxSize, g.style.fontSize);
+    let face = baseFace;
+    for (const g of line) {
+      if (g.style.fontSize > maxSize) {
+        maxSize = g.style.fontSize;
+        face = g.face;
+      }
+    }
     if (maxSize === 0) maxSize = lineHeightFactorSource.fontSize;
     const height = maxSize * lineHeightFactorSource.lineHeight;
-    return { height, ascent: maxSize * LINE_ASCENT_RATIO, em: maxSize };
+    const script = startEdge(line, bidi) === "right" ? "uncased" : "cased";
+    return { height, ascent: lineBaseline(lineHeightFactorSource.baseline, maxSize, height, face, script), em: maxSize };
   });
 
   const blockHeight = lineMetrics.reduce((a, m) => a + m.height, 0);
@@ -465,7 +516,7 @@ function layoutMeasured(
     let x =
       spread ? spread.x : lineAlign === "left" ? -alignWidth / 2 : lineAlign === "right" ? alignWidth / 2 - lw : -lw / 2;
     const baseline = top + metric.ascent;
-    slots.push({ at: top, size: metric.height, em: metric.em });
+    slots.push({ at: top, size: metric.height, em: metric.em, baseline: metric.ascent });
     for (const [gi, g] of line.entries()) {
       glyphs.push({
         char: g.char,
@@ -566,7 +617,7 @@ function layoutVertical(
   const slots: LineSlot[] = [];
   columns.forEach((col, ci) => {
     const m = colMetrics[ci]!;
-    slots.push({ at: right - m.pitch, size: m.pitch, em: m.em });
+    slots.push({ at: right - m.pitch, size: m.pitch, em: m.em, baseline: 0 });
     const cx = right - m.pitch / 2;
     // Along the flow: `align` is top / middle / bottom of the box.
     let y = align === "left" || align === "justify" ? -boxHeight / 2 : align === "right" ? boxHeight / 2 - m.height : -m.height / 2;
@@ -618,6 +669,7 @@ function measureClipText(
   // ink below is measured about the alphabetic baseline the painter draws on.
   ctx.textBaseline = "alphabetic";
   let lastFont = "";
+  let face = saneFace(null);
   let atWordStart = true;
   for (let i = 0; i < seg.graphemes.length; i++) {
     const g = seg.graphemes[i]!;
@@ -628,6 +680,7 @@ function measureClipText(
     if (font !== lastFont) {
       ctx.font = font;
       lastFont = font;
+      face = faceMetrics(ctx, font, style.fontSize);
     }
     const isNewline = g.char === "\n";
     const isSpace = !isNewline && /^\s+$/.test(g.char);
@@ -655,6 +708,7 @@ function measureClipText(
       inkAscent: ink.ascent,
       inkDescent: ink.descent,
       styleDepth,
+      face,
     });
   }
   shapeWords(ctx, out, seg.graphemes.map((g) => g.char));
@@ -738,61 +792,44 @@ function cachedLayout(
 }
 
 /**
- * Where this engine puts a line's baseline: `ratio x fontSize` below the top of
- * the line box, where the line box is `fontSize x lineHeight` tall.
- *
- * It is a house rule, not a font metric — a real typographic model would centre
- * the font's own content area (ascent + descent) in the line box the way CSS
- * does, and 0.78 sits noticeably above that for most faces. It stays because it
- * is what every existing project was laid out with: changing it would silently
- * move the text in every document ever saved, which is a different (and much
- * louder) bug than the one it causes. What matters is that it is stated ONCE
- * and that anything laying the same text out in the DOM can ask how far it
- * differs — see {@link domBaselineDrift}.
+ * The reserve box of a glyph with no measurable ink, and of a vertical-writing
+ * cell: 0.78 em above the baseline, the rest below. NOT where a line's baseline
+ * goes — that is core's `lineBaseline`.
  */
-export const LINE_ASCENT_RATIO = 0.78;
+export const LINE_ASCENT_RATIO = FIXED_ASCENT_RATIO;
 
 /**
- * How far BELOW this layout's baseline the browser would put the same line's
- * baseline, for one line of `fontSize` at `lineHeightFactor`.
+ * How far BELOW this layout's first baseline the browser would put the same
+ * line's baseline.
  *
- * CSS's inline box model centres the font's content area (its ascent plus
- * descent) inside the line box — the "half-leading" — and puts the baseline one
- * ascent below that. This engine instead uses {@link LINE_ASCENT_RATIO}. The two
- * disagree by a fraction of the font size (typically ~0.2em, which at 48px is
- * nearly ten pixels), and that difference is exactly why text used to JUMP DOWN
- * the moment you double-clicked into it: the glyphs you were looking at were
- * painted by this engine, and the glyphs you were typing were placed by the
- * browser.
- *
- * Returning the drift — rather than "fixing" either side — is what lets the
- * editor sit on top of the canvas without either surface changing what it
- * believes. Measured through the same 2D context the layout measures with, so
- * it uses the real font's metrics for the real loaded font.
- *
- * Exact for a line whose glyphs share one size (the overwhelming case, and
- * always true of the first line's caret home). A line mixing sizes drifts by a
- * different amount per size; the editor compensates for its first line, which
- * is where the caret lives.
+ * CSS centres the font's content area (ascent + descent) in the line box; this
+ * engine centres the letters (`lineBaseline`). The inline editor is DOM text
+ * laid over canvas text, so it takes this off and the glyphs you type land on
+ * the pixels the canvas was painting. Exact for the first line, where the
+ * caret lives; a later line set in another size drifts by its own amount.
  */
 export function domBaselineDrift(
   ctx: CanvasRenderingContext2D,
   style: TextStyle,
   fontSize: number,
   lineHeightFactor: number,
+  /** The layout's first line slot; absent for an empty clip. */
+  slot?: LineSlot,
 ): number {
   ctx.font = fontString(style, fontSize);
-  // Font-box metrics describe the FONT, not the string — any non-empty sample
-  // reports the same ascent/descent.
+  ctx.textBaseline = "alphabetic";
+  // Font-box metrics describe the FONT, not the string.
   const m = ctx.measureText("Hg");
   const ascent = m.fontBoundingBoxAscent;
   const descent = m.fontBoundingBoxDescent;
-  // No metrics (an old engine, a font that failed to load) → claim no drift
-  // rather than shifting the text by a guess.
+  // No metrics → claim no drift rather than shifting the text by a guess.
   if (!Number.isFinite(ascent) || !Number.isFinite(descent)) return 0;
   const lineBox = fontSize * lineHeightFactor;
   const cssBaseline = (lineBox - (ascent + descent)) / 2 + ascent;
-  return cssBaseline - fontSize * LINE_ASCENT_RATIO;
+  const ours =
+    slot?.baseline ??
+    lineBaseline((style as ResolvedTextStyle).baseline, fontSize, lineBox, faceMetrics(ctx, fontString(style, fontSize), fontSize));
+  return cssBaseline - ours;
 }
 
 function overridesKey(overrides?: LayoutOverrides): string {
@@ -893,6 +930,8 @@ export function layoutTextClip(
   return cachedLayout(clip, key, () => {
     const bidi = resolveBidi(text, style.direction);
     const measured = measureClipText(ctx, text, style, ranges, overrides, bidi);
+    ctx.font = fontString(style);
+    const baseFace = faceMetrics(ctx, fontString(style), style.fontSize);
     return layoutMeasured(
       measured,
       style.align,
@@ -902,6 +941,7 @@ export function layoutTextClip(
       clip.verticalAlign,
       text,
       bidi,
+      baseFace,
     );
   });
 }

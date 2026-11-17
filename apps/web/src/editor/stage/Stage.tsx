@@ -176,7 +176,7 @@ import { ensureContentFrame, placeAboveSelection, placeComponentInstance, placeL
 import { placeClip, clipByIdIn, linkClickIntent, type LinkClickMode, type Link } from "@solomotion/core";
 import { linkAreasIn, linkAtPoint, linkMarkers, type LinkMarker, type LinkUnderPoint, type Quad } from "./link-hit";
 import { followLink } from "../links/navigate";
-import { isDrawingTool, isShapeTool, useSession, useStageView, type LibraryDrag, type ShapeTool } from "../state/session";
+import { isDrawingTool, isShapeTool, useSession, useStageCamera, useStageView, type LibraryDrag, type ShapeTool } from "../state/session";
 import { switchPage } from "../state/frame-nav";
 import { insertFrame } from "../frames/frame-modes";
 import { resolveDragSnapshot } from "../state/snapshot-drag";
@@ -248,14 +248,15 @@ import { applyDeltaToLayerCache, dropParkedLayers, resetKeptUnits } from "./rend
 import { isScrubbingTime } from "../timeline/scrub";
 import { framesCacheOn, isCachingEnabled, layersCacheOn, playbackRegime } from "../cache/cache-status";
 import {
-  blitRaster,
   cameraInMotion,
   cameraStillForMs,
   dropRaster,
   captureRaster,
   noteCameraMove,
-  planBlit,
+  panRaster,
+  planCamera,
   rasterWorthwhile,
+  zoomRaster,
 } from "./render/camera-raster";
 import { noteRenderCost, shouldDeferRender } from "./render/render-budget";
 import {
@@ -410,6 +411,18 @@ const FIT_PADDING = 72;
  * clicks.
  */
 const HIT_SLOP_PX = 4;
+/**
+ * How far a creation tool's press must travel ON SCREEN before it is a drawn
+ * box rather than a click that drops the tool's default. Measured in screen
+ * px because it is a fact about the hand, not the document: in world units a
+ * 40px drag at ×10 read as a click and the box you drew became a default one
+ * centred somewhere else, and at ×0.2 a twitch drew a sliver.
+ */
+const DRAW_SLOP_PX = 6;
+/** The drawn box's on-screen size — what every click-vs-drag decision reads. */
+function drawnOnScreen(a: { x: number; y: number }, b: { x: number; y: number }, scale: number): { w: number; h: number } {
+  return { w: Math.abs(b.x - a.x) * scale, h: Math.abs(b.y - a.y) * scale };
+}
 /** A layout member sized by hand stops filling on the axes it was sized along. */
 function releaseFill(clip: { layoutItem: { fillX: boolean; fillY: boolean } }, horiz: boolean, vert: boolean): void {
   if (horiz && clip.layoutItem.fillX) clip.layoutItem = { ...clip.layoutItem, fillX: false };
@@ -1179,9 +1192,7 @@ function LibraryDropStageGhost() {
   "use no memo";
   const drag = useSession((s) => s.libraryDrag);
   const pos = useSession((s) => s.libraryDragPos);
-  const scale = useStageView((v) => v.scale);
-  const tx = useStageView((v) => v.tx);
-  const ty = useStageView((v) => v.ty);
+  const { scale, tx, ty } = useStageCamera();
   const doc = useDoc();
 
   if (!drag || pos?.over !== "stage") return null;
@@ -1385,8 +1396,14 @@ export function Stage() {
   const contentVersionRef = React.useRef(0);
   /** The comp-space buffer the active comp renders into — see `paintFrame`. */
   const compBufferRef = React.useRef<HTMLCanvasElement | null>(null);
-  /** Did the last painted tick blit the camera raster rather than render? */
-  const blittedRef = React.useRef(false);
+  /**
+   * THE PICTURE ON SCREEN IS A DRAFT: a zoomed raster, or layers standing in
+   * with a softer buffer because the camera was moving (`DrawOptions.settle`).
+   * Whoever puts a draft up sets this, and the loop turns it into ONE real
+   * render once the camera is still. A pan that showed only true pixels never
+   * sets it — which is why stopping a pan no longer re-renders the stage.
+   */
+  const needsSettleRef = React.useRef(false);
   // ⌘/Ctrl held right now — flips the selection chrome from dashed (native
   // geometry resize) to solid (scale-as-object), live as the key is held.
   const scaleModifierRef = React.useRef(false);
@@ -1611,6 +1628,10 @@ export function Stage() {
     let cacheRun = false;
     /** The comp frame last drawn while playing a sub-30fps comp. */
     let lastPlayIdx = -1;
+    /** Live playback of a comp slower than 30fps: it renders per comp frame, not per display frame. */
+    let gatedRun = false;
+    /** The camera of the last paint — what "only the camera moved" is measured against. */
+    let paintedView = { scale: NaN, tx: NaN, ty: NaN };
     /**
      * The shutter the last RUN rendered with — the motion-blur twin of
      * `playbackTier`. Kept pictures are playback pictures; the variant that
@@ -1744,15 +1765,18 @@ export function Stage() {
         invalidate();
       }
 
-      // THE SETTLE RENDER. A blitted tick consumed the dirty flag, and the
-      // camera stopping is not an event anybody publishes — so without this the
-      // stage would sit on a moved raster until something unrelated happened to
-      // dirty it. Same rule as the shutter policy above: a render that varies
-      // with WALL-CLOCK time owns its own invalidation.
-      if (blittedRef.current && !cameraInMotion(nowMs)) {
-        blittedRef.current = false;
+      // THE SETTLE RENDER. A tick that showed a draft consumed the dirty flag,
+      // and the camera stopping is not an event anybody publishes — so without
+      // this the stage would sit on a soft picture until something unrelated
+      // happened to dirty it. Same rule as the shutter policy above: a render
+      // that varies with WALL-CLOCK time owns its own invalidation.
+      if (needsSettleRef.current && !cameraInMotion(nowMs)) {
+        needsSettleRef.current = false;
         dirtyRef.current = true;
       }
+      // Only the camera moved since the last paint, on a comp whose own frame
+      // has not advanced — see the playback gate below.
+      let cameraOnly = false;
 
 
       // A COMP SLOWER THAN ITS FOOTAGE SHOWS ITS OWN RATE. Below 30fps the
@@ -1768,16 +1792,28 @@ export function Stage() {
         const fps0 = compFps(doc0, activeCompId(doc0, s0.activeFrameId));
         if (fps0 < 30) {
           const idx = Math.floor(s0.playheadMs / frameStepMs(fps0));
-          if (idx === lastPlayIdx) return;
-          lastPlayIdx = idx;
-        }
-      } else if (!s0.playing) lastPlayIdx = -1;
+          gatedRun = true;
+          if (idx === lastPlayIdx) {
+            // THE COMP HAS NOT ADVANCED, BUT YOU MAY HAVE. The picture is the
+            // same picture until the comp's next frame; where it lands is not,
+            // and a pan that only updated ten times a second under a 10fps
+            // comp stuttered at the comp's rate. So the camera gets its tick
+            // and the comp does not get a render: the kept raster moves.
+            const v = useStageView.getState();
+            if (v.scale === paintedView.scale && v.tx === paintedView.tx && v.ty === paintedView.ty) return;
+            cameraOnly = true;
+          } else lastPlayIdx = idx;
+        } else gatedRun = false;
+      } else {
+        gatedRun = false;
+        if (!s0.playing) lastPlayIdx = -1;
+      }
 
       if (!dirtyRef.current) {
         // idle → zero work, and soon no ticks: park once nothing that changes
         // with wall-clock time is pending (a scrub settling, the camera
         // settling, a glide, the transport). A dirty write wakes it.
-        if (!running && transport === "idle" && !cameraInMotion(nowMs) && !blittedRef.current && !layoutMotionActive(nowMs) && ++idleTicks > PARK_AFTER_TICKS) {
+        if (!running && transport === "idle" && !cameraInMotion(nowMs) && !needsSettleRef.current && !layoutMotionActive(nowMs) && ++idleTicks > PARK_AFTER_TICKS) {
           cancelAnimationFrame(raf);
           parked = true;
         }
@@ -2244,10 +2280,17 @@ export function Stage() {
       }
       const footageLive = liveFootage && !(layersCacheOn() && cacheRun);
 
-      const blitPlan = running
-        ? null
-        : planBlit(nowMs, contentVersionRef.current, rect.width, rect.height, view);
-      const reuseRaster = blitPlan !== null;
+      // VIEW OR DOCUMENT? The one question that decides what this tick costs.
+      // Parked, the content version answers it. Running, the picture changes
+      // every frame the comp has — except between two frames of a slow comp,
+      // where the gate above has already said it did not (`cameraOnly`).
+      paintedView = { scale: view.scale, tx: view.tx, ty: view.ty };
+      const cameraPlan = cameraOnly
+        ? planCamera(nowMs, null, pw, ph, dpr, view)
+        : running
+          ? null
+          : planCamera(nowMs, contentVersionRef.current, pw, ph, dpr, view);
+      const reuseRaster = cameraPlan !== null;
       // Hit rects are WORLD space, so the previous pass's are still exactly
       // right after a blit — reusing the array keeps them, and keeps the
       // `hitRectsRef` assignment below a no-op instead of a wipe.
@@ -2287,15 +2330,32 @@ export function Stage() {
       // worth per tick and asks for another. A zoom never waits on a re-render.
       const settleStart = performance.now();
       const sharpening = cameraStillForMs(nowMs) >= SHARPEN_AFTER_MS;
+      // WHILE THE CAMERA MOVES IT IS ALWAYS SPENT — parked or playing: nothing
+      // is made sharper for a view you are already leaving. A stand-in asks
+      // for the settle render rather than for the next tick, so a gesture is
+      // not a render loop.
+      const askSettle = () => {
+        needsSettleRef.current = true;
+      };
+      // NEVER IN A RUN THAT MUST BE EXACT — exact playback and a range build
+      // present and keep only true pictures, and a stand-in there is a frame
+      // that never counts as made.
+      const moving = cameraInMotion(nowMs);
       const settle =
         transport === "idle"
-          ? {
-              spent: () => !sharpening || performance.now() - settleStart > SETTLE_BUDGET_MS,
-              defer: () => {
-                dirtyRef.current = true;
-              },
-            }
-          : null;
+          ? { spent: () => !sharpening || performance.now() - settleStart > SETTLE_BUDGET_MS, defer: askSettle, moving }
+          : moving && !exactRunNow && !prerendering
+            ? { spent: () => true, defer: askSettle, moving }
+            : null;
+      /** The CSS-px box this pass can land in: the viewport, or the raster's margin with it. */
+      let paintExtent = { x0: 0, y0: 0, x1: rect.width, y1: rect.height };
+      /** Painting a band of the raster: nothing here may ask for "the next tick". */
+      let fillPass = false;
+      /** A picture could not be made this tick. Asked again next tick — or, from a band, once the camera rests. */
+      const askAgain = () => {
+        if (fillPass) needsSettleRef.current = true;
+        else dirtyRef.current = true;
+      };
       const paintFrame = (
         f: Frame,
         collectHits: boolean,
@@ -2487,7 +2547,8 @@ export function Stage() {
             // (and still hit-tests); the render happens when it scrolls in.
             const sx = view.tx + f.x * view.scale;
             const sy = view.ty + f.y * view.scale;
-            const onScreen = sx < rect.width && sy < rect.height && sx + f.width * view.scale > 0 && sy + f.height * view.scale > 0;
+            const onScreen =
+              sx < paintExtent.x1 && sy < paintExtent.y1 && sx + f.width * view.scale > paintExtent.x0 && sy + f.height * view.scale > paintExtent.y0;
             if (!onScreen) pic ??= readStaleBoardPicture(f.id);
             if (!onScreen) {
               // Off screen nothing is drawn — a picture is resampled even where
@@ -2501,7 +2562,7 @@ export function Stage() {
               // over budget it shows what it last had and asks for another tick.
               const stale = readStaleBoardPicture(f.id);
               pic = renderInBudget(f.id, () => render(stale ? Math.min(level, stale.level) : firstLevel(level, f.width, f.height))) ?? stale;
-              if (!pic || pic.key !== key || pic.level < level) dirtyRef.current = true;
+              if (!pic || pic.key !== key || pic.level < level) askAgain();
               // Waiting with nothing to show: its bare board, painted above. A
               // live render here would be the very stall the budget exists for.
               if (!pic) {
@@ -2510,7 +2571,7 @@ export function Stage() {
               }
             } else if (pic.level < level) {
               if (takeUpgradeSlot()) pic = render(level);
-              else dirtyRef.current = true; // sharpen on a later idle tick
+              else askAgain(); // sharpen on a later idle tick
             }
             if (pic) {
               if (collectHits) for (const r of pic.hits) hits.push({ ...r, cx: r.cx + f.x, cy: r.cy + f.y, depth: (r as ClipHitRect).depth ?? 0 });
@@ -2568,7 +2629,9 @@ export function Stage() {
             // frame invalidates by, and what its steady signature is made of.
             frameLedger.begin();
             const faultsBefore = pictureFaults();
-            drawFrameContent(bctx, docNow, f, frameTimeFor(f.id), contentOptions);
+            // The comp's own buffer has no camera in it: nothing here is ever a
+            // stand-in for a zoom, and a soft frame would never be kept.
+            drawFrameContent(bctx, docNow, f, frameTimeFor(f.id), running ? { ...contentOptions, settle: null } : contentOptions);
             g.drawImage(buf, 0, 0, f.width, f.height);
             // ── ONLY KEEP A FRAME WE COULD REPRODUCE ─────────────────────
             //
@@ -2609,7 +2672,6 @@ export function Stage() {
       // hits come from the measure pass below; isolated, from the target frame
       // itself. Not drilled: everything is live, as always.
       const drilled = editCtx != null && editCtx.depth > 0;
-      blittedRef.current = reuseRaster;
 
       // WHAT MAY CHANGE RIGHT NOW. A drag says so through the gesture; every
       // other way of changing one layer — typing in a text box, pulling a pen
@@ -2672,28 +2734,44 @@ export function Stage() {
         : null;
       if (!changing) endIncrementalScene();
 
-      if (blitPlan) {
-        blitRaster(ctx, view);
-        // NO VOID AT THE LEADING EDGE. The raster covers where you were; the
-        // strip that just came into view is painted for real, clipped to
-        // exactly that strip, so board sliding in from off-screen arrives
-        // already drawn instead of as a black band that fills in later.
-        if (blitPlan.holes.length > 0) {
+      if (cameraPlan?.kind === "pan") {
+        // A PAN IS A COPY. The raster holds a margin beyond the viewport, so
+        // on almost every frame there is nothing to paint at all; when the
+        // viewport reaches the edge of what is held, the band ahead is painted
+        // for real, INTO the raster, a whole margin deep — board sliding in
+        // from off-screen arrives already drawn, and the next stretch of the
+        // pan is copies again. See `camera-raster.ts`.
+        panRaster(ctx, cameraPlan, (rctx, held) => {
+          rctx.setTransform(dpr, 0, 0, dpr, cameraPlan.srcX, cameraPlan.srcY);
+          paintExtent = {
+            x0: (held.x - cameraPlan.srcX) / dpr,
+            y0: (held.y - cameraPlan.srcY) / dpr,
+            x1: (held.x + held.w - cameraPlan.srcX) / dpr,
+            y1: (held.y + held.h - cameraPlan.srcY) / dpr,
+          };
+          fillPass = true;
+          try {
+            for (const f of pageFrames) paintFrame(f, false, undefined, rctx);
+          } finally {
+            fillPass = false;
+            paintExtent = { x0: 0, y0: 0, x1: rect.width, y1: rect.height };
+          }
+        });
+      } else if (cameraPlan) {
+        // A ZOOM IS A DRAFT: the raster scaled, soft until the fingers stop.
+        zoomRaster(ctx, cameraPlan);
+        needsSettleRef.current = true;
+        // Zooming out exposes a ring the raster has nothing to say about; it
+        // is painted for real, clipped to exactly that ring.
+        if (cameraPlan.holes.length > 0) {
           ctx.save();
           ctx.beginPath();
-          for (const h of blitPlan.holes) ctx.rect(h.x, h.y, h.w, h.h);
+          for (const h of cameraPlan.holes) ctx.rect(h.x / dpr, h.y / dpr, h.w / dpr, h.h / dpr);
           ctx.clip();
           for (const f of pageFrames) {
             paintFrame(f, false);
           }
           ctx.restore();
-        }
-        // A pure pan produced a composite as good as a render, so it becomes
-        // the new raster: panning then costs only the strip entering the
-        // viewport, however heavy the board is. A zoom keeps its original
-        // rather than compounding resample softness tick after tick.
-        if (blitPlan.exact) {
-          captureRaster(canvas, view, rect.width, rect.height, nowMs, contentVersionRef.current, true);
         }
       } else if (scene) {
         ctx.save();
@@ -2765,8 +2843,10 @@ export function Stage() {
         // Keep what was just painted, for the camera to move around while a
         // gesture is running. Taken HERE — after the frames, before any chrome
         // — so selection, guides, rulers and the scrim stay live on a blitted
-        // tick.
-        captureRaster(canvas, view, rect.width, rect.height, nowMs, contentVersionRef.current);
+        // tick. A run that renders every display frame has no tick the raster
+        // could serve (the picture is new each time), so it is not copied
+        // sixty times a second for nothing; a slow comp's is (`cameraOnly`).
+        if (!running || gatedRun) captureRaster(canvas, view, dpr, contentVersionRef.current);
       }
 
       // Components view: wrap each SET's variant frames in a dashed bordered box
@@ -7857,7 +7937,8 @@ export function Stage() {
       const b = g.frameEnd;
       const w = Math.round(Math.abs(b.x - a.x));
       const h = Math.round(Math.abs(b.y - a.y));
-      const dragged = w > 8 && h > 8;
+      const shown = drawnOnScreen(a, b, useStageView.getState().scale);
+      const dragged = shown.w > DRAW_SLOP_PX && shown.h > DRAW_SLOP_PX;
       const docNow = store.getState();
       const frame = createFrame({
         name: `Frame ${docNow.frames.length + 1}`,
@@ -7877,7 +7958,8 @@ export function Stage() {
     if (g.mode === "draw-shape") {
       const a = g.frameStart;
       const b = g.frameEnd;
-      const dragged = Math.abs(b.x - a.x) > 4 && Math.abs(b.y - a.y) > 4;
+      const shown = drawnOnScreen(a, b, useStageView.getState().scale);
+      const dragged = shown.w > DRAW_SLOP_PX && shown.h > DRAW_SLOP_PX;
       // A click (no real drag) drops a default 200×200 centered on the point;
       // a drag uses the shared ⇧/⌥-aware rect so preview and result agree.
       const rect = dragged ? shapeDrawRect(a, b, g.shapeSquare, g.shapeFromCenter) : { cx: a.x, cy: a.y, w: 200, h: 200 };
@@ -7947,7 +8029,7 @@ export function Stage() {
       const b = g.frameEnd;
       const boxW = Math.round(Math.abs(b.x - a.x));
       const boxH = Math.round(Math.abs(b.y - a.y));
-      if (boxW > 12) {
+      if (drawnOnScreen(a, b, useStageView.getState().scale).w > DRAW_SLOP_PX * 2) {
         // A dragged rectangle becomes a FIXED-SIZE text box — it keeps the width
         // AND the height you drew (Figma "Fixed size"), centered on the drag.
         // Content that overflows the box is clipped, not auto-grown.

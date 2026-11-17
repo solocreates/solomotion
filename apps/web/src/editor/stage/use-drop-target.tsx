@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import type { ClipHitRect } from "./render/draw-frame";
-import { useSession, useStageView, type LibraryDrag } from "../state/session";
+import { useSession, useStageCamera, type LibraryDrag } from "../state/session";
 
 /**
  * WHICH LAYER am I about to drop this on — one hook, one highlight, one answer.
@@ -136,9 +136,7 @@ function DropHighlight({
   hit: ClipHitRect | null;
   containerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const scale = useStageView((v) => v.scale);
-  const tx = useStageView((v) => v.tx);
-  const ty = useStageView((v) => v.ty);
+  const { scale, tx, ty } = useStageCamera();
   const el = containerRef.current;
   if (!el || typeof document === "undefined") return null;
   const rect = el.getBoundingClientRect();

@@ -1,0 +1,11 @@
+{
+  "$comment": "Who the desktop shell is when it ships as SoloMotion. Read by apps/desktop/electron-builder.cjs at build time and stamped into the app; the shell itself names no product. appId and scheme are users' data once installed: never change them.",
+  "appId": "app.solomotion.desktop",
+  "productName": "SoloMotion",
+  "description": "SoloMotion: the open-source motion studio.",
+  "author": "SoloMotion <hello@solomotion.app>",
+  "homepage": "https://solomotion.app",
+  "scheme": "solomotion",
+  "remoteUrl": "https://open.solomotion.app/",
+  "releases": { "owner": "solocreates", "repo": "solomotion" }
+}

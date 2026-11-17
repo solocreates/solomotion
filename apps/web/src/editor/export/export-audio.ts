@@ -381,11 +381,20 @@ export async function renderCompAudioToBuffer(
 ): Promise<AudioBuffer> {
   lastUndecodable = [];
   const length = Math.max(1, Math.ceil((durationMs / 1000) * sampleRate));
-  const ctx = new OfflineAudioContext(2, length, sampleRate);
+  // The limited master comes out late by its look-ahead: render that much
+  // longer and drop it from the head, so a sound keyed at t is heard at t
+  // (it was 10 ms late in every export with the limiter on, the default).
+  const frame = doc.frames.find((f) => f.id === frameId);
+  const late = !mix.raw && frame?.soundMix?.limiter.enabled !== false ? await MixGraph.limiterLatency(sampleRate) : 0;
+  const ctx = new OfflineAudioContext(2, length + late, sampleRate);
   const master = ctx.createGain();
   master.connect(ctx.destination);
   await scheduleCompAudioInto(ctx, master, doc, frameId, durationMs, startMs, mix);
-  return ctx.startRendering();
+  const rendered = await ctx.startRendering();
+  if (!late) return rendered;
+  const out = new AudioBuffer({ length, numberOfChannels: rendered.numberOfChannels, sampleRate });
+  for (let c = 0; c < rendered.numberOfChannels; c++) out.copyToChannel(rendered.getChannelData(c).subarray(late, late + length), c);
+  return out;
 }
 
 /**

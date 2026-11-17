@@ -21,7 +21,10 @@ lands around 1–4k keys with **zero baked tracks**.
    WHEN the poses happen, so curves cannot break your sync.
 4. **A rest is two equal keys; a cut is a `hold`.** `easing: "hold"` keeps the value until the next
    key, then switches on that frame: one key per switch (show/hide, swap a drawing, jump a value).
-   Never two keys a millisecond apart.
+   Never two keys a millisecond apart. A `hold` whose next key has a DIFFERENT value is a cut: the
+   whole picture jumps on one frame. To hold and then move, key the hold's end with the same value and
+   ease from there. A script that collects keys per beat must sort them and check each `hold` against
+   the key after it: two beats' keys interleaving is the usual source of a one-frame snap.
 5. **Read before you write more.** `keyframes_inspect {id}` prints every track in one line
    (`time value easing · …`, comp ms, `↷` = a curved path key). `keyframes_inspect {}` gives the comp's
    budget and flags **baked** tracks. Use it instead of `layer_get`; it costs a few hundred tokens.

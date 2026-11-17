@@ -139,7 +139,7 @@ import {
   layerCacheReadable,
   noteLayerCost,
   readLayerCache,
-  readLayerCacheAnyScale,
+  readLayerCacheCovering,
   readStackPrefix,
   storeStackPrefix,
 } from "./layer-cache";
@@ -186,13 +186,14 @@ import {
   resolveShutter,
   shutterQuads,
   shutterWindow,
+  cutShutterAtSteps,
   type MotionBlurPolicy,
   type Quad,
   type RenderProfiler,
 } from "@solomotion/core";
 import { paintParticles } from "./particles";
 import { paintShutter, placementBetween, shutterDisplacements } from "./motion-blur";
-import { MAX_LAYER_BUFFER_PX, shutterSeenRect, type Affine2d } from "@solomotion/core";
+import { DRAFT_LAYER_BUFFER_PX, MAX_LAYER_BUFFER_PX, WINDOW_MARGINS, seenWindow, shutterSeenRect, viewOverscanPx, type Affine2d } from "@solomotion/core";
 import {
   layerEffectPath,
   activeAt,
@@ -563,16 +564,20 @@ export interface DrawOptions {
    */
   transparent?: boolean;
   /**
-   * THE SETTLING BUDGET — the stage's, on a parked render only. Once `spent`, a
-   * layer whose buffer is missing ONLY because the zoom changed shows the one
-   * it has at another resolution (`readLayerCacheAnyScale`), scaled into the
-   * same frame-space rect, calls `defer` (the stage ticks again) and marks the
-   * picture transient so nothing keeps the soft stand-in. Zooming into a page
-   * of boiled hills re-rendered every one at the new resolution in the tick the
-   * camera settled — seconds; now it sharpens a budget's worth per tick.
-   * Never set for an export, a retained picture or playback.
+   * THE SETTLING BUDGET — the stage's. Once `spent`, a layer whose buffer is
+   * missing ONLY because the camera moved (another zoom, another window of a
+   * magnified layer) shows the best picture it has (`readLayerCacheCovering`),
+   * scaled into the same frame-space rect, calls `defer` (the stage renders
+   * again once the camera is still) and marks the picture transient so nothing
+   * keeps the soft stand-in. Zooming into a page of boiled hills re-rendered
+   * every one at the new resolution in the tick the camera settled — seconds;
+   * now it sharpens a budget's worth per tick.
+   *
+   * Spent for as long as the camera is MOVING — parked or playing: a draft
+   * while you navigate, the true picture when you stop. Never set for an
+   * export or a retained picture.
    */
-  settle?: { spent(): boolean; defer(): void } | null;
+  settle?: { spent(): boolean; defer(): void; /** The camera is in motion: draft whatever has no picture. */ moving?: boolean } | null;
   /**
    * THE FILL BUDGET — the stage's, in LIVE playback only. A nested comp whose
    * picture is missing is made only while the frame can afford it, in turns;
@@ -2624,9 +2629,12 @@ function withLayerBody(
   // bounds (back in frame space), grown by the same pad, so a glow or blur
   // reaching in from off-target content is still whole. Under the cap nothing
   // changes: the whole layer stays one picture that pans for free.
-  const seen = Math.max(whole.width, whole.height) * zoom > MAX_BUFFER_DIM ? seenRect(C, ctx.canvas, padding, whole) : null;
-  const { x: rectX, y: rectY, width: rectW, height: rectH } = seen ?? whole;
-  // Buffer px per frame px.
+  //
+  // "Past the cap" is asked of the buffer the layer would actually GET. A
+  // stack pinned to the document's pixels (grain, halftone) is made at most at
+  // the document's scale however far the stage zooms, so its whole buffer
+  // still fits — and cutting it anyway made the window, and with it the cache
+  // key, a function of the camera: every pan re-ran the grain.
   //
   // Vector-only isolation (a blend mode, a feather, an in/out pose) rasterises
   // at DEVICE resolution, so an isolated layer stays as crisp as an un-isolated
@@ -2649,16 +2657,50 @@ function withLayerBody(
   // preview tier, whose whole job is to spend fewer pixels.
   const regional = needsDocumentRaster(clip.effects);
   const pinned = regional && (rasterScale < 1 || gridBoundStack(clip.effects));
-  // MAGNIFICATION PAST THE DOCUMENT IS BUDGETED. A regional stack (boil, a
-  // displacement, glow…) is paid per pixel, and at 1480% a boiled hill's buffer
-  // was 4096 px wide — seconds of warp for a strip of which the screen showed a
-  // twentieth. On the stage, past what `MAX_REGIONAL_PIXELS` affords, it renders
-  // at that and draws up: never below the document's own raster, so 1:1 is the
-  // export's picture, and an export (which zooms nothing) is untouched.
-  const budgeted = regional && !options.exporting ? Math.max(rasterScale, Math.sqrt(MAX_REGIONAL_PIXELS / Math.max(1, rectW * rectH))) : Infinity;
-  const renderScale = Math.min(pinned ? seenScale(zoom) : Math.min(zoom, budgeted), MAX_BUFFER_DIM / Math.max(rectW, rectH));
-  const objectWidth = pixelCount(rectW * renderScale);
-  const objectHeight = pixelCount(rectH * renderScale);
+  const playing = !!options.playing;
+  const need =
+    Math.max(whole.width, whole.height) * (pinned ? seenScale(zoom) : zoom) > MAX_BUFFER_DIM
+      ? seenRect(C, ctx.canvas, padding, whole)
+      : null;
+  // A WINDOW IS A TILE (core `seenWindow`): parked, it is grown by the view's
+  // margin and snapped, so panning inside the margin is a cache hit instead of
+  // a re-render of every magnified layer. A run of frames keeps the exact cut
+  // — the layer changes every frame there, and margin is pure cost — and so
+  // does a layer the target cannot see at all.
+  const grow =
+    need && need.width > 1e-3 && !playing && !options.exporting
+      ? (WINDOW_MARGINS * viewOverscanPx(need.width * zoom, need.height * zoom)) / zoom
+      : 0;
+  let seen = need ? seenWindow(need, whole, grow) : null;
+  // Buffer px per frame px, and the buffer that follows from it. Re-placed
+  // once, below, when a moving camera settles for the layer's draft.
+  let rectX = 0, rectY = 0, rectW = 0, rectH = 0, renderScale = 1, objectWidth = 1, objectHeight = 1;
+  const place = (r: { x: number; y: number; width: number; height: number }, maxDim: number) => {
+    rectX = r.x;
+    rectY = r.y;
+    rectW = r.width;
+    rectH = r.height;
+    // MAGNIFICATION PAST THE DOCUMENT IS BUDGETED. A regional stack (boil, a
+    // displacement, glow…) is paid per pixel, and at 1480% a boiled hill's buffer
+    // was 4096 px wide — seconds of warp for a strip of which the screen showed a
+    // twentieth. On the stage, past what `MAX_REGIONAL_PIXELS` affords, it renders
+    // at that and draws up: never below the document's own raster, so 1:1 is the
+    // export's picture, and an export (which zooms nothing) is untouched. The
+    // budget is for what is SEEN: a window's margin is paid for on top, once,
+    // rather than taken out of the sharpness of the part on screen.
+    // A draft gets a quarter of it.
+    const share = draft ? 0.25 : need && seen === r ? Math.max(1, Math.min(2.5, (rectW * rectH) / Math.max(1e-9, need.width * need.height))) : 1;
+    const budgeted =
+      regional && !options.exporting
+        ? Math.max(rasterScale, Math.sqrt((MAX_REGIONAL_PIXELS * share) / Math.max(1, rectW * rectH)))
+        : Infinity;
+    renderScale = Math.min(pinned ? seenScale(zoom) : Math.min(zoom, budgeted), maxDim / Math.max(rectW, rectH));
+    objectWidth = pixelCount(rectW * renderScale);
+    objectHeight = pixelCount(rectH * renderScale);
+  };
+  /** Rendering the whole layer small because the camera is moving — see below. */
+  let draft = false;
+  place(seen ?? whole, MAX_BUFFER_DIM);
 
   /**
    * Draw a finished layer buffer onto the composite — the ONE place that does
@@ -2748,7 +2790,6 @@ function withLayerBody(
     !backdropSource &&
     (!readsBackdrop(clip) || (beneath != null && beneath.key != null)) &&
     layerCacheReadable(doc, clip);
-  const playing = !!options.playing;
   // THE STEADY SEGMENT this instant sits in, when the layer is provably holding
   // still here — one buffer for the whole stretch instead of one per frame.
   // See `core/preview/picture-steady.ts`.
@@ -2765,7 +2806,8 @@ function withLayerBody(
   const segment = cacheable ? layerBufferSegment(doc, bufferOf, localMs, effectTimeOffsetMs) : null;
 
   let cacheKey = "";
-  // The key without its resolution terms: the same picture at any zoom.
+  // The key without its resolution or window terms: the same picture at any
+  // zoom, through any window (`readLayerCacheCovering`).
   let family = "";
   // THE DRAW MODE — every term of the key except the instant and the scene
   // beneath. Shared with the kept effect-stack prefix (`applyLayerEffects`),
@@ -2796,10 +2838,15 @@ function withLayerBody(
     // that window by them, so it keeps both terms.
     const boxed = clip.kind === "group" || clip.kind === "nested";
     const keyWith = (hits: boolean, scaled = true) =>
-      `|${rectW.toFixed(3)},${rectH.toFixed(3)}` +
-      // A cut region is a picture of THAT window (see `seenRect`).
-      (seen ? `|@${rectX.toFixed(3)},${rectY.toFixed(3)}` : "") +
-      (scaled ? `|${renderScale.toFixed(4)}|${objectWidth}x${objectHeight}` : "|~") +
+      (scaled
+        ? `|${rectW.toFixed(3)},${rectH.toFixed(3)}` +
+          // A cut region is a picture of THAT window (see `seenWindow`) — named
+          // by where it sits IN THE LAYER, because that is what its pixels are.
+          // Named in frame space, a layer scrolled by an expression under a
+          // still camera kept its key while its picture moved through it.
+          (seen ? `|@${(rectX - whole.x).toFixed(3)},${(rectY - whole.y).toFixed(3)}` : "") +
+          `|${renderScale.toFixed(4)}|${objectWidth}x${objectHeight}`
+        : `|${whole.width.toFixed(3)},${whole.height.toFixed(3)}|~`) +
       `|f${featherAmount.toFixed(3)}` +
       `|${options.includeHidden ? 1 : 0}${boxed && options.transparent ? 1 : 0}${options._inBackdrop ? 1 : 0}${options._onComposite ? 1 : 0}` +
       // WAS THIS DRAW COLLECTING CLICK TARGETS? An entry carries the rects its
@@ -2852,18 +2899,46 @@ function withLayerBody(
       compositeBuffer(hit.canvas, { x: rectX, y: rectY, w: hit.rect.w, h: hit.rect.h });
       return;
     }
-    // SETTLING AFTER A ZOOM: the picture it has, scaled, while the budget is
-    // spent — see `DrawOptions.settle`.
-    const near = options.settle?.spent() && effectTimeOffsetMs === 0 ? readLayerCacheAnyScale(bufferOf, family, cacheRefs) : null;
-    if (near) {
-      options.settle!.defer();
-      markTransientPicture();
-      options.cacheHits?.add(clip.id);
-      const dx = rectX - near.rect.x;
-      const dy = rectY - near.rect.y;
-      for (const r of near.hits) pushHitRect(options, dx === 0 && dy === 0 ? r : { ...r, cx: r.cx + dx, cy: r.cy + dy });
-      compositeBuffer(near.canvas, { x: rectX, y: rectY, w: near.rect.w, h: near.rect.h });
-      return;
+    // THE PICTURE IT HAS (`readLayerCacheCovering`). Two cases, one read:
+    //
+    //  · A WINDOWED layer asks for any buffer that HOLDS what the target needs.
+    //    A window made for where the camera stood a moment ago usually does,
+    //    at full sharpness — that is a hit, not a stand-in.
+    //  · MOVING, OR OVER THE SETTLING BUDGET (`DrawOptions.settle`), any layer
+    //    shows what it has rather than stalling to make what it wants: its last
+    //    zoom's buffer, or the whole layer as it was rendered further out — the
+    //    parent tile of every window inside it. Soft for a tick, marked
+    //    transient so nothing above keeps it, and the stage is asked back.
+    if (effectTimeOffsetMs === 0 && (seen || options.settle?.spent())) {
+      const families = options.hitRects ? [family] : [keyOf(keyWith(true, false)), family];
+      const cover = readLayerCacheCovering(bufferOf, families, cacheRefs, need ?? whole, whole);
+      // A regional stack's scale follows its window's area, so two windows of
+      // one zoom differ by a hair; that is not a reason to run the stack again.
+      const sharp = cover != null && seen != null && cover.scale >= renderScale * (regional ? 0.8 : 0.999);
+      if (cover && (sharp || options.settle?.spent())) {
+        if (!sharp) {
+          options.settle!.defer();
+          markTransientPicture();
+        }
+        options.cacheHits?.add(clip.id);
+        const { dx, dy } = cover;
+        for (const r of cover.hits) pushHitRect(options, dx === 0 && dy === 0 ? r : { ...r, cx: r.cx + dx, cy: r.cy + dy });
+        compositeBuffer(cover.canvas, cover.rect);
+        return;
+      }
+      // NOTHING TO SHOW, AND THE CAMERA IS MOVING. A windowed layer with no
+      // picture at all (the project opened zoomed in) is made WHOLE, small:
+      // one render the rest of the gesture — and every later one — reuses,
+      // where a window per camera position was a render per frame. At rest and
+      // merely over budget, the window itself is the thing to make.
+      if (seen && options.settle?.moving) {
+        draft = true;
+        seen = null;
+        place(whole, DRAFT_LAYER_BUFFER_PX);
+        modeKey = keyWith(!!options.hitRects);
+        cacheKey = keyOf(modeKey);
+        options.settle.defer();
+      }
     }
   }
 
@@ -2891,6 +2966,8 @@ function withLayerBody(
           evict: !playing,
           playing,
           family,
+          anchor: { x: whole.x, y: whole.y },
+          window: seen != null,
         })
       : null;
   const faultsBefore = owned ? pictureFaults() : null;
@@ -2957,6 +3034,9 @@ function withLayerBody(
   if (owned && faultsBefore && faithfulSince(faultsBefore, !playing)) {
     owned.commit(cacheRefs, rect, myCapture?.rects ?? [], faithfulSince(faultsBefore), drewFootageSince(faultsBefore));
   }
+  // AFTER its own commit: the draft is a true picture of this layer and is
+  // kept, but whatever holds it (a group, the frame) is soft because of it.
+  if (draft) markTransientPicture();
   if (shareBuf) Object.assign(shareBuf.entry, { tick: spillTick, key: cacheKey, clip, refs: cacheRefs, rect, hits: myCapture?.rects ?? [] });
   compositeBuffer(s.canvas, rect);
   s.busy = false;
@@ -3261,6 +3341,69 @@ const backdropCache = new Map<
 let backdropGeneration = 0;
 
 /**
+ * THE KEPT LOOKS — a whole-comp look's finished picture (see `renderAdjustment`),
+ * one shelf per look and light pass, least recently used out, bounded by BYTES:
+ * a 4K comp's look is 33 MB, so a count would be no bound at all. A picture
+ * bigger than half the budget is never kept; it would only evict the rest.
+ */
+const LOOK_SHELF_BYTES = 96 * 1024 * 1024;
+const lookShelves = new Map<
+  string,
+  { key: string; refs: unknown[]; generation: number; canvas: HTMLCanvasElement; bytes: number; exact: boolean; footage: boolean }
+>();
+let lookShelfBytes = 0;
+
+function dropLook(shelf: string): void {
+  const e = lookShelves.get(shelf);
+  if (!e) return;
+  lookShelves.delete(shelf);
+  lookShelfBytes -= e.bytes;
+}
+
+function keptLook(shelf: string, key: string, refs: readonly unknown[]): HTMLCanvasElement | null {
+  const e = lookShelves.get(shelf);
+  if (!e || e.key !== key || e.generation !== backdropGeneration || e.refs.length !== refs.length || !e.refs.every((r, i) => r === refs[i])) {
+    return null;
+  }
+  lookShelves.delete(shelf);
+  lookShelves.set(shelf, e);
+  replayPicture(e.exact, e.footage);
+  return e.canvas;
+}
+
+function keepLook(
+  shelf: string,
+  key: string,
+  refs: unknown[],
+  picture: HTMLCanvasElement | OffscreenCanvas,
+  exact: boolean,
+  footage: boolean,
+): void {
+  const bytes = picture.width * picture.height * 4;
+  const old = lookShelves.get(shelf);
+  dropLook(shelf);
+  if (bytes > LOOK_SHELF_BYTES / 2) return;
+  for (const k of lookShelves.keys()) {
+    if (lookShelfBytes + bytes <= LOOK_SHELF_BYTES) break;
+    dropLook(k);
+  }
+  // Reuse the shelf's own canvas when it is the right size: a look scrubbed
+  // through time re-keeps every instant, and a fresh canvas each time is churn.
+  const canvas = old?.canvas ?? document.createElement("canvas");
+  if (canvas.width !== picture.width || canvas.height !== picture.height) {
+    canvas.width = picture.width;
+    canvas.height = picture.height;
+  }
+  const c = canvas.getContext("2d");
+  if (!c) return;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.drawImage(picture, 0, 0);
+  lookShelves.set(shelf, { key, refs, generation: backdropGeneration, canvas, bytes, exact, footage });
+  lookShelfBytes += bytes;
+}
+
+/**
  * Something drawable arrived from OUTSIDE the document — a decoded video
  * frame, a loaded image, a parsed font, a lazy effect engine — so a backdrop
  * painted before it may be missing it. The stage calls this from the same
@@ -3292,6 +3435,9 @@ export function invalidateMediaDependents(clipId: string): void {
   const host = clipId.includes("::") ? clipId.slice(0, clipId.indexOf("::")) : clipId;
   for (const [shelf, entry] of [...backdropCache]) {
     if (entry.refs.some((r) => (r as { id?: unknown } | null)?.id === host)) backdropCache.delete(shelf);
+  }
+  for (const [shelf, entry] of [...lookShelves]) {
+    if (entry.refs.some((r) => (r as { id?: unknown } | null)?.id === host)) dropLook(shelf);
   }
 }
 
@@ -3836,8 +3982,7 @@ function paintClipShutter(
 
   const fps = frameFps(doc, frame);
   const interval = 1000 / Math.max(1, fps);
-  const { openMs, closeMs } = shutterWindow(interval, localMs, resolved.settings);
-
+  const window0 = shutterWindow(interval, localMs, resolved.settings);
   // THE MEASUREMENT. Placement — not merely the transform — because a layer's
   // position on the stage is its pose composed with its in/out animation, and
   // measuring only the transform would declare a layer that flies in to be
@@ -3860,6 +4005,9 @@ function paintClipShutter(
     return layerPlacement(at.doc, ctx, frame, at.clip, t, box, cropPreview);
   };
   const placementAt = (t: number) => placeAt(t).matrix;
+  // A step (a HOLD key here or in any ancestor) inside the shutter is two
+  // pictures, not motion: the window keeps the frame's own side of it.
+  const { openMs, closeMs } = cutShutterAtSteps(window0, localMs, (t) => boundsQuad(placementAt(t), geo.local), (a, b) => quadMotion(a, b).px);
   // Measured on the FRAME-TIME extent at both ends: this asks whether the LAYER
   // moved, and a crop edge travelling is not the layer travelling — smearing a
   // window that slid over a still picture would blur artwork that never moved.
@@ -3876,7 +4024,7 @@ function paintClipShutter(
   }
 
   const plan = resolveShutter(
-    { frameIntervalMs: interval, localMs, settings: resolved.settings, tier: resolved.tier, maxSamples: resolved.maxSamples },
+    { frameIntervalMs: interval, localMs, settings: resolved.settings, tier: resolved.tier, maxSamples: resolved.maxSamples, window: { openMs, closeMs } },
     motion,
   );
   if (!plan) return false;
@@ -6608,77 +6756,6 @@ function renderAdjustment(
   // ground, and the whole board became one shape — tooth on the card, chalk a
   // smooth fill. The same comp is now the same picture at any zoom, nested or
   // drilled into, and the same one the comp-picture store keeps.
-  const src = acquireScratch(w, h);
-  src.ctx.save();
-  src.ctx.setTransform(R);
-  const painted =
-    pinned &&
-    !compositeHoldsRegion(ctx, m, R, w, h, options, readsLights) &&
-    withLightPass(readsLights ? "unlit" : lightPass, () => {
-      const beneath = paintBeneath(doc, frame, clip, timeMs, options, resolve, guard);
-      beneath?.paint(src.ctx);
-      return !!beneath;
-    });
-  if (!painted) {
-    src.ctx.setTransform(R.multiply(m.inverse()));
-    src.ctx.drawImage(ctx.canvas, 0, 0);
-  }
-  src.ctx.restore();
-
-  // The light picture of what this grade reads, painted before anything below
-  // takes a pass buffer (see `lightPictureNow`): the lights in what it reads,
-  // at any depth, in the same region (the comp's paper is never one).
-  const lights = readsLights
-    ? lightPictureNow(w, h, R, (dst) => {
-        matteDepth++;
-        try {
-          withLightPass("only", () => paintBeneath(doc, frame, clip, timeMs, { ...options, transparent: true }, resolve, guard)?.paint(dst));
-        } finally {
-          matteDepth--;
-        }
-      })
-    : null;
-
-  // Apply the first CSS stage while blitting the snapshot into a clean buffer.
-  const graded = acquireScratch(w, h);
-  graded.ctx.save();
-  applyFirstStage(graded.ctx, first);
-  graded.ctx.drawImage(src.canvas, 0, 0);
-  graded.ctx.restore();
-
-  // An adjustment layer's "content" IS the composite beneath it, so that
-  // snapshot doubles as the backdrop: glass on an adjustment becomes a pane of
-  // glass laid over the whole scene (scoped by the same matte as any grade).
-  const gradedHead = firstOpsAfterDraw(first, graded.canvas, w, h);
-  const { img, finalOps, release } = runLfxPixelStages(stages, gradedHead.img, w, h, {
-    backdrop: src.canvas,
-    lights: lights?.canvas ?? null,
-  });
-
-  // Land the graded result (+ trailing filter) into an output buffer we can matte.
-  const out = acquireScratch(w, h);
-  out.ctx.save();
-  if (finalOps) drawFiltered(out.ctx, img, finalOps);
-  else out.ctx.drawImage(img, 0, 0);
-  out.ctx.restore();
-  gradedHead.release();
-
-  // ── THE PROCESSOR'S REGION ────────────────────────────────────────────────
-  //
-  // What this grade is allowed to touch, as ONE alpha stencil:
-  //
-  //   scope    the picked layers' silhouette (`resolveAdjustmentTargets`),
-  //            rendered through the shared layer-scoped draw path
-  //   window   a rectangular crop, rounded by `borderRadius` — the same two
-  //            box properties every footage layer carries, which on a processor
-  //            (whose "box" IS its comp) read as a Resolve power window
-  //   feather  the soft edge on the FINISHED silhouette
-  //
-  // Intersected into one buffer rather than applied one at a time, because the
-  // feather has to soften what the pieces add up to — a window feathered before
-  // it met the scope matte would blur an edge that is not the edge you see. It
-  // is also exactly the shape `replaces` erases from the plate below, so "what
-  // this grade covers" is computed once and answers both questions.
   const cropBox = { width: frame.width, height: frame.height, cx: 0, cy: 0 };
   const win = cropWindow(pose.crop, cropBox);
   const radius = pose.borderRadius;
@@ -6686,94 +6763,210 @@ function renderAdjustment(
     win.width < frame.width - 0.01 ||
     win.height < frame.height - 0.01 ||
     radius.tl > 0.01 || radius.tr > 0.01 || radius.br > 0.01 || radius.bl > 0.01;
-  const featherPx = Math.max(0, typeof sampled["feather"] === "number" ? (sampled["feather"] as number) : clip.feather);
 
-  // A ref cell, not a `let`: the buffer is assigned inside the narrowing
-  // closure, which control-flow analysis cannot follow.
-  const region: { current: Scratch | null } = { current: null };
-  const narrowRegion = (paint: (dst: CanvasRenderingContext2D) => void): void => {
-    const layer = acquireScratch(w, h);
-    layer.ctx.save();
-    layer.ctx.setTransform(R);
-    paint(layer.ctx);
-    layer.ctx.restore();
-    const held = region.current;
-    if (!held) {
-      region.current = layer;
-      return;
+  // ── THE KEPT LOOK ──────────────────────────────────────────────────────────
+  // A whole-comp look (Stop motion, Claymation, chalk…) is a pure function of
+  // the picture it reads, the card, the instant and the region it was made in —
+  // and the region is the comp's own (`R`), not the view. So a camera move
+  // never changes it: panning a paused board re-ran a surface and film damage
+  // over every pixel of the comp on every pointer tick, which is why the stage
+  // went heavy zoomed in (R is the document's scale there) and was fine zoomed
+  // out (R shrinks with the zoom). Keyed by what the picture beneath depends on
+  // (`paintBeneath`'s own deps — the same proof the backdrop shelf trusts), it
+  // is made once per instant and only re-landed under the new view.
+  const keepable = pinned && targets.wholeReach && mix === IDENTITY_MIX && !hasXform && !windowed && !options.measureOnly && !options.exporting;
+  const lookDeps = keepable ? paintBeneath(doc, frame, clip, timeMs, options, resolve, guard) : undefined;
+  const lookKey = lookDeps?.key && lookDeps.refs
+    ? `${lookDeps.key}|${localMs}|${w}x${h}|${R.a},${R.b},${R.c},${R.d},${R.e},${R.f}${lightsKey()}`
+    : null;
+  const lookRefs = lookDeps?.refs ? [clip, ...lookDeps.refs] : null;
+  const shelf = `${clip.id}${lightsKey()}|${options.overflowPass ?? ""}`;
+  const kept = lookKey && lookRefs ? keptLook(shelf, lookKey, lookRefs) : null;
+
+  const produce = (): { canvas: HTMLCanvasElement | OffscreenCanvas; region: Scratch | null; free: () => void } => {
+    const src = acquireScratch(w, h);
+    src.ctx.save();
+    src.ctx.setTransform(R);
+    const painted =
+      pinned &&
+      !compositeHoldsRegion(ctx, m, R, w, h, options, readsLights) &&
+      withLightPass(readsLights ? "unlit" : lightPass, () => {
+        const beneath = paintBeneath(doc, frame, clip, timeMs, options, resolve, guard);
+        beneath?.paint(src.ctx);
+        return !!beneath;
+      });
+    if (!painted) {
+      src.ctx.setTransform(R.multiply(m.inverse()));
+      src.ctx.drawImage(ctx.canvas, 0, 0);
     }
-    held.ctx.save();
-    held.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    held.ctx.globalCompositeOperation = "destination-in";
-    held.ctx.drawImage(layer.canvas, 0, 0);
-    held.ctx.restore();
-    layer.busy = false;
-  };
+    src.ctx.restore();
 
-  if (!targets.wholeReach) {
-    narrowRegion((dst) =>
-      paintLayerNodes(
-        dst,
-        doc,
-        frame,
-        frameLayerTree(doc, frame.id),
-        timeMs,
-        { ...options, only: targets.matteIds, includeHidden: true },
-        resolve,
-        guard,
-      ),
-    );
-  }
-  if (windowed) {
-    narrowRegion((dst) => {
-      roundRect(
-        dst,
-        win.cx + frame.width / 2 - win.width / 2,
-        win.cy + frame.height / 2 - win.height / 2,
-        win.width,
-        win.height,
-        radius,
-      );
-      dst.fillStyle = "#000";
-      dst.fill();
+    // The light picture of what this grade reads, painted before anything below
+    // takes a pass buffer (see `lightPictureNow`): the lights in what it reads,
+    // at any depth, in the same region (the comp's paper is never one).
+    const lights = readsLights
+      ? lightPictureNow(w, h, R, (dst) => {
+          matteDepth++;
+          try {
+            withLightPass("only", () => paintBeneath(doc, frame, clip, timeMs, { ...options, transparent: true }, resolve, guard)?.paint(dst));
+          } finally {
+            matteDepth--;
+          }
+        })
+      : null;
+
+    // Apply the first CSS stage while blitting the snapshot into a clean buffer.
+    const graded = acquireScratch(w, h);
+    graded.ctx.save();
+    applyFirstStage(graded.ctx, first);
+    graded.ctx.drawImage(src.canvas, 0, 0);
+    graded.ctx.restore();
+
+    // An adjustment layer's "content" IS the composite beneath it, so that
+    // snapshot doubles as the backdrop: glass on an adjustment becomes a pane of
+    // glass laid over the whole scene (scoped by the same matte as any grade).
+    const gradedHead = firstOpsAfterDraw(first, graded.canvas, w, h);
+    const { img, finalOps, release } = runLfxPixelStages(stages, gradedHead.img, w, h, {
+      backdrop: src.canvas,
+      lights: lights?.canvas ?? null,
     });
-  }
-  // The one universal feather (`featherLayerAlpha`) — the same function that
-  // softens a plain layer's edge and a mask stencil, eating inward so the
-  // window fades away exactly at its border instead of glowing past it.
-  if (region.current && featherPx > 0.01) featherLayerAlpha(region.current, featherPx * scale);
 
-  const applyStencil = (canvas: HTMLCanvasElement | OffscreenCanvas) => {
+    // Land the graded result (+ trailing filter) into an output buffer we can matte.
+    const out = acquireScratch(w, h);
     out.ctx.save();
-    out.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    out.ctx.globalCompositeOperation = "destination-in";
-    out.ctx.drawImage(canvas, 0, 0);
+    if (finalOps) drawFiltered(out.ctx, img, finalOps);
+    else out.ctx.drawImage(img, 0, 0);
     out.ctx.restore();
+    gradedHead.release();
+
+    // ── THE PROCESSOR'S REGION ────────────────────────────────────────────────
+    //
+    // What this grade is allowed to touch, as ONE alpha stencil:
+    //
+    //   scope    the picked layers' silhouette (`resolveAdjustmentTargets`),
+    //            rendered through the shared layer-scoped draw path
+    //   window   a rectangular crop, rounded by `borderRadius` — the same two
+    //            box properties every footage layer carries, which on a processor
+    //            (whose "box" IS its comp) read as a Resolve power window
+    //   feather  the soft edge on the FINISHED silhouette
+    //
+    // Intersected into one buffer rather than applied one at a time, because the
+    // feather has to soften what the pieces add up to — a window feathered before
+    // it met the scope matte would blur an edge that is not the edge you see. It
+    // is also exactly the shape `replaces` erases from the plate below, so "what
+    // this grade covers" is computed once and answers both questions.
+    const featherPx = Math.max(0, typeof sampled["feather"] === "number" ? (sampled["feather"] as number) : clip.feather);
+
+    // A ref cell, not a `let`: the buffer is assigned inside the narrowing
+    // closure, which control-flow analysis cannot follow.
+    const region: { current: Scratch | null } = { current: null };
+    const narrowRegion = (paint: (dst: CanvasRenderingContext2D) => void): void => {
+      const layer = acquireScratch(w, h);
+      layer.ctx.save();
+      layer.ctx.setTransform(R);
+      paint(layer.ctx);
+      layer.ctx.restore();
+      const held = region.current;
+      if (!held) {
+        region.current = layer;
+        return;
+      }
+      held.ctx.save();
+      held.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      held.ctx.globalCompositeOperation = "destination-in";
+      held.ctx.drawImage(layer.canvas, 0, 0);
+      held.ctx.restore();
+      layer.busy = false;
+    };
+
+    if (!targets.wholeReach) {
+      narrowRegion((dst) =>
+        paintLayerNodes(
+          dst,
+          doc,
+          frame,
+          frameLayerTree(doc, frame.id),
+          timeMs,
+          { ...options, only: targets.matteIds, includeHidden: true },
+          resolve,
+          guard,
+        ),
+      );
+    }
+    if (windowed) {
+      narrowRegion((dst) => {
+        roundRect(
+          dst,
+          win.cx + frame.width / 2 - win.width / 2,
+          win.cy + frame.height / 2 - win.height / 2,
+          win.width,
+          win.height,
+          radius,
+        );
+        dst.fillStyle = "#000";
+        dst.fill();
+      });
+    }
+    // The one universal feather (`featherLayerAlpha`) — the same function that
+    // softens a plain layer's edge and a mask stencil, eating inward so the
+    // window fades away exactly at its border instead of glowing past it.
+    if (region.current && featherPx > 0.01) featherLayerAlpha(region.current, featherPx * scale);
+
+    const applyStencil = (canvas: HTMLCanvasElement | OffscreenCanvas) => {
+      out.ctx.save();
+      out.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      out.ctx.globalCompositeOperation = "destination-in";
+      out.ctx.drawImage(canvas, 0, 0);
+      out.ctx.restore();
+    };
+    if (region.current) applyStencil(region.current.canvas);
+    // A transition's wipe is NOT part of the region: the sweep carries its own
+    // softness from the preset, and it must not be erased from the plate the way
+    // the region is — a cut reveals, it does not cut a hole.
+    if (mix.wipe) {
+      const wipeMatte = acquireScratch(w, h);
+      wipeMatte.ctx.save();
+      wipeMatte.ctx.setTransform(R);
+      paintWipeStencil(wipeMatte.ctx, frame, mix.wipe, scale);
+      wipeMatte.ctx.restore();
+      applyStencil(wipeMatte.canvas);
+      wipeMatte.busy = false;
+    }
+
+    // A dip's veil, over the pixels this grade owns and no others (`source-atop`),
+    // exactly as the picture path confines it to the transition's own pixels.
+    if (mix.veil) {
+      out.ctx.save();
+      out.ctx.setTransform(R);
+      out.ctx.globalCompositeOperation = "source-atop";
+      out.ctx.globalAlpha = mix.veil.alpha;
+      out.ctx.fillStyle = mix.veil.color;
+      out.ctx.fillRect(0, 0, frame.width, frame.height);
+      out.ctx.restore();
+    }
+
+    return {
+      canvas: out.canvas,
+      region: region.current,
+      free: () => {
+        src.busy = false;
+        graded.busy = false;
+        out.busy = false;
+        if (lights) lights.busy = false;
+        if (region.current) region.current.busy = false;
+        release();
+      },
+    };
   };
-  if (region.current) applyStencil(region.current.canvas);
-  // A transition's wipe is NOT part of the region: the sweep carries its own
-  // softness from the preset, and it must not be erased from the plate the way
-  // the region is — a cut reveals, it does not cut a hole.
-  if (mix.wipe) {
-    const wipeMatte = acquireScratch(w, h);
-    wipeMatte.ctx.save();
-    wipeMatte.ctx.setTransform(R);
-    paintWipeStencil(wipeMatte.ctx, frame, mix.wipe, scale);
-    wipeMatte.ctx.restore();
-    applyStencil(wipeMatte.canvas);
-    wipeMatte.busy = false;
-  }
-
-  // A dip's veil, over the pixels this grade owns and no others (`source-atop`),
-  // exactly as the picture path confines it to the transition's own pixels.
-  if (mix.veil) {
-    out.ctx.save();
-    out.ctx.setTransform(R);
-    out.ctx.globalCompositeOperation = "source-atop";
-    out.ctx.globalAlpha = mix.veil.alpha;
-    out.ctx.fillStyle = mix.veil.color;
-    out.ctx.fillRect(0, 0, frame.width, frame.height);
-    out.ctx.restore();
+  let made: ReturnType<typeof produce>;
+  if (kept) {
+    made = { canvas: kept, region: null, free: () => {} };
+  } else {
+    const before = pictureFaults();
+    made = produce();
+    if (lookKey && lookRefs && faithfulSince(before, !options.playing)) {
+      keepLook(shelf, lookKey, lookRefs, made.canvas, faithfulSince(before), drewFootageSince(before));
+    }
   }
 
   // Composite the graded (and optionally transformed) region back over the
@@ -6808,7 +7001,7 @@ function renderAdjustment(
     sampled,
   );
   if ((hasXform || carves) && targets.replaces && !mix.wipe && opacity >= 0.999 && clip.blendMode === "normal") {
-    if (region.current) {
+    if (made.region) {
       // Erase exactly the region — untransformed, because what is being removed
       // is the SOURCE where it sits, not where the grade is about to put it.
       const undo = m.multiply(R.inverse());
@@ -6816,7 +7009,7 @@ function renderAdjustment(
       ctx.setTransform(undo.a, undo.b, undo.c, undo.d, undo.e, undo.f);
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;
-      ctx.drawImage(region.current.canvas, 0, 0);
+      ctx.drawImage(made.region.canvas, 0, 0);
       ctx.restore();
     } else {
       ctx.clearRect(0, 0, frame.width, frame.height);
@@ -6863,15 +7056,10 @@ function renderAdjustment(
   // device-scaled px `withLayer` uses for a painted layer — otherwise a preset
   // like "Blur in" would land on a processor with its most characteristic half
   // silently dropped.
-  drawFiltered(ctx, out.canvas, mix.pose.blur > 0.2 ? [{ kind: "blur", px: mix.pose.blur * Math.hypot(m.a, m.b) }] : []);
+  drawFiltered(ctx, made.canvas, mix.pose.blur > 0.2 ? [{ kind: "blur", px: mix.pose.blur * Math.hypot(m.a, m.b) }] : []);
   ctx.restore();
 
-  src.busy = false;
-  graded.busy = false;
-  out.busy = false;
-  if (lights) lights.busy = false;
-  if (region.current) region.current.busy = false;
-  release();
+  made.free();
 }
 
 /** The one small readback canvas the scoped-work probe measures on. */

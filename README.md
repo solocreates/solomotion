@@ -119,11 +119,13 @@ The studio opens at http://localhost:3000.
 | `pnpm test` | Every package's tests |
 | `pnpm typecheck` | The whole workspace |
 | `pnpm build` | Every package and the studio |
+| `pnpm build:desktop` | The desktop app for your platform |
 
 ## Repository
 
 | Package | What it is |
 | --- | --- |
+| [`@solomotion/desktop`](apps/desktop) | The desktop shell: one Electron app, built as whichever product PRODUCT names. |
 | [`@solomotion/web`](apps/web) | The editor: canvas, timeline, inspector, export — one app, any product on the engine. |
 | [`@solomotion/agent`](packages/agent) | The agent runtime: provider dialects, the tool loop, knowledge packs, media generation and feedback folding. Provider- and UI-agnostic. |
 | [`@solomotion/core`](packages/core) | The engine: the document, animation, timeline, effects, physics, rigging, the command API and its agent verbs. Pure data — no DOM, no React; runs in a test, a worker and the exporter alike. |

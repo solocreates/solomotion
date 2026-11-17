@@ -1,7 +1,7 @@
 ---
 name: {{ns}}
 description: How to design, animate and edit inside {{name}} — the motion design and video studio — through its command API. Use for any request to create or change anything in an {{name}} project.
-version: 2.63.1
+version: 2.64.2
 ---
 
 # Working in {{name}}
@@ -77,7 +77,7 @@ Read the references for depth. The non-negotiables:
 - **Hierarchy**: one focal point per moment. Size, weight, colour and motion all agree on what matters most.
 - **Type**: two families at most, a clear scale (see the design system), tight tracking on big display type, generous line height on body. Never set on-screen text under ~3% of the comp's short side for video.
 - **Space**: consistent margins from a grid; keep text inside title-safe (90%). Align edges; do not eyeball what should share an edge — use auto layout.
-- **Measure type, never guess it**: a text's bounds are its line box, not its ink — size pills from measured widths and centre labels optically (see type-and-captions.md › Measure type).
+- **Text is centred in its own box**: a text layer's centre is the middle of its capitals, on every face — centre it on a pill and it is centred. Size pills from measured widths, never from guesses (see type-and-captions.md › Measure type). Text from an older project may be `baseline: "fixed"` and ride high: `text_style {style: {baseline: "centered"}}`.
 - **Motion**: every move has a reason and an easing. Entrances ease **out**, exits ease **in**, moves between two rests ease **in-out**. Stagger 30–80ms per unit. Overlap actions; nothing starts from a dead stop in unison unless that is the point.
 - **Keys are poses, never samples** — someone will edit them. A hop is one `position` key with `arc`, a cut is a `hold`, a camera is a rig; a key on every frame is a defect even inside a script. `keyframes_inspect {}` before you call motion done (`references/keyframing.md`).
 - **Text stays readable on every ground it crosses**: when the scene behind a caption changes (an iris, a cut, a white card passing), the caption changes with it on the same frame, or carries its own pill.

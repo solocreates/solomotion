@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/core",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "The engine: the document, animation, timeline, effects, physics, rigging, the command API and its agent verbs. Pure data — no DOM, no React; runs in a test, a worker and the exporter alike.",
   "private": true,
   "type": "module",

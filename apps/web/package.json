@@ -1,6 +1,6 @@
 {
   "name": "@solomotion/web",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "The editor: canvas, timeline, inspector, export — one app, any product on the engine.",
   "private": true,
   "scripts": {
@@ -63,7 +63,7 @@
     "mediabunny": "1.61.3",
     "mp4-muxer": "^5.2.2",
     "nanoid": "^5.0.9",
-    "next": "^16.4.2",
+    "next": "^16.4.6",
     "opentype.js": "^2.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
