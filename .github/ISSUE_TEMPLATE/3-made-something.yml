@@ -1,0 +1,50 @@
+name: I made something
+description: A video, tutorial, article or post about SoloMotion. We add you to the Creators wall.
+title: "Made with SoloMotion: "
+labels: [showcase]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Making something is the best way to help a project with no marketing budget.
+        Once we have looked at it, you are added to the Creators wall in the README and on the website.
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: Where people can see it.
+      placeholder: https://
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What it is
+      options:
+        - Video
+        - Tutorial
+        - Article
+        - Post
+        - Project or template
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: How it should read on the wall.
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Your name as it should appear
+      description: Leave empty to use your GitHub username.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Listing
+      options:
+        - label: You may list my name, GitHub avatar and this link on the Creators wall.
+          required: true

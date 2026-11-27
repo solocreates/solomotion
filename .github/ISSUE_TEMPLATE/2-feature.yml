@@ -1,0 +1,20 @@
+name: Feature request
+description: Something you need that SoloMotion cannot do yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to make
+      description: Describe the work, not the feature. What is in your way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: How you imagine it working. References to other tools are welcome.
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you work around it now

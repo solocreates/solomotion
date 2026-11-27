@@ -1,0 +1,49 @@
+name: Bug
+description: Something does not work the way it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a new project
+        2. Add a text layer
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the app under Help → About.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where you run it
+      options:
+        - The live app in a browser
+        - Built from source
+        - The MCP bridge (@solomotion/mcp)
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 142, macOS 26
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots, recordings or a project file
+      description: A small project file that shows the problem is the fastest route to a fix.
